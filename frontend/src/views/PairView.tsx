@@ -60,7 +60,7 @@ export function PairView({ pair }: { pair: PairId }) {
       ) : latest.loading ? (
         <Loading label="Loading the forecast" height={420} />
       ) : (
-        <div className={forecast ? "decision" : "decision decision-empty"}>
+        <div className="decision-grid">
           {forecast ? (
             <DecisionHero pair={meta} forecast={forecast} selected={selected} onSelect={setSelected} />
           ) : (

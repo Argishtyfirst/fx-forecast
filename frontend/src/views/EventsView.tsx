@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import type { DecisionOut, PairId, UpcomingMeeting } from "../api/types";
 import { DataStatus } from "../components/DataStatus";
 import { HawkishScale } from "../components/HawkishScale";
+import { MeetingStudy } from "../components/MeetingStudy";
 import { ExternalIcon, MinusIcon, PlusIcon } from "../components/Icons";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { BANK_LABELS, BANK_LONG, BANKS, EVENT_SOURCES, PAIRS, RATE_TYPE_LABELS } from "../lib/constants";
@@ -36,6 +37,7 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
   const decisions = (events.data?.decisions ?? []).filter((d) => !filter || d.bank === filter);
   const upcoming = (events.data?.upcoming ?? []).filter((m) => !filter || m.bank === filter);
   const pairBanks = PAIRS[pair].banks;
+  const study = useApi(`meetings:${pair}`, () => api.meetings(pair, 365));
 
   return (
     <div className="view">
@@ -70,6 +72,16 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
           ))}
         </div>
       </section>
+
+      {study.error ? (
+        <ErrorState title="Could not load the meeting study" error={study.error} onRetry={study.reload} />
+      ) : study.loading ? (
+        <Loading label="Loading the meeting study" height={240} />
+      ) : study.data && study.data.meetings.length > 0 ? (
+        <MeetingStudy study={study.data} pairLabel={PAIRS[pair].label} focusBank={filter} />
+      ) : (
+        <EmptyState title="No meeting study yet">It appears once a meeting has a fix before and after it.</EmptyState>
+      )}
 
       {events.error ? (
         <ErrorState title="Could not load the events" error={events.error} onRetry={events.reload} />

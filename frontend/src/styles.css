@@ -1627,14 +1627,14 @@ dd {
 
 /* --- decision hero + chart --------------------------------------------------------- */
 
-.decision {
+.decision-grid {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 16px;
   align-items: start;
 }
 @media (max-width: 900px) {
-  .decision {
+  .decision-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1907,4 +1907,123 @@ dd {
 .row-selected th,
 .row-selected td {
   background: var(--accent-soft);
+}
+
+/* --- meeting reaction study --------------------------------------------------------- */
+.study {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.study .card-title {
+  margin-bottom: 0;
+}
+.study-banks {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+.study-banks li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+.study-banks li.is-muted {
+  color: var(--muted);
+}
+.study-key {
+  fill: var(--muted);
+  transform: translateY(2px);
+}
+.study-key.is-focus {
+  fill: var(--accent);
+}
+.study-readout {
+  min-height: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.study-readout strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+.study-frame {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.study-frame:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.study-svg {
+  display: block;
+  overflow: visible;
+}
+.study-svg text {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  fill: var(--muted);
+}
+.study-normal {
+  fill: var(--band-95);
+}
+.study-grid {
+  stroke: var(--grid);
+  shape-rendering: crispEdges;
+}
+.study-zero {
+  stroke: var(--baseline);
+  shape-rendering: crispEdges;
+}
+.study-mark {
+  fill: var(--text-2);
+  stroke: var(--text-2);
+}
+.study-mark.is-focus {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.study-mark.is-muted {
+  opacity: 0.35;
+}
+.study-mark.is-active {
+  opacity: 1;
+}
+.study-mark rect,
+.study-mark circle,
+.study-mark path {
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+.study-stem {
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.study-tick-line {
+  stroke-width: 1.5;
+  opacity: 0.8;
+}
+.study-cursor {
+  stroke: var(--hover-rule);
+  shape-rendering: crispEdges;
+}
+
+/* The meetings list scrolls inside its own box, with the header kept in view. */
+.study .table-scroll {
+  max-height: 320px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+.study-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  padding-top: 8px;
 }

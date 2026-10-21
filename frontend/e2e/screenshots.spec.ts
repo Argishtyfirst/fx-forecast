@@ -13,6 +13,7 @@ const VIEWS = [
   { name: "pair-euramd", hash: "#/pair/EURAMD" },
   { name: "drivers", hash: "#/drivers/EURUSD/1M" },
   { name: "events", hash: "#/events/EURUSD" },
+  { name: "events-euramd", hash: "#/events/EURAMD" },
   { name: "backtest", hash: "#/backtest/EURUSD" },
 ];
 const WIDTHS = [1280, 380];

@@ -10,6 +10,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  // The dev server can be slow under a fully parallel run; give assertions room before failing.
+  expect: { timeout: 10_000 },
   use: {
     timezoneId: "UTC",
     locale: "en-GB",

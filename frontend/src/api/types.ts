@@ -280,6 +280,45 @@ export interface EventsResponse {
   upcoming: UpcomingMeeting[]; // soonest first
 }
 
+// --- /api/meetings/{pair}?lookback_days= -------------------------------------------------------
+
+/** How the pair moved around one meeting. Moves in percent. */
+export interface MeetingReactionOut {
+  bank: string;
+  date: IsoDate;
+  surprise_bps: number | null;
+  hawkish_score: number | null;
+  rate_change_bps: number | null;
+  run_up_pct: number | null; // 5 fixes into the meeting
+  reaction_pct: number; // last fix before the decision to the first fix after
+  follow_pct: number | null; // 5 fixes after the reaction
+  expected_sign: number; // +1 a hawkish signal should lift the pair, -1 lower it, 0 no view
+  signal: number; // +1 hawkish (surprise, else tone), -1 dovish, 0 neutral
+  followed: boolean | null; // the reaction went the way the signal implies
+}
+
+export interface BankReactionSummaryOut {
+  bank: string;
+  n: number;
+  mean_abs_reaction_pct: number | null;
+  normal_abs_move_pct: number | null; // median |daily move| on other days
+  reaction_ratio: number | null; // mean |reaction| / normal move
+  mean_run_up_pct: number | null;
+  mean_follow_pct: number | null;
+  n_signed: number;
+  consistency: number | null; // share of signed meetings the reaction followed
+  correlation: number | null;
+}
+
+export interface MeetingStudyResponse {
+  pair: string;
+  as_of: IsoDate;
+  lookback_days: number;
+  window_days: number; // fixes counted for the run-up and the follow-through
+  banks: BankReactionSummaryOut[];
+  meetings: MeetingReactionOut[]; // most recent first
+}
+
 // --- /api/health ----------------------------------------------------------------------------
 
 export interface JobStatus {

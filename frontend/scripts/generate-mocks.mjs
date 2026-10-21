@@ -1010,3 +1010,98 @@ console.log(
   "USDAMD",
   usdamd.horizons.map((h) => `${h.label} ${h.target_date} ${h.model} ${h.center} 80:${h.bands["80"].join("-")} m:${h.meetings.map((m) => m.bank).join(",")}`),
 );
+
+// --- meeting reaction study (GET /api/meetings/{pair}) -------------------------------------------
+// Mirrors backend/src/fxf/events/study.py. Targets match the live study: EUR/USD around the FOMC
+// moved 0.51% on average (about 2.7x a normal day) and followed the surprise or tone 5 of 8 times;
+// EUR/AMD around the FOMC is about 2.95x with no expected direction (USD is in neither leg).
+{
+  const MEETINGS_12M = {
+    FED: ["2025-10-29", "2025-12-10", "2026-01-28", "2026-03-18", "2026-04-29", "2026-06-17", "2026-07-29", "2026-09-16"],
+    ECB: ["2025-10-30", "2025-12-18", "2026-02-05", "2026-03-19", "2026-04-30", "2026-06-11", "2026-07-23", "2026-09-10"],
+    CBA: ["2025-10-28", "2025-12-09", "2026-02-03", "2026-03-17", "2026-04-28", "2026-06-09", "2026-07-28", "2026-10-06"],
+  };
+  const CURRENCY_BANK = { EUR: "ECB", USD: "FED", AMD: "CBA" };
+  // pair -> bank -> [mean |reaction| %, normal |move| %, followed count, neutral (unsigned) count]
+  const TARGETS = {
+    EURUSD: { FED: [0.51, 0.189, 5, 0], ECB: [0.32, 0.2, 4, 1] },
+    USDAMD: { FED: [0.41, 0.178, 5, 0], CBA: [0.33, 0.183, 6, 0] },
+    EURAMD: { FED: [0.6, 0.203, 0, 0], ECB: [0.38, 0.2, 4, 2], CBA: [0.29, 0.193, 5, 1] },
+  };
+  const PAIR_LEGS = { EURUSD: ["EUR", "USD"], USDAMD: ["USD", "AMD"], EURAMD: ["EUR", "AMD"] };
+  const known = Object.fromEntries(decisions.map((d) => [`${d.bank}:${d.date}`, d]));
+  const pearson = (xs, ys) => {
+    const n = xs.length;
+    if (n < 5) return null;
+    const mx = xs.reduce((a, b) => a + b, 0) / n;
+    const my = ys.reduce((a, b) => a + b, 0) / n;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < n; i++) {
+      sxy += (xs[i] - mx) * (ys[i] - my);
+      sxx += (xs[i] - mx) ** 2;
+      syy += (ys[i] - my) ** 2;
+    }
+    return sxx && syy ? round(sxy / Math.sqrt(sxx * syy), 3) : null;
+  };
+  for (const [pair, banks] of Object.entries(TARGETS)) {
+    const [base, quote] = PAIR_LEGS[pair];
+    const rand = mulberry32(pair.length * 977 + pair.charCodeAt(0) * 31);
+    const meetings = [];
+    const summaries = [];
+    for (const [bank, [meanAbs, normal, followedN, neutralN]] of Object.entries(banks)) {
+      const expected = CURRENCY_BANK[base] === bank ? 1 : CURRENCY_BANK[quote] === bank ? -1 : 0;
+      const dates = MEETINGS_12M[bank];
+      const raw = dates.map(() => 0.4 + rand() * 1.2);
+      const scale = (meanAbs * dates.length) / raw.reduce((a, b) => a + b, 0);
+      const rows = dates.map((date, i) => {
+        const ev = known[`${bank}:${date}`];
+        const surprise = ev ? ev.surprise_bps : round((rand() - 0.5) * 8, 1);
+        const tone = ev && ev.hawkish_score !== null ? ev.hawkish_score : round((rand() - 0.5) * 1.2, 2);
+        const neutral = expected !== 0 && i < neutralN;
+        const signal = neutral ? 0 : Math.abs(surprise) >= 1 ? Math.sign(surprise) : Math.abs(tone) >= 0.15 ? Math.sign(tone) : 0;
+        const signed = expected !== 0 && signal !== 0;
+        const signedIndex = signed ? dates.slice(0, i).filter((_, j) => j >= neutralN).length : -1;
+        const follows = signed ? signedIndex < followedN : null;
+        const dir = signed ? (follows ? expected * signal : -expected * signal) : rand() < 0.5 ? -1 : 1;
+        const reaction = round(dir * raw[i] * scale, 3);
+        return {
+          bank,
+          date,
+          surprise_bps: surprise,
+          hawkish_score: tone,
+          rate_change_bps: ev && ev.rate_before !== null ? round((ev.rate_after - ev.rate_before) * 100, 1) : 0,
+          run_up_pct: round((rand() - 0.5) * 0.9, 3),
+          reaction_pct: reaction,
+          follow_pct: date === "2026-10-06" ? null : round((rand() - 0.5) * 1.1, 3),
+          expected_sign: expected,
+          signal: expected === 0 ? signal : signal,
+          followed: signed ? follows : null,
+        };
+      });
+      meetings.push(...rows);
+      const signedRows = rows.filter((r) => r.followed !== null);
+      const mean = (xs) => (xs.length ? round(xs.reduce((a, b) => a + b, 0) / xs.length, 3) : null);
+      const meanAbsReal = mean(rows.map((r) => Math.abs(r.reaction_pct)));
+      summaries.push({
+        bank,
+        n: rows.length,
+        mean_abs_reaction_pct: meanAbsReal,
+        normal_abs_move_pct: normal,
+        reaction_ratio: round(meanAbsReal / normal, 2),
+        mean_run_up_pct: mean(rows.map((r) => r.run_up_pct)),
+        mean_follow_pct: mean(rows.filter((r) => r.follow_pct !== null).map((r) => r.follow_pct)),
+        n_signed: signedRows.length,
+        consistency: signedRows.length ? round(signedRows.filter((r) => r.followed).length / signedRows.length, 3) : null,
+        correlation: signedRows.length
+          ? pearson(signedRows.map((r) => r.expected_sign * r.signal), signedRows.map((r) => r.reaction_pct))
+          : null,
+      });
+    }
+    meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
+    writeFileSync(
+      join(OUT, `meetings.${pair}.json`),
+      JSON.stringify({ pair, as_of: SPOT_DATE, lookback_days: 365, window_days: 5, banks: summaries, meetings }, null, 2) + "\n",
+    );
+    console.log("meetings", pair, summaries.map((b) => `${b.bank} n${b.n} |r|${b.mean_abs_reaction_pct} x${b.reaction_ratio} ${b.n_signed ? Math.round(b.consistency * b.n_signed) + "/" + b.n_signed : "unsigned"}`).join(" | "));
+  }
+}

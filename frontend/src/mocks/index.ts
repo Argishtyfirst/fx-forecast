@@ -9,6 +9,7 @@ import type {
   ForecastRunResponse,
   HealthResponse,
   LatestForecastResponse,
+  MeetingStudyResponse,
   PairsResponse,
   RatesResponse,
 } from "../api/types";
@@ -23,6 +24,9 @@ import runEURAMD from "./forecast-run.EURAMD.json" with { type: "json" };
 import runEURUSD from "./forecast-run.EURUSD.json" with { type: "json" };
 import runUSDAMD from "./forecast-run.USDAMD.json" with { type: "json" };
 import health from "./health.json" with { type: "json" };
+import meetingsEURAMD from "./meetings.EURAMD.json" with { type: "json" };
+import meetingsEURUSD from "./meetings.EURUSD.json" with { type: "json" };
+import meetingsUSDAMD from "./meetings.USDAMD.json" with { type: "json" };
 import pairs from "./pairs.json" with { type: "json" };
 import ratesEURAMD from "./rates.EURAMD.json" with { type: "json" };
 import ratesEURUSD from "./rates.EURUSD.json" with { type: "json" };
@@ -43,6 +47,10 @@ export const fixtures = {
   run: { EURUSD: runEURUSD, USDAMD: runUSDAMD, EURAMD: runEURAMD } as Record<
     string,
     ForecastRunResponse
+  >,
+  meetings: { EURUSD: meetingsEURUSD, USDAMD: meetingsUSDAMD, EURAMD: meetingsEURAMD } as Record<
+    string,
+    MeetingStudyResponse
   >,
   backtests: {
     EURUSD: backtestsEURUSD,
@@ -102,6 +110,10 @@ export function mockApi(url: string): MockResult {
         ? data.metrics.filter((m) => m.horizon_days === Number(horizon))
         : data.metrics;
       return { status: 200, body: { ...data, metrics } };
+    }
+    case "meetings": {
+      const data = fixtures.meetings[pair ?? ""];
+      return data ? { status: 200, body: data } : notFound("No meeting study yet");
     }
     case "events": {
       const bank = q.get("bank");

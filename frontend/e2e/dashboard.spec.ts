@@ -108,6 +108,27 @@ test.describe("EUR/AMD and the FR-17 indicator", () => {
   });
 });
 
+test.describe("Meeting reaction study", () => {
+  test("the EUR/AMD Events view shows the study", async ({ mockedPage: page }) => {
+    await page.goto("/#/events/EURAMD");
+    const study = page.getByTestId("meeting-study");
+    await expect(study.getByRole("heading", { name: "How EUR/AMD moved around meetings, last 12 months" })).toBeVisible();
+    await expect(study.getByTestId("study-takeaway-FED")).toContainText("about 3\u00d7 a normal day, no expected direction");
+    await expect(page.getByTestId("study-mark")).toHaveCount(24);
+    await expect(study.getByTestId("disclaimer")).toHaveText("Statistical estimate. Not financial advice.");
+    const box = (await page.getByTestId("study-chart").boundingBox())!;
+    await page.mouse.move(box.x + box.width - 70, box.y + box.height / 2);
+    await expect(page.locator(".study-readout")).toContainText("reaction");
+  });
+
+  test("380px: the study fits without horizontal page scroll", async ({ mockedPage: page }) => {
+    await page.setViewportSize({ width: 380, height: 800 });
+    await page.goto("/#/events/EURAMD");
+    await expect(page.getByTestId("study-chart")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(380);
+  });
+});
+
 test.describe("380px screen", () => {
   test.use({ viewport: { width: 380, height: 800 } });
   test("EUR/AMD pair view has no horizontal page scroll and the pair switch fits", async ({ mockedPage: page }) => {
