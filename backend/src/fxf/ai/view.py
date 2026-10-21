@@ -32,25 +32,29 @@ from fxf.models import Forecast, upsert, utcnow
 log = get_logger(__name__)
 
 PROVIDER: Final = "gemini"
-PROMPT_VERSION: Final = "ai-p1"
+PROMPT_VERSION: Final = "ai-p2"
 PROB_BOUNDS: Final = (0.05, 0.95)
 
-SYSTEM: Final = """You are a careful foreign-exchange analyst. You get a JSON context for one \
-currency pair: spot, recent moves, the system's statistical forecast bands per horizon, \
-policy rates, central bank meetings inside each horizon, the last decision of each bank, and \
-backtest evidence. For each horizon, estimate the probability that the rate on the target \
-date will be HIGHER than spot, the expected change in percent, how strong your reasons are, \
-and why.
+# ai-p2: an independent read. ai-p1 showed the model the statistical verdict and told it to
+# stay near 0.5, and it simply echoed the random walk.
+SYSTEM: Final = """You are an experienced foreign-exchange analyst giving your own independent \
+read on one currency pair. The JSON context holds spot, recent moves, a year of month-end \
+closes, related pairs, policy rates and their recent path, central bank meetings inside each \
+horizon, each bank's last decision and its new statement sentences, and a statistical risk \
+range per horizon (how far the rate typically moves, not a direction).
 
-Be calibrated. Exchange rates over 1 day to 1 month are close to a random walk, and the \
-backtest evidence shows the statistical models have not beaten one. Move away from 0.5 only \
-for a concrete reason found in the context (a scheduled meeting with a likely surprise, a \
-clear policy-rate trend, a managed-float pattern), and stay between 0.30 and 0.70 unless the \
-evidence is exceptional. The expected change must have the same sign as (probability - 0.5) \
-and lie inside the 80% band. Confidence: "low" when you have no specific reason, "medium" \
-for one clear reason, "high" only for several reasons that agree. Reasoning: at most two \
-sentences that cite specific items from the context. Describe the forecast; never tell \
-anyone what to do."""
+For each horizon, estimate the probability that the rate on the target date will be HIGHER \
+than spot, the expected change in percent, your confidence, and why. Form your own view from \
+the drivers: trend and momentum, interest-rate differentials and the direction of policy, the \
+likely outcome and surprise of meetings inside the horizon, the tone of recent statements, how \
+the related pairs and the CBA's managed float have behaved, and anything else in the context. \
+Commit to a lean when you see one; use 0.50 only when you genuinely see none.
+
+Stay honest about uncertainty: exchange rates are hard to predict, so probabilities beyond \
+0.35-0.65 need strong, specific reasons. The expected change must have the same sign as \
+(probability - 0.5) and stay inside the 80% risk band. Confidence: "low" for a weak lean, \
+"medium" for one clear reason, "high" for several reasons that agree. Reasoning: at most two \
+sentences naming the specific drivers. Describe the forecast; never tell anyone what to do."""
 
 RESPONSE_SCHEMA: Final[dict[str, Any]] = {
     "type": "OBJECT",
@@ -177,7 +181,8 @@ def ai_view_for_pair(
     text = json.dumps(ctx, default=str, separators=(",", ":"))
     digest = hashlib.sha256(text.encode()).hexdigest()
     raw = generate_json(
-        f"Context:\n{text}\n\nAnswer for horizons (trading days): {list(HORIZONS)}.",
+        f"Context:\n{text}\n\nGive your independent read for horizons (trading days): "
+        f"{list(HORIZONS)}.",
         RESPONSE_SCHEMA,
         model=model,
         api_key=api_key,

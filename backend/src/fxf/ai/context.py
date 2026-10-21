@@ -1,8 +1,12 @@
-"""The context the AI view reads: what the dashboard shows for one pair on one run date.
+"""The context the AI view reads for one pair on one run date.
 
-Point-in-time like every other model input (NFR-03): rates on or before the spot date,
-decisions before the run date, and the run's own served forecasts and backtest. It holds
-public market data only.
+It is meant to give an independent read, so it carries the market facts (rates, history,
+related pairs, policy rates and their path, meetings, decisions and statement changes) and
+the risk bands, but not the statistical models' own verdict or backtest scores, which would
+anchor the answer to the random walk.
+
+Point-in-time like every other model input (NFR-03): rates on or before the spot date and
+decisions before the run date. Public market data only.
 """
 
 from __future__ import annotations
@@ -11,20 +15,13 @@ import datetime as dt
 import math
 from typing import Any
 
+import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from fxf.constants import (
-    BACKTEST_WINDOW_DAYS,
-    BANDS,
-    HORIZON_LABELS,
-    MODEL_RW,
-    RUBAMD,
-    WINDOW_RECENT,
-    PairSpec,
-)
+from fxf.constants import BANDS, HORIZON_LABELS, PAIRS, RUBAMD, PairSpec
 from fxf.data_access import load_rates
-from fxf.models import BacktestMetric, CbEvent, Forecast
+from fxf.models import CbEvent, Forecast
 
 HISTORY_DAYS = 90
 MAX_STATEMENT_SENTENCES = 3
@@ -90,36 +87,37 @@ def _last_decisions(
     return out
 
 
-def _evidence(session: Session, pair: str) -> dict[str, Any]:
-    run_date = session.scalar(
-        select(BacktestMetric.run_date)
-        .where(BacktestMetric.pair == pair)
-        .order_by(BacktestMetric.run_date.desc())
-        .limit(1)
-    )
-    if run_date is None:
+def _history(session: Session, pair: str, spot_date: dt.date) -> dict[str, Any]:
+    """A year of month-end closes, the 1-year change and the 52-week range."""
+    s = load_rates(session, pair, start=spot_date - dt.timedelta(days=400), end=spot_date)
+    if len(s) < 2:
         return {}
-    rows = session.scalars(
-        select(BacktestMetric).where(
-            BacktestMetric.pair == pair,
-            BacktestMetric.run_date == run_date,
-            BacktestMetric.window == WINDOW_RECENT,
-            BacktestMetric.model != MODEL_RW,
-        )
-    ).all()
+    year = s[s.index >= pd.Timestamp(spot_date - dt.timedelta(days=365))]
+    month_end = s.groupby(s.index.to_period("M")).last().iloc[-13:]
     return {
-        "note": f"walk-forward backtest over the last {BACKTEST_WINDOW_DAYS} trading days",
-        "models": [
-            {
-                "horizon": HORIZON_LABELS.get(r.horizon_days, f"{r.horizon_days}D"),
-                "model": r.model,
-                "mae_ratio_vs_random_walk": _num(r.mae_ratio_rw, 3),
-                "direction_hit_rate": _num(r.hit_rate, 3),
-                "diebold_mariano_p": _num(r.dm_pvalue, 3),
-            }
-            for r in sorted(rows, key=lambda r: (r.horizon_days, r.model))
-        ],
+        "month_end_closes": {str(k): round(float(v), 4) for k, v in month_end.items()},
+        "change_1y_pct": _pct(float(s.iloc[-1]), float(year.iloc[0])),
+        "low_52w": round(float(year.min()), 4),
+        "high_52w": round(float(year.max()), 4),
     }
+
+
+def _rate_path(session: Session, bank: str, before: dt.date, n: int = 4) -> list[dict[str, Any]]:
+    """The bank's last n decisions: the direction and pace of policy."""
+    rows = session.scalars(
+        select(CbEvent)
+        .where(CbEvent.bank == bank, CbEvent.date < before)
+        .order_by(CbEvent.date.desc())
+        .limit(n)
+    ).all()
+    out = []
+    for ev in reversed(rows):
+        before_v, after_v = _num(ev.rate_before), _num(ev.rate_after)
+        change = (
+            None if before_v is None or after_v is None else round((after_v - before_v) * 100, 1)
+        )
+        out.append({"date": ev.date.isoformat(), "rate_after_pct": after_v, "change_bps": change})
+    return out
 
 
 def build_context(
@@ -140,20 +138,25 @@ def build_context(
         "spot": spot,
         "spot_date": spot_date.isoformat(),
         "recent_moves": _recent_moves(session, pair.id, spot_date),
-        "statistical_forecast": [
+        "history": _history(session, pair.id, spot_date),
+        "related_pairs": {
+            f"{other.base}/{other.quote}": _recent_moves(session, other.id, spot_date)
+            for other in PAIRS.values()
+            if other.id != pair.id
+        },
+        "horizons": [
             {
                 "horizon": HORIZON_LABELS.get(r.horizon_days, f"{r.horizon_days}D"),
                 "days": r.horizon_days,
                 "target_date": r.target_date.isoformat(),
-                "served_model": r.model,
-                "center": _num(r.center),
-                "bands": {
+                # The statistical risk range: how far the rate typically moves, not a direction.
+                "risk_bands": {
                     label: [_num(getattr(r, lo)), _num(getattr(r, hi))]
                     for label, (lo, hi) in BANDS.items()
+                    if label in ("80", "95")
                 },
                 "forward_rate_cip": _num((r.features_json or {}).get("forward_rate")),
                 "central_bank_meetings_inside": r.meetings_in_horizon,
-                "served_reason": (r.features_json or {}).get("served_reason"),
             }
             for r in rows
         ],
@@ -166,8 +169,8 @@ def build_context(
             "hawkish_score": longest.get("hawkish_score"),
             "days_to_next_meeting": longest.get("days_to_next_meeting"),
         },
+        "policy_rate_paths": {bank: _rate_path(session, bank, run_date) for bank in pair.banks},
         "last_decisions": _last_decisions(session, pair.banks, run_date),
-        "backtest_evidence": _evidence(session, pair.id),
     }
     if pair.quote == "AMD":
         ctx["rub_amd_recent_moves"] = _recent_moves(session, RUBAMD, spot_date)

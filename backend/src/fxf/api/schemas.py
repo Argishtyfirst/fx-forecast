@@ -133,6 +133,9 @@ class AiView(BaseModel):
     generated_at: dt.datetime
     prob_better_if_wait: float
     expected_change_pct: float
+    # Its own call for someone selling the base currency, by the same threshold as the
+    # statistical verdict (fxf.api.signal.MIN_EDGE).
+    lean: Literal["sell_now", "wait", "no_edge"]
     confidence: Literal["low", "medium", "high"]
     reasoning: str
     track_record: AiTrackRecord

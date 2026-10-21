@@ -25,7 +25,7 @@ from fxf.api.schemas import (
     HorizonForecast,
     LatestForecastResponse,
 )
-from fxf.api.signal import AiBasis, build_signal, latest_evidence
+from fxf.api.signal import MIN_EDGE, AiBasis, build_signal, latest_evidence
 from fxf.constants import BANDS, DISCLAIMER, HORIZON_LABELS, MODEL_LLM, MODELS, PairSpec
 from fxf.data_access import load_rates
 from fxf.models import Forecast, Rate
@@ -98,6 +98,8 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
     for row in rows:
         llm = (row.features_json or {}).get("llm") or {}
         try:
+            edge = float(llm["prob_higher"]) - 0.5
+            lean = "wait" if edge >= MIN_EDGE else "sell_now" if edge <= -MIN_EDGE else "no_edge"
             out[row.horizon_days] = AiView(
                 provider=llm["provider"],
                 model=llm["model"],
@@ -105,9 +107,12 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
                 generated_at=llm["generated_at"],
                 prob_better_if_wait=llm["prob_higher"],
                 expected_change_pct=llm["expected_change_pct"],
+                lean=lean,
                 confidence=llm["confidence"],
                 reasoning=llm["reasoning"],
-                track_record=track_record(session, pair.id, row.horizon_days, rates),
+                track_record=track_record(
+                    session, pair.id, row.horizon_days, rates, row.model_version
+                ),
             )
         except (KeyError, ValueError):
             continue  # a malformed row is skipped rather than breaking the response

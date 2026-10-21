@@ -23,8 +23,14 @@ from fxf.models import Forecast
 
 
 def track_record(
-    session: Session, pair: str, horizon_days: int, rates: pd.Series | None = None
+    session: Session,
+    pair: str,
+    horizon_days: int,
+    rates: pd.Series | None = None,
+    model_version: str | None = None,
 ) -> AiTrackRecord:
+    """`model_version` ("<model>@<prompt version>") limits the record to one version: a new
+    model or prompt is a new forecaster and starts its record from zero."""
     rates = load_rates(session, pair) if rates is None else rates
     empty = AiTrackRecord(
         n_scored=0,
@@ -45,6 +51,7 @@ def track_record(
             Forecast.horizon_days == horizon_days,
             Forecast.model == MODEL_LLM,
             Forecast.target_date <= last_known,
+            *([Forecast.model_version == model_version] if model_version else []),
         )
         .order_by(Forecast.run_date.desc())
         .limit(BACKTEST_WINDOW_DAYS)

@@ -145,9 +145,9 @@ def test_fr17_ai_view_is_stored_as_unserved_llm_rows(session):
         assert (llm["provider"], llm["model"], llm["prompt_version"]) == (
             "gemini",
             "gemini-test",
-            "ai-p1",
+            "ai-p2",
         )
-        assert r.model_version == "gemini-test@ai-p1"
+        assert r.model_version == "gemini-test@ai-p2"
         assert len(llm["context_sha256"]) == 64
 
     # Idempotent: a rerun replaces the rows instead of adding more.
@@ -205,6 +205,20 @@ def test_nfr03_ai_context_uses_only_data_up_to_the_spot_date(session):
     assert "999" not in json.dumps(ctx)
 
 
+def test_ai_context_leaves_out_the_statistical_verdict(session):
+    """An independent read: no served model, served reason or backtest scores to echo."""
+    seed(session, ("EURAMD",))
+    served = session.scalars(
+        select(Forecast).where(Forecast.pair == "EURAMD", Forecast.served.is_(True))
+    ).all()
+    text = json.dumps(build_context(session, EURAMD, RUN, list(served)))
+    for anchor in ("served_model", "served_reason", "backtest", "random_walk", "no model beats"):
+        assert anchor not in text
+    ctx = build_context(session, EURAMD, RUN, list(served))
+    assert set(ctx["related_pairs"]) == {"EUR/USD", "USD/AMD"}
+    assert ctx["history"]["low_52w"] == pytest.approx(405.92)
+
+
 def _llm_history(session: Session, n: int, good: bool) -> None:
     """n daily 5-day forecasts on a rate rising 0.2% a day; a good AI view expects the rise."""
     start = dt.date(2025, 1, 1)
@@ -223,7 +237,7 @@ def _llm_history(session: Session, n: int, good: bool) -> None:
     for i in range(n):
         run, target = days[i], days[i + 5]
         row = served_row("EURAMD", 5, rate[run], run=run, target=target)
-        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p1"
+        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p2"
         lift = 1.008 if good else 1.0
         row.center = Decimal(str(round(rate[run] * lift, 6)))
         row.features_json = {"llm": {"prob_higher": 0.7 if good else 0.5}}
@@ -246,6 +260,12 @@ def test_fr17_ai_is_promoted_only_after_250_live_forecasts_that_beat_the_random_
     assert tr.mae_ratio_rw < 0.98 and tr.dm_pvalue < 0.10
 
 
+def test_fr17_a_new_prompt_version_starts_its_track_record_from_zero(session):
+    _llm_history(session, 260, good=True)
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p2").n_scored == 250
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p3").n_scored == 0
+
+
 @respx.mock
 def test_fr17_latest_forecast_shows_the_ai_view_beside_the_statistical_verdict(clean_db):
     with Session(clean_db) as s:
@@ -255,6 +275,7 @@ def test_fr17_latest_forecast_shows_the_ai_view_beside_the_statistical_verdict(c
     body = TestClient(create_app(frontend_dist=None)).get("/api/forecasts/EURAMD/latest").json()
     h = body["horizons"][-1]
     assert h["ai_view"]["prob_better_if_wait"] == 0.62
+    assert h["ai_view"]["lean"] == "wait"
     assert h["ai_view"]["track_record"] == {
         "n_scored": 0,
         "required": 250,
