@@ -104,14 +104,16 @@ export const SIGNALS = {
 } satisfies Record<string, ConversionSignal>;
 
 export const AI_VIEWS = {
-  /** The realistic default: nothing scored yet. */
+  /** The realistic default for 1M: leans wait at 58%, nothing scored yet. */
   unproven: aiView("1M", {}),
+  sellNow: aiView("1M", { prob_better_if_wait: 0.41, expected_change_pct: -0.31, lean: "sell_now", confidence: "high" }),
+  noLean: aiView("1M", { prob_better_if_wait: 0.52, expected_change_pct: 0.03, lean: "no_edge", confidence: "low" }),
   /** Some live forecasts scored, not yet enough to apply the promotion rule. */
   scored: aiView("1M", {}, { n_scored: 37, hit_rate: 0.541, mae_ratio_rw: 0.993, dm_pvalue: 0.41, brier: 0.243 }),
   /** Met the promotion rule on its live record: it decides the verdict. */
   promoted: aiView(
     "1M",
-    { prob_better_if_wait: 0.57, expected_change_pct: 0.21, confidence: "medium" },
+    { prob_better_if_wait: 0.57, expected_change_pct: 0.21, lean: "wait", confidence: "medium" },
     { n_scored: 263, hit_rate: 0.57, mae_ratio_rw: 0.962, dm_pvalue: 0.06, brier: 0.231, promoted: true },
   ),
 } satisfies Record<string, AiView>;

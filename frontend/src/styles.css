@@ -1338,80 +1338,47 @@ dd {
   color: var(--text-2);
   line-height: 1.5;
 }
-.ai-view {
-  margin-top: 6px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+.ai-headline {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 12.5px;
-  color: var(--text-2);
-}
-.ai-summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.ai-summary::-webkit-details-marker {
-  display: none;
-}
-.ai-view[open] .ai-status {
-  display: none;
-}
-.ai-view > p:first-of-type {
-  margin-top: 2px;
-}
-.ai-status {
-  color: var(--muted);
-}
-.ai-label {
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.ai-label::after {
-  content: "+";
-  font-family: var(--font-mono);
-  margin-left: 8px;
-  color: var(--faint);
-}
-.ai-view[open] .ai-label::after {
-  content: "\2212";
-}
-.ai-experimental {
-  color: var(--faint);
-}
-.ai-prob .num {
-  color: var(--text);
-  font-weight: 500;
-}
-.ai-confidence {
-  color: var(--muted);
-}
-.ai-sep {
-  color: var(--faint);
+  gap: 8px;
 }
 .ai-reasoning {
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text-2);
 }
-.ai-meta {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--faint);
-}
-.ai-track {
-  font-size: 12px;
+.ai-tag {
+  align-self: flex-start;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--muted);
+  background: var(--bg-inset);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: help;
 }
-.ai-view[data-promoted="true"] .ai-track {
+.ai-headline[data-promoted="true"] .ai-tag {
   color: var(--text-2);
+}
+.signal-stat {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.signal-stat-head {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.signal-stat .signal-risk-value {
+  font-size: inherit;
+  color: var(--text-2);
+}
+.signal-stat .sep {
+  color: var(--faint);
 }
 .ai-off {
   font-size: 12.5px;

@@ -140,6 +140,8 @@ export interface AiView {
   generated_at: IsoDateTime;
   prob_better_if_wait: number;
   expected_change_pct: number;
+  /** Its own call for someone selling the base, by the same 5-point threshold as the verdict. */
+  lean: SignalAction;
   confidence: AiConfidence;
   reasoning: string;
   track_record: AiTrackRecord;

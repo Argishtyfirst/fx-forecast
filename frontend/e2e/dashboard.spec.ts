@@ -82,20 +82,22 @@ test.describe("EUR/AMD and the FR-17 indicator", () => {
     const panel = page.getByTestId("signal-panel");
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("heading", { name: "Sell EUR now?" })).toBeVisible();
-    for (const label of ["1D", "1W", "1M"]) {
+    // The AI view's own call leads each horizon, with an honest experimental tag.
+    const expected = { "1D": ["Yes, sell now", "44%"], "1W": ["No clear lean", "52%"], "1M": ["Wait", "58%"] };
+    for (const [label, [verdict, pct]] of Object.entries(expected)) {
       const row = page.getByTestId(`signal-${label}`);
-      await expect(row.getByTestId("signal-verdict")).toHaveText("No clear edge");
-      await expect(row.getByTestId("signal-lead")).toHaveText(`Waiting ${label} doesn\u2019t improve your expected rate`);
-      await expect(row.getByTestId("signal-risk")).toContainText("AMD per \u20ac");
-      await expect(row.getByTestId("signal-interest")).toContainText("Holding AMD pays ~4.50%/yr more than EUR");
-      await expect(row.getByTestId("signal-prob")).toHaveText(`50% chance of a better rate if you wait ${label}`);
-      const ai = row.getByTestId("ai-view");
-      await expect(ai).toContainText("AI view");
-      await expect(ai).toContainText("experimental");
-      await expect(ai.getByTestId("ai-track")).toHaveText(
-        "Live track record: 0 of 250 forecasts scored. Unproven, does not decide the verdict.",
-      );
+      await expect(row.getByTestId("signal-verdict")).toHaveText(verdict);
+      await expect(row.getByTestId("signal-prob")).toHaveText(`${pct} chance of a better rate if you wait ${label}`);
+      const tag = row.getByTestId("ai-tag");
+      await expect(tag).toContainText("AI view");
+      await expect(tag).toContainText("experimental");
+      await expect(tag).toContainText("unproven (0 of 250 forecasts scored)");
+      const stat = row.getByTestId("signal-stat");
+      await expect(stat).toContainText("Statistical models: no proven edge");
+      await expect(stat).toContainText("AMD per \u20ac");
+      await expect(stat).toContainText("AMD pays ~4.50%/yr more than EUR");
     }
+    await expect(panel).not.toContainText("50% chance");
     await expect(panel.getByTestId("disclaimer")).toHaveText("Statistical estimate. Not financial advice.");
     // The indicator sits above the fan chart.
     const panelBox = (await panel.boundingBox())!;
@@ -121,14 +123,15 @@ test.describe("380px screen", () => {
     // One horizon at a time on a phone: 1M first, the others behind the horizon switch.
     await expect(page.getByTestId("signal-1M")).toBeVisible();
     await expect(page.getByTestId("signal-1D")).toBeHidden();
-    await expect(page.getByTestId("signal-1M").getByText("experimental")).toBeVisible();
+    await expect(page.getByTestId("signal-1M").getByTestId("ai-tag")).toContainText("experimental");
+    await expect(page.getByTestId("signal-1M").getByTestId("ai-tag")).toBeVisible();
     await page.getByRole("group", { name: "Signal horizon" }).getByRole("button", { name: "1W" }).click();
     await expect(page.getByTestId("signal-1W")).toBeVisible();
     await expect(page.getByTestId("signal-1M")).toBeHidden();
     // The panel stays compact: the fan chart starts well within two screens of the top.
     const chartTop = await page.getByTestId("fan-chart").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
     expect(chartTop).toBeLessThan(1500);
-    await page.getByTestId("signal-1W").getByText("Evidence behind the verdict").click();
+    await page.getByTestId("signal-1W").getByText("Evidence", { exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(380);
     const sw = (await page.getByRole("group", { name: "Currency pair" }).boundingBox())!;
     expect(sw.x).toBeGreaterThanOrEqual(0);

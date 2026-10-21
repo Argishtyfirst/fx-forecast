@@ -699,24 +699,26 @@ const PAIR_RATES = {
 };
 const fmtRange = (lo, hi, dp) => `${lo.toFixed(dp)}\u2013${hi.toFixed(dp)}`;
 
-// Experimental AI view: unproven (no live forecast scored yet), mildly off even odds.
+// Experimental AI view (prompt ai-p2): an independent read, unproven (nothing scored yet).
+// It leans more often than the random walk; the lean uses the same 5-point threshold.
 const AI_VIEWS = {
   EURUSD: {
     1: [0.49, -0.01, "low", "One trading day is mostly noise, and no Fed or ECB decision lands before the target date. Close to even odds."],
-    5: [0.47, -0.06, "low", "The Fed decides on 28 Oct, the 1W target date. A cut is largely priced in, so the risk is a less dovish message that would support the dollar, a slight tilt against waiting."],
-    21: [0.52, 0.04, "low", "The ECB holds at 2% while the Fed eases, which narrows the rate gap in the euro's favour. That is offset by the euro already sitting near the top of its 90-day range."],
+    5: [0.45, -0.09, "low", "The Fed decides on 28 Oct, the 1W target date. A cut is largely priced in, so the bigger risk is a less dovish message that supports the dollar, which argues against waiting."],
+    21: [0.55, 0.1, "low", "The ECB holds at 2% while the Fed eases, which narrows the rate gap in the euro's favour over a month. The euro already sits near the top of its 90-day range, which limits the upside."],
   },
   USDAMD: {
     1: [0.49, -0.01, "low", "One day is mostly noise for a managed rate; the CBA fixing has moved less than 0.3% on most recent days."],
-    5: [0.46, -0.07, "low", "The Fed meets on 28 Oct with a further cut expected, which tends to weigh on the dollar. The CBA's own cut on 6 Oct limits the effect."],
-    21: [0.54, 0.09, "medium", "The CBA's easing bias and the narrower CBA-Fed rate gap tilt slightly toward a weaker dram over a month, though the CBA has leaned against sharp moves before."],
+    5: [0.44, -0.1, "low", "The Fed meets on 28 Oct with a further cut expected, which tends to weigh on the dollar against the dram in the days around the decision."],
+    21: [0.57, 0.12, "medium", "The CBA's easing bias and the narrower CBA-Fed rate gap point to a slightly weaker dram over a month, though the CBA has leaned against sharp moves before."],
   },
   EURAMD: {
-    1: [0.48, -0.02, "low", "A single trading day is mostly noise. No meeting falls before the target date, and the rate sits mid-range, so the odds are close to even with a slight tilt toward the recent dram firmness continuing."],
-    5: [0.53, 0.05, "low", "The CBA cut on 6 Oct and the wide CBA-ECB rate gap make the dram slightly less attractive to hold. The Fed and ECB meetings on 28 and 29 Oct add risk both ways."],
-    21: [0.56, 0.18, "medium", "Over a month the CBA's easing bias points to mild dram weakness, but the dram has been resilient and the forward rate already prices most of the rate gap. A small lean toward waiting, with wide uncertainty."],
+    1: [0.44, -0.08, "low", "The dram firmed over the last week and nothing is scheduled before tomorrow's fixing, so the AI expects a little more of the same, which argues for converting now."],
+    5: [0.52, 0.03, "low", "The Fed and ECB meetings on 28 and 29 Oct add risk both ways. The AI sees no clear lean over one week."],
+    21: [0.58, 0.21, "medium", "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better EUR/AMD rate is more likely than not. The dram has been resilient, so the edge is small."],
   },
 };
+const leanOf = (p) => (Math.abs(p - 0.5) < 0.05 - 1e-9 ? "no_edge" : p > 0.5 ? "wait" : "sell_now");
 
 function attachSignals(latest, bt) {
   const meta = PAIR_RATES[latest.pair];
@@ -761,10 +763,11 @@ function attachSignals(latest, bt) {
     h.ai_view = {
       provider: "gemini",
       model: "gemini-3.5-flash-lite",
-      prompt_version: "ai-v1",
+      prompt_version: "ai-p2",
       generated_at: "2026-10-21T15:39:20Z",
       prob_better_if_wait: p,
       expected_change_pct: chg,
+      lean: leanOf(p),
       confidence,
       reasoning,
       track_record: {
