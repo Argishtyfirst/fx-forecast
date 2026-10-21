@@ -11,8 +11,8 @@ Backtest run 2026-10-21. Target: the 80% band holds 75-85% of outcomes.
 | EUR/USD | 1D | random_walk | 79.6% | 49.2% | 94.8% | lightgbm (1.015, 0.89) |
 | EUR/USD | 1W | random_walk | 78.8% | 43.6% | 94.4% | forward (1.001, 0.57) |
 | EUR/USD | 1M | random_walk | 77.2% | 44.8% | 95.6% | forward (1.011, 0.66) |
-| USD/AMD | 1D | random_walk | 79.6% | 52.4% | 94.0% | lightgbm (1.006, 0.56) |
-| USD/AMD | 1W | random_walk | 79.6% | 44.0% | 96.8% | forward (1.256, 1.00) |
+| USD/AMD | 1D | random_walk | 79.6% | 53.6% | 94.0% | lightgbm (1.006, 0.56) |
+| USD/AMD | 1W | random_walk | 80.0% | 44.0% | 97.2% | forward (1.256, 1.00) |
 | USD/AMD | 1M | random_walk | 78.4% | 40.0% | 90.4% | lightgbm (0.974, 0.42) |
 | EUR/AMD | 1D | random_walk | 82.8% | 54.8% | 96.0% | lightgbm (1.051, 1.00) |
 | EUR/AMD | 1W | random_walk | 84.4% | 52.8% | 98.4% | forward (1.020, 0.92) |
@@ -49,8 +49,8 @@ Model and prompt: gemini-3.5-flash-lite@ai-p3.
 | ecb_rss | 2026-10-21 17:35 | success |
 | cba_news | 2026-10-21 13:14 | success |
 | atlanta_fed | 2026-10-21 13:13 | success |
-| forecast | 2026-10-21 18:05 | success |
-| backtest | 2026-10-21 18:05 | success |
+| forecast | 2026-10-21 18:23 | success |
+| backtest | 2026-10-21 18:23 | success |
 | score_statements | 2026-10-21 17:38 | success |
 | ai_view | 2026-10-21 17:46 | success |
-| ai_analysis | 2026-10-21 18:14 | success |
+| ai_analysis | 2026-10-21 18:31 | success |
