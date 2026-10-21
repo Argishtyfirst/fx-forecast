@@ -236,3 +236,54 @@ def test_year_fraction_convention_documented():
 
     assert "h / 252" in forward.__doc__
     assert dt.date(2026, 1, 1)  # module imports cleanly
+
+
+def test_combined_ratio_shrinks_recent_toward_long_run():
+    from fxf.forecast.widening import shrink_ratio
+
+    assert shrink_ratio(4.0, 8, 1.0, 8.0) == pytest.approx(2.5)
+    assert shrink_ratio(None, 0, 1.7, 8.0) == pytest.approx(1.7)
+    assert shrink_ratio(3.0, 0, 1.2, 8.0) == pytest.approx(1.2)
+
+
+def test_combined_ratio_uses_the_last_year_and_the_long_window():
+    n = 2000
+    r = np.full(n, 0.01)
+    r[0] = np.nan
+    rng = np.random.default_rng(0)
+    r[1:] *= rng.choice([-1.0, 1.0], n - 1)
+    impacts = np.arange(30, n, 40)  # 50 meetings
+    old = impacts[impacts < n - 252]
+    recent = impacts[impacts >= n - 252]
+    r[old] *= 0.5  # quiet meeting days long ago (variance ratio 0.25)
+    r[recent] *= 2.0  # loud meeting days in the last year (variance ratio 4)
+    est = EventRatios(r, {"CBA": impacts}, impacts)
+    c = est.combined("CBA", 1, n - 1, recent_days=252, prior_meetings=8.0, recent_min_normal=100)
+    assert c["n_recent"] == len(recent)
+    assert c["ratio_recent"] == pytest.approx(4.0)
+    long = est.stats("CBA", 1, n - 1)["ratio"]
+    assert c["ratio_long"] == pytest.approx(long)
+    assert c["ratio"] == pytest.approx((len(recent) * 4.0 + 8 * long) / (len(recent) + 8))
+    assert long < 1 < c["ratio"]
+    # walk-forward: a later shock does not move the ratio at an earlier origin
+    r2 = r.copy()
+    r2[1500:] *= 10
+    est2 = EventRatios(r2, {"CBA": impacts}, impacts)
+    a = est.combined("CBA", 1, 1400)
+    b = est2.combined("CBA", 1, 1400)
+    assert a == b
+
+
+def test_combined_ratio_without_long_run_history_uses_a_neutral_prior():
+    r = np.full(400, 0.01)
+    r[0] = np.nan
+    impacts = np.array([150, 250, 350])
+    r[impacts] *= 3.0  # 3 loud meetings: too few for a long-run ratio
+    est = EventRatios(r, {"ECB": impacts}, impacts)
+    c = est.combined("ECB", 1, 399, recent_days=252, prior_meetings=8.0, recent_min_normal=100)
+    assert c["ratio_long"] is None
+    assert c["ratio"] == pytest.approx((3 * 9.0 + 8 * 1.0) / 11)
+    none = EventRatios(
+        np.full(400, 0.01), {"ECB": np.array([], dtype=int)}, np.array([], dtype=int)
+    )
+    assert none.combined("ECB", 1, 399)["ratio"] is None

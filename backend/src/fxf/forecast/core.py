@@ -285,7 +285,17 @@ def walk_forward(
         vol_arr[k] = garch.annualised_vol(path)
 
         elo = data.window_start(i, ewin)
-        ratio_stats = {b: data.event_ratios.stats(b, elo, i) for b in banks}
+        ratio_stats = {
+            b: data.event_ratios.combined(
+                b,
+                elo,
+                i,
+                recent_days=params.EVENT_RECENT_DAYS,
+                prior_meetings=params.EVENT_PRIOR_MEETINGS,
+                recent_min_normal=params.EVENT_RECENT_MIN_NORMAL,
+            )
+            for b in banks
+        }
         ratios = {b: ratio_stats[b]["ratio"] for b in banks}
         if detail:
             garch_detail.append(
@@ -294,7 +304,6 @@ def walk_forward(
                     "window_start": data.dates[fit_window[0]].date().isoformat(),
                     "window_end": data.dates[fit_window[1]].date().isoformat(),
                     "fit_origin": data.dates[last_fit].date().isoformat(),
-                    "event_ratios": ratio_stats,
                 }
             )
 
@@ -331,6 +340,8 @@ def walk_forward(
                         "empirical_check": emp_info,
                         "event_widening": {
                             "ratios": ratios,
+                            # per bank: ratio_recent, n_recent, ratio_long, n_long, K
+                            "ratio_detail": ratio_stats,
                             "meetings": [
                                 {
                                     "bank": str(bk),

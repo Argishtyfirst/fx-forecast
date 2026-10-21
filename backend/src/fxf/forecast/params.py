@@ -51,6 +51,11 @@ LGBM_REFIT_EVERY: Final = 63
 # Fewer impact days than this in the window gives no widening for that bank.
 EVENT_MIN_MEETINGS: Final = 8
 EVENT_MIN_NORMAL_DAYS: Final = 100
+# Recency weighting: the ratio over the last 252 trading days, shrunk toward the long-run
+# ratio with a prior worth K = 8 meetings (about one year of a bank's meetings).
+EVENT_RECENT_DAYS: Final = 252
+EVENT_PRIOR_MEETINGS: Final = 8.0
+EVENT_RECENT_MIN_NORMAL: Final = 100
 
 # --- 1M empirical quantile check ---------------------------------------------------
 # Overlapping 21-day log returns over the last 252 trading days (1 year, the length of the

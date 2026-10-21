@@ -69,9 +69,10 @@ EXTRA_FEATURES_JSON_KEYS: dict[str, str] = {
 MODEL_INPUTS_KEYS: dict[str, str] = {
     "as_of": "{cutoff, rates_through, aux_rates_through, macro_published_at: {series: ts},"
     " cb_events_through[, labels_through]}: latest timestamp of every input (NFR-03)",
-    "garch": "GARCH(1,1)-t parameters (percent^2 units), fit window and event variance ratios",
-    "event_widening": "{ratios: {bank: ratio}, meetings: [{bank, date, impact_step,"
-    " impact_date, ratio, extra_variance}]}",
+    "garch": "GARCH(1,1)-t parameters (percent^2 units) and fit window",
+    "event_widening": "{ratios: {bank: combined ratio}, ratio_detail: {bank: {ratio (combined),"
+    " ratio_recent, n_recent, ratio_long, n_long, prior_meetings}}, meetings: [{bank, date,"
+    " impact_step, impact_date, ratio, extra_variance}]} (fxf.forecast.widening)",
     "horizon_dates": "the h trading dates after the spot date",
     "mu": "predicted h-day log return of this model",
     "forward": "forward rows only: {i_base_pct, i_quote_pct, base_series, quote_series, tau}",

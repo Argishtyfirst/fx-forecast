@@ -11,8 +11,9 @@ For a meeting on day d:
     reaction  log(impact / pre): the move around the decision.
     follow    log(the fix RUN_DAYS trading days after impact / impact): drift afterwards.
 
-All moves are in percent. The normal-day reference is the median absolute daily move over
-the same window, excluding impact days.
+All moves are in percent. The normal-day reference is the mean absolute daily move over the
+same window, excluding impact days, so reaction_ratio compares like with like (mean against
+mean; daily moves have fat tails, so a mean against a median would overstate every ratio).
 
 Direction: a hawkish surprise (or, with no rate surprise, a hawkish statement) should lift
 the bank's currency. That means up for the pair when the bank's currency is the base, down
@@ -169,7 +170,7 @@ def study(
     in_window = np.nonzero(dates > np.datetime64(start.date(), "D"))[0]
     rets = np.abs(np.diff(np.log(values))) * 100.0  # rets[i-1] is the move into fix i
     normal = [rets[i - 1] for i in in_window if i > 0 and i not in impact_idx]
-    normal_move = round(float(np.median(normal)), 4) if normal else None
+    normal_move = round(float(np.mean(normal)), 4) if normal else None
 
     summaries = []
     for bank in pair.banks:

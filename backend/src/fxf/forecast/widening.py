@@ -10,6 +10,16 @@ For each meeting inside the horizon:
 
     extra variance += (max(ratio, 1) - 1) * daily variance forecast of its impact day
 
+The ratio is recency-weighted (walk-forward, data <= t only):
+
+    ratio_recent = ratio over the last params.EVENT_RECENT_DAYS trading days (n_recent meetings)
+    ratio_long   = ratio over the GARCH window (expanding for EUR/USD, 1000 days for AMD pairs)
+    combined     = (n_recent * ratio_recent + K * ratio_long) / (n_recent + K)
+
+with K = params.EVENT_PRIOR_MEETINGS: the long-run ratio acts as a prior worth K meetings, so
+a year of ~8 meetings weighs about as much as the whole history. Without a long-run ratio
+(too few meetings in the calendar) the prior is 1 (no meeting effect).
+
 A meeting whose impact day falls after the target date (a meeting on the target date) adds
 its extra variance on the last day of the horizon. FR-12 widens whenever a meeting is inside
 the horizon, and ECB and CBA decisions come out around the fixing time, so they can reach the
@@ -101,8 +111,18 @@ class EventRatios:
             self._bank_sq[bank] = np.concatenate([[0.0], np.cumsum(sq * ind)])
             self._bank_n[bank] = np.concatenate([[0.0], np.cumsum(ind)])
 
-    def stats(self, bank: str, lo: int, hi: int) -> dict[str, float | int | None]:
+    def stats(
+        self,
+        bank: str,
+        lo: int,
+        hi: int,
+        *,
+        min_meetings: int | None = None,
+        min_normal: int | None = None,
+    ) -> dict[str, float | int | None]:
         """Ratio over returns lo..hi inclusive, with its inputs."""
+        min_meetings = self.min_meetings if min_meetings is None else min_meetings
+        min_normal = self.min_normal if min_normal is None else min_normal
         if bank not in self._bank_n:
             return {"ratio": None, "n_meetings": 0, "n_normal": 0}
         lo = max(lo, min(self._bank_first[bank], hi + 1))
@@ -111,13 +131,57 @@ class EventRatios:
         bn = self._bank_n[bank][hi + 1] - self._bank_n[bank][lo]
         bs = self._bank_sq[bank][hi + 1] - self._bank_sq[bank][lo]
         ratio: float | None = None
-        if bn >= self.min_meetings and nn >= self.min_normal and ns > 0:
+        if bn >= max(min_meetings, 1) and nn >= min_normal and ns > 0:
             ratio = float((bs / bn) / (ns / nn))
         return {"ratio": ratio, "n_meetings": int(bn), "n_normal": int(nn)}
 
     def ratio(self, bank: str, lo: int, hi: int) -> float | None:
         r = self.stats(bank, lo, hi)["ratio"]
         return None if r is None else float(r)
+
+    def combined(
+        self,
+        bank: str,
+        lo_long: int,
+        hi: int,
+        *,
+        recent_days: int = params.EVENT_RECENT_DAYS,
+        prior_meetings: float = params.EVENT_PRIOR_MEETINGS,
+        recent_min_normal: int = params.EVENT_RECENT_MIN_NORMAL,
+    ) -> dict[str, float | int | None]:
+        """Recency-weighted ratio at origin hi (returns lo_long..hi), see the module docstring."""
+        long = self.stats(bank, lo_long, hi)
+        recent = self.stats(
+            bank,
+            max(lo_long, hi - recent_days + 1),
+            hi,
+            min_meetings=1,
+            min_normal=recent_min_normal,
+        )
+        r_long = long["ratio"]
+        r_recent = recent["ratio"]
+        n_recent = int(recent["n_meetings"]) if r_recent is not None else 0
+        prior = 1.0 if r_long is None else float(r_long)
+        combined = shrink_ratio(r_recent, n_recent, prior, prior_meetings)
+        if r_long is None and n_recent == 0:
+            combined = None
+        return {
+            "ratio": combined,
+            "ratio_recent": r_recent,
+            "n_recent": n_recent,
+            "ratio_long": r_long,
+            "n_long": int(long["n_meetings"]),
+            "prior_meetings": prior_meetings,
+        }
+
+
+def shrink_ratio(
+    ratio_recent: float | None, n_recent: int, prior: float, prior_meetings: float
+) -> float:
+    """(n_recent * ratio_recent + K * prior) / (n_recent + K); the prior alone without data."""
+    if ratio_recent is None or n_recent <= 0:
+        return float(prior)
+    return float((n_recent * ratio_recent + prior_meetings * prior) / (n_recent + prior_meetings))
 
 
 def variance_ratio(returns: np.ndarray, event_mask: np.ndarray, normal_mask: np.ndarray) -> float:

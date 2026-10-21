@@ -297,7 +297,7 @@ class BankReactionSummaryOut(BaseModel):
     bank: str
     n: int
     mean_abs_reaction_pct: float | None
-    normal_abs_move_pct: float | None  # median |daily move| on other days
+    normal_abs_move_pct: float | None  # mean |daily move| on other days
     reaction_ratio: float | None  # mean |reaction| / normal move
     mean_run_up_pct: float | None
     mean_follow_pct: float | None
