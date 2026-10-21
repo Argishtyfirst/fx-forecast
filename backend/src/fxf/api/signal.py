@@ -154,9 +154,7 @@ def build_signal(
     spot = float(row.spot)
     label = HORIZON_LABELS.get(row.horizon_days, f"{row.horizon_days}D")
     lo, hi = float(row.q10), float(row.q90)
-    risk = (
-        f"80% of the time you'd get {_fmt(lo, spot)}–{_fmt(hi, spot)} {pair.quote} per {pair.base}."
-    )
+    risk = f"80% of the time you'd get {_fmt(lo, spot)} to {_fmt(hi, spot)} {pair.quote} per {pair.base}."
     c = carry(pair, row)
     interest = _carry_sentence(pair, label, spot, c)
 

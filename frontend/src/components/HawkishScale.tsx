@@ -15,7 +15,7 @@ export function HawkishScale({ score, compact = false }: { score: number | null 
   const clamped = has ? Math.max(-1, Math.min(1, score as number)) : 0;
   const pos = ((clamped + 1) / 2) * 100;
   const label = hawkishLabel(score);
-  const signed = has ? `${(score as number) > 0 ? "+" : ""}${fmtNum(score as number, 2)}` : "—";
+  const signed = has ? `${(score as number) > 0 ? "+" : ""}${fmtNum(score as number, 2)}` : "n/a";
   return (
     <div
       className={compact ? "hscale hscale-compact" : "hscale"}

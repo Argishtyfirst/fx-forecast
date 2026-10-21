@@ -173,7 +173,7 @@ function DriverPanels({ pair, h, spot }: { pair: PairId; h: HorizonForecast; spo
           </div>
           <div>
             <dt>Forward vs spot</dt>
-            <dd className="num">{fwdVsSpot === null ? "—" : `${fmtSigned(fwdVsSpot * 100, 2)}%`}</dd>
+            <dd className="num">{fwdVsSpot === null ? "n/a" : `${fmtSigned(fwdVsSpot * 100, 2)}%`}</dd>
           </div>
         </dl>
       </section>
@@ -189,7 +189,7 @@ function DriverPanels({ pair, h, spot }: { pair: PairId; h: HorizonForecast; spo
         <dl className="kv">
           <div>
             <dt>Horizon sigma</dt>
-            <dd className="num">{sigma === null ? "—" : `${fmtNum(sigma * 100, 2)}%`}</dd>
+            <dd className="num">{sigma === null ? "n/a" : `${fmtNum(sigma * 100, 2)}%`}</dd>
           </div>
           <div>
             <dt>Event widening</dt>

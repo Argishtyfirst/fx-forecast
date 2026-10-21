@@ -76,7 +76,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 402.87–407.22 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 0.07 AMD per EUR over 1D)."
+        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 402.87 to 407.22 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 0.07 AMD per EUR over 1D)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -84,7 +84,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.44,
-        "expected_change_pct": -0.08,
+        "expected_change_pct": -0.071,
+        "center": 404.752,
+        "band80": [
+          402.587,
+          406.929
+        ],
         "lean": "sell_now",
         "confidence": "low",
         "reasoning": "The dram firmed over the last week and nothing is scheduled before tomorrow's fixing, so the AI expects a little more of the same, which argues for converting now.",
@@ -175,7 +180,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 399.82–410.33 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 0.36 AMD per EUR over 1W)."
+        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 399.82 to 410.33 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 0.36 AMD per EUR over 1W)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -183,7 +188,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.52,
-        "expected_change_pct": 0.03,
+        "expected_change_pct": 0.057,
+        "center": 405.271,
+        "band80": [
+          400.046,
+          410.564
+        ],
         "lean": "no_edge",
         "confidence": "low",
         "reasoning": "The Fed and ECB meetings on 28 and 29 Oct add risk both ways. The AI sees no clear lean over one week.",
@@ -278,7 +288,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 394.73–415.62 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 1.52 AMD per EUR over 1M)."
+        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 394.73 to 415.62 AMD per EUR. Holding AMD pays about 4.50%/yr more than EUR at policy rates (about 1.52 AMD per EUR over 1M)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -286,7 +296,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.58,
-        "expected_change_pct": 0.21,
+        "expected_change_pct": 0.455,
+        "center": 406.883,
+        "band80": [
+          396.529,
+          417.507
+        ],
         "lean": "wait",
         "confidence": "medium",
         "reasoning": "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better EUR/AMD rate is more likely than not. The dram has been resilient, so the edge is small.",

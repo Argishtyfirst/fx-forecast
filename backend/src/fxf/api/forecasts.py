@@ -109,6 +109,8 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
                 generated_at=llm["generated_at"],
                 prob_better_if_wait=llm["prob_higher"],
                 expected_change_pct=llm["expected_change_pct"],
+                center=float(row.center),
+                band80=(float(row.q10), float(row.q90)),
                 lean=lean,
                 confidence=llm["confidence"],
                 reasoning=llm["reasoning"],

@@ -140,6 +140,10 @@ export interface AiView {
   generated_at: IsoDateTime;
   prob_better_if_wait: number;
   expected_change_pct: number;
+  /** The AI's expected rate at the target date. */
+  center: number;
+  /** The 80% range re-centred on the AI's expectation: [low, high]. */
+  band80: [number, number];
   /** Its own call for someone selling the base, by the same 5-point threshold as the verdict. */
   lean: SignalAction;
   confidence: AiConfidence;

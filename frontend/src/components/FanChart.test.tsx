@@ -6,11 +6,18 @@ import { historyWindow } from "../lib/fan";
 import { fixtures } from "../mocks";
 import { FanChart } from "./FanChart";
 
-function renderChart(pair: PairId = "EURUSD", width = 900) {
+function renderChart(pair: PairId = "EURUSD", width = 900, selected?: string) {
   const forecast = fixtures.latest[pair];
   const history = historyWindow(fixtures.rates[pair].rates, forecast.spot_date, 90);
   return render(
-    <FanChart pairLabel={PAIRS[pair].label} decimals={PAIRS[pair].decimals} history={history} forecast={forecast} width={width} />,
+    <FanChart
+      pairLabel={PAIRS[pair].label}
+      decimals={PAIRS[pair].decimals}
+      history={history}
+      forecast={forecast}
+      selected={selected}
+      width={width}
+    />,
   );
 }
 
@@ -61,7 +68,7 @@ describe("FanChart", () => {
     const svg = screen.getByRole("img", { name: /EUR\/USD fan chart/ });
     const label = svg.getAttribute("aria-label")!;
     expect(label).toContain("90 trading days of history");
-    expect(label).toContain("80% ranges: 1D to 22 Oct 2026: 1.1151 – 1.1264");
+    expect(label).toContain("80% ranges: 1D to 22 Oct 2026: 1.1151 to 1.1264");
     expect(label).toContain("Fed 28 Oct 2026, ECB 29 Oct 2026");
     expect(label).toContain("Statistical estimate. Not financial advice.");
   });
@@ -77,5 +84,24 @@ describe("FanChart", () => {
     const { container } = renderChart("EURUSD", 314);
     const labels = [...container.querySelectorAll(".fan-xaxis text")].map((t) => t.textContent);
     expect(labels).toEqual(expect.arrayContaining(["1D", "1W", "1M"]));
+  });
+
+  it("FR-17: draws the AI expected path from spot through each horizon, with its 80% range", () => {
+    renderChart("EURAMD", 900, "1W");
+    const path = screen.getByTestId("ai-path");
+    expect(path.dataset.points).toBe("4"); // spot + 1D, 1W, 1M
+    const points = screen.getAllByTestId("ai-point");
+    expect(points.map((p) => p.dataset.horizon)).toEqual(["1D", "1W", "1M"]);
+    expect(points.find((p) => p.dataset.selected === "true")?.dataset.horizon).toBe("1W");
+    expect(points[0].querySelectorAll("line.fan-ai-range")).toHaveLength(1);
+  });
+
+  it("FR-17: labels the selected horizon with the AI's expected rate and verdict", () => {
+    renderChart("EURAMD", 900, "1M");
+    const label = screen.getByTestId("ai-label");
+    const ai = fixtures.latest.EURAMD.horizons.find((h) => h.label === "1M")!.ai_view!;
+    expect(label.textContent).toContain("AI:");
+    expect(label.textContent).toContain(ai.center.toFixed(2));
+    expect(label.textContent).toMatch(/Sell now|Wait|No clear answer/);
   });
 });

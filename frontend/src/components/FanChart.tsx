@@ -4,7 +4,7 @@ import { Group } from "@visx/group";
 import { scaleLinear } from "@visx/scale";
 import { LinePath } from "@visx/shape";
 import { useId, useMemo, useState } from "react";
-import type { BandKey, HorizonForecast, LatestForecastResponse, RatePoint } from "../api/types";
+import type { AiView, BandKey, HorizonForecast, LatestForecastResponse, RatePoint, SignalAction } from "../api/types";
 import { BAND_KEYS, BANK_LABELS, DISCLAIMER } from "../lib/constants";
 import {
   assignLanes,
@@ -23,8 +23,21 @@ export interface FanChartProps {
   /** History window, oldest first, ending at the spot date (90 trading days). */
   history: RatePoint[];
   forecast: LatestForecastResponse | null;
+  /** The horizon chosen in the decision hero ("1D" | "1W" | "1M"); the others are muted. */
+  selected?: string;
   /** Fixed width for tests; otherwise the chart fills its container. */
   width?: number;
+}
+
+const LEAN_WORD: Record<SignalAction, string> = { sell_now: "Sell now", wait: "Wait", no_edge: "No clear answer" };
+
+interface AiPoint {
+  t: number;
+  label: string;
+  date: string;
+  center: number;
+  band80: [number, number];
+  lean: SignalAction;
 }
 
 const MARGIN = { left: 4, right: 58, bottom: 26 };
@@ -36,14 +49,14 @@ type Target =
   | { kind: "history"; index: number; x: number; y: number; point: RatePoint }
   | { kind: "horizon"; x: number; y: number; vertex: FanVertex };
 
-export function FanChart({ pairLabel, decimals, history, forecast, width: fixedWidth }: FanChartProps) {
+export function FanChart({ pairLabel, decimals, history, forecast, selected, width: fixedWidth }: FanChartProps) {
   const [ref, measured] = useWidth<HTMLDivElement>(fixedWidth ?? 800);
   const width = fixedWidth ?? measured;
   const [active, setActive] = useState<number | null>(null);
   const readoutId = useId();
 
-  const narrow = width < 560;
-  const height = narrow ? 270 : 340;
+  const narrow = width < 480;
+  const height = narrow ? 260 : 300;
 
   const vertices = useMemo(
     () => (forecast ? fanVertices(forecast.spot, forecast.spot_date, forecast.horizons) : []),
@@ -53,11 +66,30 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
     () => (forecast ? placeMeetings(forecast.horizons, vertices) : []),
     [forecast, vertices],
   );
+  // The AI expected path: spot, then the AI's expected rate at each horizon's target date.
+  const aiPoints: AiPoint[] = useMemo(
+    () =>
+      forecast
+        ? [...forecast.horizons]
+            .sort((a, b) => a.days - b.days)
+            .filter((h): h is HorizonForecast & { ai_view: AiView } => Boolean(h.ai_view))
+            .map((h) => ({
+              t: h.days,
+              label: h.label,
+              date: h.target_date,
+              center: h.ai_view.center,
+              band80: h.ai_view.band80,
+              lean: h.ai_view.lean,
+            }))
+        : [],
+    [forecast],
+  );
+  const selectedT = vertices.slice(1).find((v) => v.label === selected)?.t ?? null;
 
   const innerW = Math.max(width - MARGIN.left - MARGIN.right, 10);
   const tMin = -(Math.max(history.length, 1) - 1);
   const tMax = vertices.length > 1 ? vertices[vertices.length - 1].t : 0;
-  const split = tMax > 0 ? innerW * (narrow ? 0.52 : 0.62) : innerW;
+  const split = tMax > 0 ? innerW * (narrow ? 0.5 : 0.56) : innerW;
   const x = (t: number) =>
     t <= 0
       ? tMin === 0
@@ -77,7 +109,9 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
   const top = REGION_ROW + laneCount * LANE_H + 8;
   const innerH = height - top - MARGIN.bottom;
 
-  const [y0, y1] = yDomain(history, vertices);
+  const [y0Stat, y1Stat] = yDomain(history, vertices);
+  const y0 = Math.min(y0Stat, ...aiPoints.map((a) => a.band80[0]));
+  const y1 = Math.max(y1Stat, ...aiPoints.map((a) => a.band80[1]));
   const y = useMemo(
     () => scaleLinear<number>({ domain: [y0, y1], range: [innerH, 0], nice: false }),
     [y0, y1, innerH],
@@ -146,7 +180,7 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
       const px = x(v.t);
       // A horizon close to the spot rule starts at its point instead of centring on it.
       const anchor = v.t === tMax ? "end" : px - split < 14 ? "start" : "middle";
-      tryPlace(anchor === "start" ? px - 3 : px, v.label ?? "", anchor, true, 4);
+      tryPlace(anchor === "start" ? px - 3 : px, v.label ?? "", anchor, v.label === selected, 4);
     }
     // The spot date yields to the horizon labels on narrow screens; the readout carries it too.
     if (forecast && history.length) tryPlace(split - 4, fmtShortDate(forecast.spot_date), "end", true);
@@ -158,11 +192,20 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
       }
     });
     return placed;
-  }, [history, vertices, forecast, innerW, split]);
+  }, [history, vertices, forecast, innerW, split, selected]);
 
   const summary = useMemo(
-    () => buildSummary(pairLabel, decimals, history, forecast, meetings.map((m) => `${BANK_LABELS[m.bank] ?? m.bank} ${fmtDate(m.date)}`)),
-    [pairLabel, decimals, history, forecast, meetings],
+    () =>
+      buildSummary(
+        pairLabel,
+        decimals,
+        history,
+        forecast,
+        meetings.map((m) => `${BANK_LABELS[m.bank] ?? m.bank} ${fmtDate(m.date)}`),
+        aiPoints,
+        selected,
+      ),
+    [pairLabel, decimals, history, forecast, meetings, aiPoints, selected],
   );
 
   const spotT = 0;
@@ -297,9 +340,69 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
                   data-horizon-point={v.label ?? ""}
                   cx={x(v.t)}
                   cy={y(v.center)}
-                  r={3.5}
+                  r={2.5}
                 />
               ))}
+              {/* Beyond the chosen horizon the fan is faded, so the chosen answer stands out */}
+              {selectedT !== null && selectedT < tMax && (
+                <rect
+                  className="fan-fade"
+                  data-testid="fan-fade"
+                  x={x(selectedT) + 1}
+                  y={-6}
+                  width={innerW - x(selectedT) - 1}
+                  height={innerH + 6}
+                  pointerEvents="none"
+                />
+              )}
+              {selectedT !== null && (
+                <line className="fan-selected-rule" x1={x(selectedT)} x2={x(selectedT)} y1={-6} y2={innerH} />
+              )}
+
+              {/* AI view: expected path and 80% range per horizon, in the accent */}
+              {aiPoints.length > 0 && forecast && (
+                <g className="fan-ai" data-testid="ai-overlay">
+                  <LinePath
+                    className="fan-ai-path"
+                    data-testid="ai-path"
+                    data-points={aiPoints.length + 1}
+                    data={[{ t: 0, v: forecast.spot }, ...aiPoints.map((a) => ({ t: a.t, v: a.center }))]}
+                    x={(d) => x(d.t)}
+                    y={(d) => y(d.v)}
+                    curve={curveLinear}
+                  />
+                  {aiPoints.map((a) => {
+                    const ax = x(a.t);
+                    const isSel = a.label === selected;
+                    return (
+                      <g
+                        key={a.label}
+                        className={isSel ? "fan-ai-point is-selected" : "fan-ai-point"}
+                        data-testid="ai-point"
+                        data-horizon={a.label}
+                        data-selected={isSel ? "true" : "false"}
+                      >
+                        <line className="fan-ai-range" x1={ax} x2={ax} y1={y(a.band80[0])} y2={y(a.band80[1])} />
+                        <line className="fan-ai-cap" x1={ax - 4} x2={ax + 4} y1={y(a.band80[0])} y2={y(a.band80[0])} />
+                        <line className="fan-ai-cap" x1={ax - 4} x2={ax + 4} y1={y(a.band80[1])} y2={y(a.band80[1])} />
+                        <circle cx={ax} cy={y(a.center)} r={isSel ? 5 : 3.5} />
+                      </g>
+                    );
+                  })}
+                  {aiPoints
+                    .filter((a) => a.label === selected)
+                    .map((a) => (
+                      <AiLabel
+                        key={a.label}
+                        x={x(a.t)}
+                        y={y(a.band80[1])}
+                        innerW={innerW}
+                        text={`AI: ${fmtRate(a.center, decimals)} by ${fmtShortDate(a.date)} (${LEAN_WORD[a.lean]})`}
+                      />
+                    ))}
+                </g>
+              )}
+
               {lastHistory && (
                 <circle className="fan-spot-dot" cx={x(spotT)} cy={y(lastHistory.rate)} r={3.5} />
               )}
@@ -375,6 +478,22 @@ export function FanChart({ pairLabel, decimals, history, forecast, width: fixedW
   );
 }
 
+/** The chosen horizon's AI label, kept inside the plot and readable over the fan. */
+function AiLabel({ x, y, innerW, text }: { x: number; y: number; innerW: number; text: string }) {
+  const w = text.length * 6.7 + 14;
+  const fitsRight = x + 8 + w <= innerW;
+  const left = fitsRight ? x + 8 : Math.max(0, x - 8 - w);
+  const top = Math.max(-2, y - 26);
+  return (
+    <g className="fan-ai-label" data-testid="ai-label" pointerEvents="none">
+      <rect x={left} y={top} width={w} height={20} rx={6} />
+      <text x={left + 6} y={top + 14}>
+        {text}
+      </text>
+    </g>
+  );
+}
+
 function polygonPath(points: [number, number][], x: (t: number) => number, y: (v: number) => number) {
   return (
     points
@@ -406,34 +525,32 @@ function Readout({
     );
   } else if (target?.kind === "horizon") {
     const v = target.vertex;
+    const ai = forecast?.horizons.find((h) => h.label === v.label)?.ai_view ?? null;
     content = (
       <>
         <span className="readout-key">
-          {v.label} &middot; {fmtDate(v.date)}
+          {v.label}, {fmtDate(v.date)}
         </span>
         <span className="readout-item">
-          <span className="readout-label">80%</span>
+          <span className="readout-label">Statistical 80%</span>
           <span className="readout-value num">{fmtRange(v.bands["80"][0], v.bands["80"][1], decimals)}</span>
         </span>
-        <span className="readout-item">
-          <span className="readout-label">50%</span>
-          <span className="num">{fmtRange(v.bands["50"][0], v.bands["50"][1], decimals)}</span>
-        </span>
-        <span className="readout-item">
-          <span className="readout-label">95%</span>
-          <span className="num">{fmtRange(v.bands["95"][0], v.bands["95"][1], decimals)}</span>
-        </span>
-        <span className="readout-item readout-muted">
-          <span className="readout-label">center</span>
-          <span className="num">{fmtRate(v.center, decimals)}</span>
-        </span>
+
+        {ai && (
+          <span className="readout-item readout-ai">
+            <span className="readout-label">AI</span>
+            <span className="num">
+              {fmtRate(ai.center, decimals)} ({fmtRange(ai.band80[0], ai.band80[1], decimals)})
+            </span>
+          </span>
+        )}
       </>
     );
   } else if (lastHistory) {
     content = (
       <>
         <span className="readout-key">
-          {forecast ? "Spot" : "Last rate"} &middot; {fmtDate(lastHistory.date)}
+          {forecast ? "Spot" : "Last rate"}, {fmtDate(lastHistory.date)}
         </span>
         <span className="readout-value num">{fmtRate(lastHistory.rate, decimals)}</span>
         <span className="readout-hint">Hover or use the arrow keys to read a day or a horizon.</span>
@@ -455,6 +572,8 @@ function buildSummary(
   history: RatePoint[],
   forecast: LatestForecastResponse | null,
   meetings: string[],
+  aiPoints: AiPoint[] = [],
+  selected?: string,
 ): string {
   const parts: string[] = [`${pairLabel} fan chart.`];
   if (history.length) {
@@ -475,6 +594,15 @@ function buildSummary(
     parts.push(
       meetings.length ? `Central bank meetings inside the horizons: ${meetings.join(", ")}.` : "No central bank meetings inside the horizons.",
     );
+    if (aiPoints.length) {
+      parts.push(
+        `AI expected path: ${aiPoints
+          .map((a) => `${a.label} ${fmtRate(a.center, decimals)} (${LEAN_WORD[a.lean]})`)
+          .join("; ")}.`,
+      );
+      const sel = aiPoints.find((a) => a.label === selected);
+      if (sel) parts.push(`Selected: AI expects ${fmtRate(sel.center, decimals)} by ${fmtDate(sel.date)}, ${LEAN_WORD[sel.lean]}.`);
+    }
     parts.push(forecast.disclaimer || DISCLAIMER);
   } else {
     parts.push("No forecast yet.");

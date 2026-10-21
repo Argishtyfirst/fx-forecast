@@ -25,32 +25,27 @@ afterEach(() => {
 });
 
 describe("Pair view", () => {
-  it("FR-14 / FR-12: renders the fan chart, 3 horizon cards and their meetings from the mocks", async () => {
+  it("FR-14 / FR-12: renders the decision hero, the fan chart and the ranges table from the mocks", async () => {
     mockFetch();
     renderAt("#/pair/EURUSD");
     await screen.findByTestId("fan-chart");
-    expect(screen.getByRole("heading", { level: 1, name: "EUR/USD" })).toBeInTheDocument();
-    expect(screen.getByTestId("spot")).toHaveTextContent("1.1207");
-    for (const label of ["1D", "1W", "1M"]) {
-      expect(screen.getByTestId(`horizon-card-${label}`)).toBeInTheDocument();
-    }
-    const card1w = screen.getByTestId("horizon-card-1W");
-    expect(within(card1w).getByTestId("range-80")).toHaveTextContent("1.1071 – 1.1344");
-    expect(within(card1w).getAllByTestId("card-meeting").map((m) => m.textContent)).toEqual(["Fed28 Oct"]);
-    const card1m = screen.getByTestId("horizon-card-1M");
-    expect(within(card1m).getAllByTestId("card-meeting")).toHaveLength(2);
-    expect(within(card1m).getByText("Random walk")).toBeInTheDocument();
-    expect(within(screen.getByTestId("horizon-card-1D")).getByText(/None, bands not widened/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Sell EUR for USD now?" })).toBeInTheDocument();
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Wait");
+    const row1w = screen.getByTestId("range-row-1W");
+    expect(within(row1w).getByTestId("range-80")).toHaveTextContent("1.1071 to 1.1344");
+    expect(within(row1w).getByTestId("range-meetings")).toHaveTextContent("Fed 28 Oct");
+    expect(within(screen.getByTestId("range-row-1M")).getByTestId("range-meetings")).toHaveTextContent("Fed 28 Oct, ECB 29 Oct");
+    expect(within(screen.getByTestId("range-row-1D")).getByTestId("range-meetings")).toHaveTextContent("None");
   });
 
-  it("shows the disclaimer on each forecast: every card and the chart", async () => {
+  it("shows the disclaimer on the decision, the chart and the ranges", async () => {
     mockFetch();
     renderAt("#/pair/EURUSD");
     await screen.findByTestId("fan-chart");
-    for (const label of ["1D", "1W", "1M"]) {
-      expect(within(screen.getByTestId(`horizon-card-${label}`)).getByTestId("disclaimer")).toHaveTextContent(DISCLAIMER);
+    for (const id of ["decision-hero", "ranges"]) {
+      expect(within(screen.getByTestId(id)).getByTestId("disclaimer")).toHaveTextContent(DISCLAIMER);
     }
-    const chartCard = screen.getByRole("region", { name: "Probability bands" });
+    const chartCard = screen.getByTestId("fan-chart").closest("section")!;
     expect(within(chartCard).getByTestId("disclaimer")).toHaveTextContent(DISCLAIMER);
   });
 
@@ -58,8 +53,39 @@ describe("Pair view", () => {
     mockFetch();
     renderAt("#/pair/USDAMD");
     const warning = await screen.findByTestId("stale-warning");
-    expect(warning).toHaveTextContent("Atlanta Fed Market Probability Tracker last successful update 16 Oct 2026, 15:20 UTC");
-    expect(warning).toHaveTextContent("CBA decisions (cba.am, ARKA, Interfax) last successful update never");
+    expect(warning).toHaveTextContent("Atlanta Fed, last successful update 16 Oct 2026, 15:20 UTC");
+    expect(warning).toHaveTextContent("CBA news, last successful update never");
+  });
+
+  it("the horizon switch changes the verdict and the chart emphasis, and is remembered", async () => {
+    mockFetch();
+    renderAt("#/pair/EURAMD");
+    await screen.findByTestId("fan-chart");
+    expect(screen.getByTestId("verdict")).toHaveTextContent(/^Wait$/);
+    expect(screen.getByTestId("verdict-sentence")).toHaveTextContent("58% chance the rate is higher by 19 Nov.");
+    const selectedPoint = () =>
+      screen.getAllByTestId("ai-point").find((p) => p.getAttribute("data-selected") === "true")!.getAttribute("data-horizon");
+    expect(selectedPoint()).toBe("1M");
+    await userEvent.click(screen.getByRole("button", { name: "tomorrow" }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent(/^Sell now$/);
+    expect(screen.getByTestId("verdict-sentence")).toHaveTextContent("56% chance the rate is lower by 22 Oct.");
+    expect(selectedPoint()).toBe("1D");
+    expect(screen.getByTestId("ai-label")).toHaveTextContent("AI: 404.75 by 22 Oct (Sell now)");
+    expect(window.localStorage.getItem("fxf-horizon")).toBe("1D");
+    await userEvent.click(screen.getByRole("button", { name: "within a week" }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent(/^No clear answer$/);
+    expect(screen.getByTestId("verdict-sentence")).toHaveTextContent("Close to even: 52% chance the rate is higher by 28 Oct.");
+  });
+
+  it("uses no en or em dashes in visible text on any view", async () => {
+    for (const hash of ["#/pair/EURAMD", "#/drivers/EURAMD/1M", "#/events/EURAMD", "#/backtest/EURAMD"]) {
+      mockFetch();
+      const { unmount } = renderAt(hash);
+      await screen.findByRole("heading", { level: 1 });
+      await waitFor(() => expect(document.body.textContent).not.toMatch(/Loading/));
+      expect(document.body.textContent).not.toMatch(/[\u2013\u2014]/);
+      unmount();
+    }
   });
 
   it("requests 90+ days of rates ending at the spot date", async () => {
@@ -76,7 +102,7 @@ describe("Pair view", () => {
     renderAt("#/pair/EURUSD");
     expect(await screen.findByText("No forecast yet")).toBeInTheDocument();
     expect(screen.getByTestId("history-line")).toBeInTheDocument();
-    expect(screen.queryByTestId("horizon-card-1D")).toBeNull();
+    expect(screen.queryByTestId("ranges")).toBeNull();
   });
 
   it("shows an error state with a retry when the API fails", async () => {
@@ -95,9 +121,12 @@ describe("EUR/AMD", () => {
     mockFetch();
     renderAt("#/pair/EURAMD");
     await screen.findByTestId("fan-chart");
-    expect(screen.getByRole("heading", { level: 1, name: "EUR/AMD" })).toBeInTheDocument();
-    expect(screen.getByTestId("spot")).toHaveTextContent("405.04");
-    expect(screen.getByTestId("signal-panel")).toHaveTextContent("Sell EUR now?");
+    expect(screen.getByRole("heading", { level: 1, name: "Sell EUR for AMD now?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /EUR\/AMD/ })).toHaveTextContent("spot 405.04 on 21 Oct");
+    expect(screen.getByTestId("ai-tag")).toHaveTextContent("Gemini AI view, not yet proven (0 of 250 checked)");
+    expect(screen.getByTestId("ai-path")).toHaveAttribute("data-points", "4");
+    expect(screen.getByTestId("fact-stat")).toHaveTextContent("No proven edge");
+    expect(screen.getByTestId("fact-interest")).toHaveTextContent("AMD pays 4.50%/yr more than EUR");
     expect(screen.getAllByTestId("meeting-marker").map((m) => m.dataset.bank)).toEqual(["FED", "ECB"]);
     expect(screen.getByRole("link", { name: "EUR/AMD" })).toHaveAttribute("aria-current", "page");
   });
@@ -250,7 +279,7 @@ describe("Shell", () => {
     await screen.findByTestId("fan-chart");
     await userEvent.click(screen.getByRole("link", { name: "USD/AMD" }));
     expect(window.location.hash).toBe("#/pair/USDAMD");
-    expect(await screen.findByRole("heading", { level: 1, name: "USD/AMD" })).toBeInTheDocument();
-    expect(await screen.findByTestId("spot")).toHaveTextContent("361.42");
+    expect(await screen.findByRole("heading", { level: 1, name: "Sell USD for AMD now?" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: /USD\/AMD/ })).toHaveTextContent("spot 361.42");
   });
 });

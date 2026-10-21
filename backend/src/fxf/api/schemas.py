@@ -133,6 +133,8 @@ class AiView(BaseModel):
     generated_at: dt.datetime
     prob_better_if_wait: float
     expected_change_pct: float
+    center: float  # the AI's expected rate at the target date
+    band80: tuple[float, float]  # the statistical 80% range re-centred on the AI's expectation
     # Its own call for someone selling the base currency, by the same threshold as the
     # statistical verdict (fxf.api.signal.MIN_EDGE).
     lean: Literal["sell_now", "wait", "no_edge"]

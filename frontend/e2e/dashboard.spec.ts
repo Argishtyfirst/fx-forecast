@@ -27,9 +27,8 @@ test.describe("FR-14 fan chart", () => {
 
     await expect(page.locator("[data-horizon-point]")).toHaveCount(3);
     await expect(page.getByTestId("meeting-marker")).toHaveCount(2);
-    for (const label of ["1D", "1W", "1M"]) {
-      await expect(page.getByTestId(`horizon-card-${label}`)).toContainText("Statistical estimate. Not financial advice.");
-    }
+    await expect(page.getByTestId("decision-hero")).toContainText("Statistical estimate. Not financial advice.");
+    await expect(page.getByTestId("ranges")).toContainText("Statistical estimate. Not financial advice.");
   });
 
   test("hover readout shows the bands of a horizon", async ({ mockedPage: page }) => {
@@ -39,8 +38,8 @@ test.describe("FR-14 fan chart", () => {
     await page.getByTestId("fan-chart").scrollIntoViewIfNeeded();
     const box = (await point.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2 - 1, box.y + box.height / 2);
-    await expect(page.locator(".fan-readout")).toContainText("1M · 19 Nov 2026");
-    await expect(page.locator(".fan-readout")).toContainText("1.0939 – 1.1482");
+    await expect(page.locator(".fan-readout")).toContainText("1M, 19 Nov 2026");
+    await expect(page.locator(".fan-readout")).toContainText("1.0939 to 1.1482");
   });
 
   test("a missing forecast is an empty state", async ({ page }) => {
@@ -57,16 +56,15 @@ test.describe("FR-16 stale data warning", () => {
     await page.goto("/#/pair/EURUSD");
     const warning = page.getByTestId("stale-warning");
     await expect(warning).toBeVisible();
-    await expect(warning).toContainText("Atlanta Fed Market Probability Tracker");
-    await expect(warning).toContainText("last successful update 16 Oct 2026, 15:20 UTC");
+    await expect(warning).toContainText("Atlanta Fed, last successful update 16 Oct 2026, 15:20 UTC");
   });
 
   test("shows 'never' for a source without a successful run, on every view", async ({ mockedPage: page }) => {
     for (const view of ["pair", "drivers", "events", "backtest"]) {
       await page.goto(`/#/${view}/USDAMD`);
       const warning = page.getByTestId("stale-warning");
-      await expect(warning).toContainText("CBA decisions (cba.am, ARKA, Interfax) last successful update never");
-      await expect(page.locator(".source-list li").first()).toBeVisible();
+      await expect(warning).toContainText("CBA news, last successful update never");
+      await expect(page.getByTestId("data-summary")).toContainText("Data updated");
     }
   });
 });
@@ -74,35 +72,31 @@ test.describe("FR-16 stale data warning", () => {
 test.describe("EUR/AMD and the FR-17 indicator", () => {
   test("the EUR/AMD pair view shows the fan chart and the sell indicator", async ({ mockedPage: page }) => {
     await page.goto("/#/pair/EURAMD");
-    await expect(page.getByRole("heading", { level: 1, name: "EUR/AMD" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Sell EUR for AMD now?" })).toBeVisible();
     await expect(page.getByTestId("fan-chart")).toBeVisible();
     await expect(page.locator("path[data-band]")).toHaveCount(3);
     await expect(page.getByTestId("history-line")).toHaveAttribute("data-points", "90");
 
-    const panel = page.getByTestId("signal-panel");
-    await expect(panel).toBeVisible();
-    await expect(panel.getByRole("heading", { name: "Sell EUR now?" })).toBeVisible();
-    // The AI view's own call leads each horizon, with an honest experimental tag.
-    const expected = { "1D": ["Yes, sell now", "44%"], "1W": ["No clear lean", "52%"], "1M": ["Wait", "58%"] };
-    for (const [label, [verdict, pct]] of Object.entries(expected)) {
-      const row = page.getByTestId(`signal-${label}`);
-      await expect(row.getByTestId("signal-verdict")).toHaveText(verdict);
-      await expect(row.getByTestId("signal-prob")).toHaveText(`${pct} chance of a better rate if you wait ${label}`);
-      const tag = row.getByTestId("ai-tag");
-      await expect(tag).toContainText("AI view");
-      await expect(tag).toContainText("experimental");
-      await expect(tag).toContainText("unproven (0 of 250 forecasts scored)");
-      const stat = row.getByTestId("signal-stat");
-      await expect(stat).toContainText("Statistical models: no proven edge");
-      await expect(stat).toContainText("AMD per \u20ac");
-      await expect(stat).toContainText("AMD pays ~4.50%/yr more than EUR");
-    }
-    await expect(panel).not.toContainText("50% chance");
-    await expect(panel.getByTestId("disclaimer")).toHaveText("Statistical estimate. Not financial advice.");
-    // The indicator sits above the fan chart.
-    const panelBox = (await panel.boundingBox())!;
+    const hero = page.getByTestId("decision-hero");
+    await expect(hero.getByRole("heading", { name: "Sell EUR for AMD now?" })).toBeVisible();
+    // Default horizon: within a month.
+    await expect(hero.getByTestId("verdict")).toHaveText("Wait");
+    await expect(hero.getByTestId("verdict-sentence")).toHaveText("58% chance the rate is higher by 19 Nov.");
+    await expect(hero.getByTestId("ai-tag")).toHaveText("Gemini AI view, not yet proven (0 of 250 checked)");
+    await expect(hero.getByTestId("fact-wait")).toContainText("394.73 to 415.62 AMD per \u20ac, 80% range");
+    await expect(hero.getByTestId("fact-stat")).toContainText("No proven edge");
+    await expect(hero.getByTestId("disclaimer")).toHaveText("Statistical estimate. Not financial advice.");
+    await expect(hero).not.toContainText("50% chance");
+    // The AI path on the chart: spot plus three horizons, with the chosen one labelled.
+    await expect(page.getByTestId("ai-path")).toHaveAttribute("data-points", "4");
+    await expect(page.getByTestId("ai-label")).toHaveText("AI: 406.88 by 19 Nov (Wait)");
+    await hero.getByRole("button", { name: "tomorrow" }).click();
+    await expect(hero.getByTestId("verdict")).toHaveText("Sell now");
+    await expect(page.getByTestId("ai-label")).toHaveText("AI: 404.75 by 22 Oct (Sell now)");
+    // The hero sits before the chart.
+    const heroBox = (await hero.boundingBox())!;
     const chartBox = (await page.getByTestId("fan-chart").boundingBox())!;
-    expect(panelBox.y).toBeLessThan(chartBox.y);
+    expect(heroBox.y).toBeLessThanOrEqual(chartBox.y);
   });
 
   test("the pair switch lists the three pairs", async ({ mockedPage: page }) => {
@@ -118,20 +112,14 @@ test.describe("380px screen", () => {
   test.use({ viewport: { width: 380, height: 800 } });
   test("EUR/AMD pair view has no horizontal page scroll and the pair switch fits", async ({ mockedPage: page }) => {
     await page.goto("/#/pair/EURAMD");
-    await expect(page.getByTestId("signal-panel")).toBeVisible();
+    const hero = page.getByTestId("decision-hero");
+    await expect(hero).toBeVisible();
     await expect(page.getByTestId("fan-chart")).toBeVisible();
-    // One horizon at a time on a phone: 1M first, the others behind the horizon switch.
-    await expect(page.getByTestId("signal-1M")).toBeVisible();
-    await expect(page.getByTestId("signal-1D")).toBeHidden();
-    await expect(page.getByTestId("signal-1M").getByTestId("ai-tag")).toContainText("experimental");
-    await expect(page.getByTestId("signal-1M").getByTestId("ai-tag")).toBeVisible();
-    await page.getByRole("group", { name: "Signal horizon" }).getByRole("button", { name: "1W" }).click();
-    await expect(page.getByTestId("signal-1W")).toBeVisible();
-    await expect(page.getByTestId("signal-1M")).toBeHidden();
-    // The panel stays compact: the fan chart starts well within two screens of the top.
-    const chartTop = await page.getByTestId("fan-chart").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-    expect(chartTop).toBeLessThan(1500);
-    await page.getByTestId("signal-1W").getByText("Evidence", { exact: true }).click();
+    // The verdict is readable without scrolling.
+    const verdictBox = (await hero.getByTestId("verdict").boundingBox())!;
+    expect(verdictBox.y + verdictBox.height).toBeLessThan(800);
+    await hero.getByTestId("ai-tag").click();
+    await expect(hero.getByTestId("hero-evidence")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(380);
     const sw = (await page.getByRole("group", { name: "Currency pair" }).boundingBox())!;
     expect(sw.x).toBeGreaterThanOrEqual(0);
@@ -158,7 +146,9 @@ test.describe("dark mode", () => {
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(bg).toBe("rgb(20, 20, 19)");
     const band = await page.locator('path[data-band="50"]').evaluate((el) => getComputedStyle(el).fill);
-    expect(band).toBe("rgb(57, 135, 229)");
+    expect(band).toBe("rgb(68, 68, 63)");
+    const ai = await page.getByTestId("ai-path").evaluate((el) => getComputedStyle(el).stroke);
+    expect(ai).toBe("rgb(134, 168, 255)");
   });
 });
 

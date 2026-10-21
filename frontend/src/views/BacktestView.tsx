@@ -179,7 +179,7 @@ function HorizonBacktest({
                 <th key={b} scope="col" className="num-col">
                   Cov {b}%
                   <span className="th-sub">
-                    {Math.round((BAND_NOMINAL[b] - tol) * 100)}&ndash;{Math.round((BAND_NOMINAL[b] + tol) * 100)}%
+                    {Math.round((BAND_NOMINAL[b] - tol) * 100)} to {Math.round((BAND_NOMINAL[b] + tol) * 100)}%
                   </span>
                 </th>
               ))}
@@ -216,11 +216,11 @@ function HorizonBacktest({
                     }
                   />
                   <Cell
-                    value={r.hit_rate === null ? "—" : fmtPct(r.hit_rate, 1)}
+                    value={r.hit_rate === null ? "n/a" : fmtPct(r.hit_rate, 1)}
                     verdict={r.hit_rate === null ? "na" : r.hit_rate > targets.hit_rate ? "pass" : "fail"}
                   />
                   <Cell
-                    value={r.dm_pvalue === null ? "—" : fmtNum(r.dm_pvalue, 2)}
+                    value={r.dm_pvalue === null ? "n/a" : fmtNum(r.dm_pvalue, 2)}
                     verdict={r.dm_pvalue === null ? "na" : r.dm_pvalue < targets.dm_pvalue ? "pass" : "fail"}
                   />
                   <Cell value={fmtPct(r.cov50, 1)} verdict={coverageVerdict(r.cov50, 0.5, tol)} />

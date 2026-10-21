@@ -15,8 +15,9 @@ const labelOf = (s: SourceStatus) => s.label || SOURCE_LABELS[s.source] || s.sou
 const shortOf = (s: SourceStatus) => SOURCE_SHORT[s.source] ?? labelOf(s);
 
 /**
- * FR-16 and the Frontend rule "each view shows the last update time per source":
- * a compact strip of sources with their last successful update, plus a warning for stale ones.
+ * FR-16 and "each view shows the last update time per source": one quiet line with the latest
+ * update and a Details disclosure listing every source, plus one compact line only when
+ * something is stale (naming the source and its last successful update).
  */
 export function DataStatus({ relevant, extraStale = [] }: DataStatusProps) {
   const health = useHealth();
@@ -34,75 +35,73 @@ export function DataStatus({ relevant, extraStale = [] }: DataStatusProps) {
     .map((key) => merged.find((s) => s.source === key))
     .filter((s): s is SourceStatus => Boolean(s));
   const stale = ordered.filter((s) => s.stale);
+  const latest = ordered
+    .map((s) => s.last_success)
+    .filter((t): t is string => Boolean(t))
+    .sort()
+    .pop();
+
+  let summary: string;
+  if (health?.error && ordered.length === 0) summary = `Source status unavailable: ${health.error.message}`;
+  else if (ordered.length === 0) summary = health?.loading ? "Checking sources…" : "No source status yet";
+  else
+    summary = `Data updated ${fmtCompactTime(latest, now)} · ${
+      stale.length === 0 ? "all sources current" : `${stale.length} of ${ordered.length} sources stale`
+    }`;
 
   return (
     <section className="data-status" aria-label="Data sources">
-      {stale.length > 0 && <StaleWarning sources={stale} now={now} />}
-      <div className="source-strip">
-        <span className="source-strip-label">Last update</span>
-        {ordered.length > 0 && (
-          <ul className="source-list">
-            {ordered.map((s) => (
-              <li
-                key={s.source}
-                className={s.stale ? "source source-stale" : "source"}
-                data-source={s.source}
-                title={`${labelOf(s)}: last successful update ${fmtDateTime(s.last_success)}${
-                  s.last_status ? `, last run ${s.last_status}` : ""
-                }`}
-              >
-                <span className="source-dot" aria-hidden="true" />
-                <span className="source-name">{shortOf(s)}</span>
-                <time className="source-time num" dateTime={s.last_success ?? undefined}>
-                  {fmtCompactTime(s.last_success, now)}
-                </time>
-                {s.stale && <span className="source-flag">stale</span>}
-              </li>
-            ))}
-          </ul>
+      <details className="data-line">
+        <summary>
+          <span data-testid="data-summary">{summary}</span>
+          {ordered.length > 0 && <span className="data-more">Details</span>}
+        </summary>
+        {health?.error && ordered.length > 0 && (
+          <p className="source-missing">Source status unavailable: {health.error.message}</p>
         )}
-        {health?.error ? (
-          <span className="source-missing">Source status unavailable: {health.error.message}</span>
-        ) : ordered.length === 0 ? (
-          <span className="source-missing">{health?.loading ? "Checking sources\u2026" : "No source status yet."}</span>
-        ) : null}
-      </div>
+        <ul className="source-list" data-testid="source-list">
+          {ordered.map((s) => (
+            <li key={s.source} data-source={s.source} className={s.stale ? "source source-stale" : "source"}>
+              <span className="source-name">{labelOf(s)}</span>
+              <time className="source-time num" dateTime={s.last_success ?? undefined}>
+                {fmtCompactTime(s.last_success, now)}
+              </time>
+              <span className="source-state">{s.stale ? (s.error ? `stale: ${s.error}` : "stale") : "current"}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {stale.length > 0 && <StaleWarning sources={stale} now={now} />}
     </section>
   );
 }
 
 export function StaleWarning({ sources, now }: { sources: SourceStatus[]; now: Date }) {
   return (
-    <div className="stale-warning" role="status" data-testid="stale-warning">
-      <WarningIcon className="stale-icon" size={16} />
-      <div>
-        <p className="stale-title">
-          Stale data from {sources.length === 1 ? "1 source" : `${sources.length} sources`}. Forecasts
-          may use older inputs.
-        </p>
-        <ul className="stale-list">
-          {sources.map((s) => (
-            <li key={s.source} data-source={s.source} title={s.error ?? undefined}>
-              <strong>{labelOf(s)}</strong>{" "}
-              {s.last_success ? (
-                <>
-                  last successful update{" "}
-                  <time dateTime={s.last_success} data-testid="stale-last-success">
-                    {fmtDateTime(s.last_success)}
-                  </time>{" "}
-                  <span className="stale-ago">({fmtAgo(s.last_success, now)})</span>
-                </>
-              ) : (
-                <>
-                  last successful update{" "}
-                  <span data-testid="stale-last-success">never</span>
-                </>
-              )}
-              {s.error ? <span className="stale-error">. Last run failed: {s.error}</span> : "."}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <p className="stale-line" role="status" data-testid="stale-warning">
+      <WarningIcon className="stale-icon" size={14} />
+      <span>
+        <span className="stale-title">Stale data. </span>
+        {sources.map((s, i) => (
+          <span key={s.source} data-source={s.source} title={s.error ?? undefined}>
+            <strong>{shortOf(s)}</strong>
+            {s.last_success ? (
+              <>
+                , last successful update{" "}
+                <time dateTime={s.last_success} data-testid="stale-last-success">
+                  {fmtDateTime(s.last_success)}
+                </time>{" "}
+                <span className="stale-ago">({fmtAgo(s.last_success, now)})</span>
+              </>
+            ) : (
+              <>
+                , last successful update <span data-testid="stale-last-success">never</span>
+              </>
+            )}
+            {i < sources.length - 1 ? "; " : "."}
+          </span>
+        ))}
+      </span>
+    </p>
   );
 }

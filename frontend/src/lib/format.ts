@@ -1,48 +1,53 @@
-/** Number and date formatting. Rates keep their source precision; nothing is rounded into a promise. */
+/**
+ * Number and date formatting. Rates keep their source precision; nothing is rounded into a promise.
+ * Visible text uses no en or em dashes: ranges read "a to b" and missing values read "n/a".
+ */
+
+export const NA = "n/a";
 
 const MINUS = "−";
 
 export function fmtRate(x: number | null | undefined, decimals: number): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   return x.toFixed(decimals).replace("-", MINUS);
 }
 
 export function fmtRange(lo: number, hi: number, decimals: number): string {
-  return `${fmtRate(lo, decimals)} – ${fmtRate(hi, decimals)}`;
+  return `${fmtRate(lo, decimals)} to ${fmtRate(hi, decimals)}`;
 }
 
 /** Signed number with a true minus sign, e.g. "+12.5", "−4", "0". */
 export function fmtSigned(x: number | null | undefined, digits = 0): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   const r = Number(x.toFixed(digits));
   if (r === 0) return (0).toFixed(digits);
   return `${r > 0 ? "+" : MINUS}${Math.abs(r).toFixed(digits)}`;
 }
 
 export function fmtBps(x: number | null | undefined, signed = true): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   const digits = Number.isInteger(Math.round(x * 10) / 10) ? 0 : 1;
   return `${signed ? fmtSigned(x, digits) : x.toFixed(digits)} bps`;
 }
 
 export function fmtPct(x: number | null | undefined, digits = 1): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   return `${(x * 100).toFixed(digits)}%`;
 }
 
 /** A value that is already in percent (policy rates). */
 export function fmtPercentValue(x: number | null | undefined, digits = 2): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   return `${x.toFixed(digits)}%`;
 }
 
 export function fmtNum(x: number | null | undefined, digits = 2): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   return x.toFixed(digits).replace("-", MINUS);
 }
 
 export function fmtInt(x: number | null | undefined): string {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "—";
+  if (x === null || x === undefined || !Number.isFinite(x)) return NA;
   return new Intl.NumberFormat("en-GB").format(x);
 }
 
@@ -140,7 +145,7 @@ export function fmtAgo(iso: string | null | undefined, now: Date): string {
 }
 
 export function fmtDaysUntil(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined) return NA;
   if (n === 0) return "today";
   if (n === 1) return "tomorrow";
   if (n < 0) return `${-n} days ago`;

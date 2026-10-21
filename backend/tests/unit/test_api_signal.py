@@ -80,7 +80,7 @@ def test_fr17_random_walk_served_means_no_edge():
     assert (s.sell, s.receive) == ("EUR", "AMD")
     assert s.verdict_source == "statistical"
     assert s.summary.startswith("Waiting 1M doesn't improve your expected rate; it adds risk")
-    assert "402.00–410.00 AMD per EUR" in s.summary
+    assert "402.00 to 410.00 AMD per EUR" in s.summary
     assert s.risk_half_width_pct == pytest.approx(0.9852, abs=1e-3)
 
 

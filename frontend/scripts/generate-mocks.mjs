@@ -697,7 +697,7 @@ const PAIR_RATES = {
   USDAMD: { sell: "USD", receive: "AMD", base: FED_MID, quote: CBA_REFI },
   EURAMD: { sell: "EUR", receive: "AMD", base: ECB_DFR, quote: CBA_REFI },
 };
-const fmtRange = (lo, hi, dp) => `${lo.toFixed(dp)}\u2013${hi.toFixed(dp)}`;
+const fmtRange = (lo, hi, dp) => `${lo.toFixed(dp)} to ${hi.toFixed(dp)}`;
 
 // Experimental AI view (prompt ai-p2): an independent read, unproven (nothing scored yet).
 // It leans more often than the random walk; the lean uses the same 5-point threshold.
@@ -718,6 +718,23 @@ const AI_VIEWS = {
     21: [0.58, 0.21, "medium", "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better EUR/AMD rate is more likely than not. The dram has been resilient, so the edge is small."],
   },
 };
+// Inverse standard normal (Acklam's rational approximation), to keep each AI view's expected
+// change consistent with its probability and the horizon's sigma.
+function probit(p) {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425;
+  if (p < pl) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > 1 - pl) return -probit(1 - p);
+  const q = p - 0.5;
+  const r = q * q;
+  return ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
 const leanOf = (p) => (Math.abs(p - 0.5) < 0.05 - 1e-9 ? "no_edge" : p > 0.5 ? "wait" : "sell_now");
 
 function attachSignals(latest, bt) {
@@ -759,7 +776,11 @@ function attachSignals(latest, bt) {
         `${fmtRange(lo, hi, dp)} ${meta.receive} per ${meta.sell}. ${pays} at policy rates ` +
         `(about ${Math.abs(carryAmt).toFixed(dp)} ${meta.receive} per ${meta.sell} over ${label}).`,
     };
-    const [p, chg, confidence, reasoning] = AI_VIEWS[latest.pair][h.days];
+    const [p, , confidence, reasoning] = AI_VIEWS[latest.pair][h.days];
+    const chg = round(probit(p) * h.drivers.horizon_sigma * 100, 3);
+    // The AI's expected rate, and the statistical 80% range re-centred on it.
+    const aiCenter = round(latest.spot * (1 + chg / 100), dp + 1);
+    const shift = aiCenter / h.center;
     h.ai_view = {
       provider: "gemini",
       model: "gemini-3.5-flash-lite",
@@ -767,6 +788,8 @@ function attachSignals(latest, bt) {
       generated_at: "2026-10-21T15:39:20Z",
       prob_better_if_wait: p,
       expected_change_pct: chg,
+      center: aiCenter,
+      band80: [round(lo * shift, dp + 1), round(hi * shift, dp + 1)],
       lean: leanOf(p),
       confidence,
       reasoning,

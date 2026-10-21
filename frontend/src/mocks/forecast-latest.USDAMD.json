@@ -72,7 +72,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 360.35–362.49 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.04 AMD per USD over 1D)."
+        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 360.35 to 362.49 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.04 AMD per USD over 1D)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -80,7 +80,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.49,
-        "expected_change_pct": -0.01,
+        "expected_change_pct": -0.007,
+        "center": 361.395,
+        "band80": [
+          360.324,
+          362.469
+        ],
         "lean": "no_edge",
         "confidence": "low",
         "reasoning": "One day is mostly noise for a managed rate; the CBA fixing has moved less than 0.3% on most recent days.",
@@ -167,7 +172,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 358.84–364.02 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.22 AMD per USD over 1W)."
+        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 358.84 to 364.02 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.22 AMD per USD over 1W)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -175,7 +180,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.44,
-        "expected_change_pct": -0.1,
+        "expected_change_pct": -0.095,
+        "center": 361.077,
+        "band80": [
+          358.495,
+          363.678
+        ],
         "lean": "sell_now",
         "confidence": "low",
         "reasoning": "The Fed meets on 28 Oct with a further cut expected, which tends to weigh on the dollar against the dram in the days around the decision.",
@@ -262,7 +272,7 @@
         "dm_pvalue": null,
         "mae_ratio_rw": 1,
         "n_obs": 250,
-        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 356.37–366.54 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.94 AMD per USD over 1M)."
+        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 356.37 to 366.54 AMD per USD. Holding AMD pays about 3.13%/yr more than USD at policy rates (about 0.94 AMD per USD over 1M)."
       },
       "ai_view": {
         "provider": "gemini",
@@ -270,7 +280,12 @@
         "prompt_version": "ai-p2",
         "generated_at": "2026-10-21T15:39:20Z",
         "prob_better_if_wait": 0.57,
-        "expected_change_pct": 0.12,
+        "expected_change_pct": 0.217,
+        "center": 362.204,
+        "band80": [
+          357.144,
+          367.335
+        ],
         "lean": "wait",
         "confidence": "medium",
         "reasoning": "The CBA's easing bias and the narrower CBA-Fed rate gap point to a slightly weaker dram over a month, though the CBA has leaned against sharp moves before.",

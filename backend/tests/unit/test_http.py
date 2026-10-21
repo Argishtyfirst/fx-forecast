@@ -25,7 +25,9 @@ def no_sleep(monkeypatch):
 
 @respx.mock
 def test_retries_three_times_with_exponential_backoff(no_sleep):
-    route = respx.get("https://x.test/r").mock(side_effect=[httpx.Response(503)] * 3 + [httpx.Response(200, json={"rate": 1.5})])
+    route = respx.get("https://x.test/r").mock(
+        side_effect=[httpx.Response(503)] * 3 + [httpx.Response(200, json={"rate": 1.5})]
+    )
     assert http.fetch_json("src", "https://x.test/r", Body).rate == 1.5
     assert route.call_count == 4
     assert no_sleep == [1.0, 2.0, 4.0]

@@ -9,10 +9,7 @@ HEAVY = ("lightgbm", "arch", "statsmodels")
 
 
 def test_api_entrypoint_does_not_import_model_libraries():
-    code = (
-        "import sys; import app; "
-        f"print(','.join(m for m in {HEAVY!r} if m in sys.modules))"
-    )
+    code = f"import sys; import app; print(','.join(m for m in {HEAVY!r} if m in sys.modules))"
     out = subprocess.run(
         [sys.executable, "-c", code], cwd=BACKEND, capture_output=True, text=True, check=True
     )

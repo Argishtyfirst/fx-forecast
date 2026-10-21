@@ -276,6 +276,9 @@ def test_fr17_latest_forecast_shows_the_ai_view_beside_the_statistical_verdict(c
     h = body["horizons"][-1]
     assert h["ai_view"]["prob_better_if_wait"] == 0.62
     assert h["ai_view"]["lean"] == "wait"
+    assert h["ai_view"]["center"] == pytest.approx(405.92 * 1.004)
+    lo, hi = h["ai_view"]["band80"]
+    assert lo < h["ai_view"]["center"] < hi
     assert h["ai_view"]["track_record"] == {
         "n_scored": 0,
         "required": 250,
