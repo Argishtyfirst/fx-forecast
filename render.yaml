@@ -1,0 +1,12 @@
+# Render blueprint: one free web service (API + dashboard). Scheduled jobs run on
+# GitHub Actions cron (see .github/workflows) against the same DATABASE_URL.
+services:
+  - type: web
+    name: fxf
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom">
+  <channel>
+    <title>Интерфакс</title>
+    <link>https://www.interfax.ru</link>
+    <description>Интерфакс</description>
+    <image>
+      <url>https://www.interfax.ru/img/logo200.png</url>
+      <title>Интерфакс</title>
+      <link>https://www.interfax.ru</link>
+    </image>
+    <!-- Added for the fallback test (Interfax rarely carries CBA decisions; none was in the
+         live feed on 2026-10-21). The wording follows Interfax's usual headline form. -->
+    <item>
+      <title>ЦБ Армении повысил ставку рефинансирования до 6,75%</title>
+      <link>https://www.interfax.ru/world/1116299</link>
+      <description>Центральный банк Армении повысил ставку рефинансирования на 0,25 п.п., до 6,75% годовых.</description>
+      <category>В мире</category>
+      <pubDate>Tue, 15 Sep 2026 11:40:00 +0300</pubDate>
+      <guid>https://www.interfax.ru/world/1116299</guid>
+    </item>
+    <item>
+      <title>В Калининградской области упал истребитель Су-30, экипаж жив</title>
+      <link>https://www.interfax.ru/russia/1123988</link>
+      <description>В Калининградской области при выполнении планового учебно-тренировочного полета потерпел аварию самолет Су-30, сообщило Минобороны России.</description>
+      <category>В России</category>
+      <pubDate>Wed, 21 Oct 2026 15:20:00 +0300</pubDate>
+      <guid>https://www.interfax.ru/russia/1123988</guid>
+    </item>
+<item>
+      <title>Brent остается в плюсе и торгуется у $109,43 за баррель</title>
+      <link>https://www.interfax.ru/business/1123985</link>
+      <description>Цены на нефть отошли от внутридневных максимумов на торгах в среду, но остаются в плюсе на фоне сохраняющейся напряженности на Ближнем Востоке, а также данных о снижении запасов энергоносителей в США.</description>
+      <category>Экономика</category>
+      <pubDate>Wed, 21 Oct 2026 15:18:00 +0300</pubDate>
+      <guid>https://www.interfax.ru/business/1123985</guid>
+    </item>
+<item>
+      <title>Макрон не видит следов иностранного вмешательства в прошедшие во Франции протесты</title>
+      <link>https://www.interfax.ru/world/1123984</link>
+      <description>Президент Франции Эммануэль Макрон считает, что непосредственного вмешательства иностранных сил в прошедшие на выходных по всей стране протесты не было."По моему мнению, в произошедших событиях нет видимого иностранного вмешательства", - сказал Макрон журналистам в Дохе в среду.</description>
+      <category>В мире</category>
+      <pubDate>Wed, 21 Oct 2026 15:13:00 +0300</pubDate>
+      <guid>https://www.interfax.ru/world/1123984</guid>
+    </item>
+  </channel>
+</rss>

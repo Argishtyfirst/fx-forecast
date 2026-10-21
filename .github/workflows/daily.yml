@@ -1,0 +1,64 @@
+name: daily pipeline
+
+# FR-01 / NFR-01: run after 17:00 CET, finish before 18:00 CET on working days.
+# GitHub cron is UTC and ignores DST, so several attempts are scheduled; `fxf daily`
+# skips itself outside a Europe/Berlin working day after 17:00 and is idempotent.
+#   CEST (summer): 15:15 and 15:45 UTC are the in-window runs.
+#   CET  (winter): 16:15 and 16:40 UTC are the in-window runs.
+on:
+  schedule:
+    - cron: "15 15 * * 1-5"
+    - cron: "45 15 * * 1-5"
+    - cron: "15 16 * * 1-5"
+    - cron: "40 16 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run outside the window"
+        type: boolean
+        default: false
+
+concurrency:
+  group: fxf-pipeline
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Neon's pooled connection string (any postgres:// form works).
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Optional: turns on the experimental AI view (Gemini).
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Check configuration
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::DATABASE_URL secret is not set; skipping. See README > Deploy."
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        if: env.DATABASE_URL != ''
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --no-dev
+        if: env.DATABASE_URL != ''
+      - run: uv run fxf init-db
+        if: env.DATABASE_URL != ''
+      - run: uv run fxf daily ${{ inputs.force && '--force' || '' }}
+        if: env.DATABASE_URL != ''
+      - uses: actions/upload-artifact@v4
+        if: always() && env.DATABASE_URL != ''
+        with:
+          # Raw source responses, kept 30 days for replay and debugging (spec: Ingestion rules).
+          name: raw-responses-${{ github.workflow }}-${{ github.run_id }}
+          path: backend/var/raw
+          retention-days: 30
+          if-no-files-found: ignore

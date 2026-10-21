@@ -1,0 +1,9 @@
+**/node_modules
+**/.venv
+**/.uv-cache
+**/.npm-cache
+**/.pw-browsers
+backend/var
+frontend/dist
+frontend/screenshots
+.git

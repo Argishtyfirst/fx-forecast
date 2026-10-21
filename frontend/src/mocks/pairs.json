@@ -1,0 +1,52 @@
+{
+  "pairs": [
+    {
+      "id": "EURUSD",
+      "base": "EUR",
+      "quote": "USD",
+      "source": "frankfurter_ecb",
+      "source_label": "ECB reference rate",
+      "banks": [
+        "FED",
+        "ECB"
+      ]
+    },
+    {
+      "id": "USDAMD",
+      "base": "USD",
+      "quote": "AMD",
+      "source": "frankfurter_cba",
+      "source_label": "CBA daily average rate",
+      "banks": [
+        "FED",
+        "CBA"
+      ]
+    },
+    {
+      "id": "EURAMD",
+      "base": "EUR",
+      "quote": "AMD",
+      "source": "frankfurter_cba",
+      "source_label": "CBA daily average rate",
+      "banks": [
+        "FED",
+        "ECB",
+        "CBA"
+      ]
+    }
+  ],
+  "horizons": [
+    {
+      "days": 1,
+      "label": "1D"
+    },
+    {
+      "days": 5,
+      "label": "1W"
+    },
+    {
+      "days": 21,
+      "label": "1M"
+    }
+  ]
+}

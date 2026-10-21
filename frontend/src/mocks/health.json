@@ -1,0 +1,116 @@
+{
+  "status": "degraded",
+  "checked_at": "2026-10-21T15:42:10Z",
+  "sources": [
+    {
+      "source": "frankfurter_ecb",
+      "label": "ECB reference rate (Frankfurter)",
+      "last_success": "2026-10-21T15:16:04Z",
+      "last_run": "2026-10-21T15:16:04Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "frankfurter_cba",
+      "label": "CBA daily rate (Frankfurter)",
+      "last_success": "2026-10-21T15:16:09Z",
+      "last_run": "2026-10-21T15:16:09Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "fred",
+      "label": "FRED",
+      "last_success": "2026-10-21T15:17:30Z",
+      "last_run": "2026-10-21T15:17:30Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "ecb_data_portal",
+      "label": "ECB Data Portal",
+      "last_success": "2026-10-21T15:17:41Z",
+      "last_run": "2026-10-21T15:17:41Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "cba_rates",
+      "label": "CBA policy rates",
+      "last_success": "2026-10-21T15:18:02Z",
+      "last_run": "2026-10-21T15:18:02Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "fed_rss",
+      "label": "Fed press releases",
+      "last_success": "2026-10-21T15:00:12Z",
+      "last_run": "2026-10-21T15:00:12Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "ecb_rss",
+      "label": "ECB press releases",
+      "last_success": "2026-10-21T15:00:15Z",
+      "last_run": "2026-10-21T15:00:15Z",
+      "last_status": "success",
+      "stale": false,
+      "error": null
+    },
+    {
+      "source": "cba_news",
+      "label": "CBA decisions (cba.am, ARKA, Interfax)",
+      "last_success": null,
+      "last_run": "2026-10-21T15:00:20Z",
+      "last_status": "failed",
+      "stale": true,
+      "error": "HTTP 403 from arka.am after 3 retries"
+    },
+    {
+      "source": "atlanta_fed",
+      "label": "Atlanta Fed Market Probability Tracker",
+      "last_success": "2026-10-16T15:20:44Z",
+      "last_run": "2026-10-21T15:18:30Z",
+      "last_status": "failed",
+      "stale": true,
+      "error": "Schema check failed: unknown response shape (missing column 'Probability')"
+    }
+  ],
+  "jobs": [
+    {
+      "job": "forecast",
+      "last_success": "2026-10-21T15:38:51Z",
+      "last_run": "2026-10-21T15:38:51Z",
+      "last_status": "success",
+      "last_duration_s": 41.2,
+      "last_rows_written": 27,
+      "error": null
+    },
+    {
+      "job": "backtest",
+      "last_success": "2026-10-18T06:12:09Z",
+      "last_run": "2026-10-18T06:12:09Z",
+      "last_status": "success",
+      "last_duration_s": 912.4,
+      "last_rows_written": 48,
+      "error": null
+    },
+    {
+      "job": "score_statements",
+      "last_success": "2026-10-06T13:20:02Z",
+      "last_run": "2026-10-06T13:20:02Z",
+      "last_status": "success",
+      "last_duration_s": 6.8,
+      "last_rows_written": 1,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- arka.am answers automated requests with a Cloudflare challenge (HTTP 403), so no live
+     response could be recorded. This fixture follows the standard RSS 2.0 shape; the item
+     text paraphrases the CBA's own 2026-09-15 release. -->
+<rss version="2.0">
+  <channel>
+    <title>ARKA News Agency</title>
+    <link>https://arka.am/en/</link>
+    <description>Economic news from Armenia</description>
+    <item>
+      <title>Armenian central bank raises refinancing rate by 0.25 percentage point to 6.75%</title>
+      <link>https://arka.am/en/news/economy/armenian_central_bank_raises_refinancing_rate/</link>
+      <description>The Board of the Central Bank of Armenia (CBA) decided today to raise the refinancing rate by 0.25 percentage point to 6.75%, the Lombard repo facility rate to 8.25% and the deposit facility rate to 5.25%.</description>
+      <pubDate>Tue, 15 Sep 2026 12:35:00 +0400</pubDate>
+    </item>
+    <item>
+      <title>Armenia's foreign trade turnover grows in August</title>
+      <link>https://arka.am/en/news/economy/armenia_foreign_trade_august/</link>
+      <description>Armenia's foreign trade turnover grew in August.</description>
+      <pubDate>Tue, 15 Sep 2026 11:10:00 +0400</pubDate>
+    </item>
+  </channel>
+</rss>

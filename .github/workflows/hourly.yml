@@ -1,0 +1,47 @@
+name: hourly central bank poll
+
+# FR-05: a decision is recorded within 2 hours of publication.
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fxf-hourly
+  cancel-in-progress: false
+
+jobs:
+  hourly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Neon's pooled connection string (any postgres:// form works).
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Check configuration
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::DATABASE_URL secret is not set; skipping. See README > Deploy."
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        if: env.DATABASE_URL != ''
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --no-dev
+        if: env.DATABASE_URL != ''
+      - run: uv run fxf hourly
+        if: env.DATABASE_URL != ''
+      - uses: actions/upload-artifact@v4
+        if: always() && env.DATABASE_URL != ''
+        with:
+          # Raw source responses, kept 30 days for replay and debugging (spec: Ingestion rules).
+          name: raw-responses-${{ github.workflow }}-${{ github.run_id }}
+          path: backend/var/raw
+          retention-days: 30
+          if-no-files-found: ignore

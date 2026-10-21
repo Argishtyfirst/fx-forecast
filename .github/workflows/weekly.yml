@@ -1,0 +1,38 @@
+name: weekly backtest
+
+# FR-13: walk-forward backtest each week; the served model follows the promotion rule.
+on:
+  schedule:
+    - cron: "0 5 * * 6"
+  workflow_dispatch:
+
+concurrency:
+  group: fxf-pipeline
+  cancel-in-progress: false
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Neon's pooled connection string (any postgres:// form works).
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Check configuration
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::DATABASE_URL secret is not set; skipping. See README > Deploy."
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        if: env.DATABASE_URL != ''
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --no-dev
+        if: env.DATABASE_URL != ''
+      - run: uv run fxf weekly
+        if: env.DATABASE_URL != ''

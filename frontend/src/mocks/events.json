@@ -1,0 +1,277 @@
+{
+  "decisions": [
+    {
+      "id": 418,
+      "bank": "CBA",
+      "date": "2026-10-06",
+      "rate_type": "refinancing",
+      "rate_before": 6.75,
+      "rate_after": 6.5,
+      "expected": 6.75,
+      "expected_source": "previous_rate",
+      "surprise_bps": -25,
+      "rates": {
+        "refinancing": {
+          "before": 6.75,
+          "after": 6.5
+        },
+        "lombard": {
+          "before": 8.25,
+          "after": 8
+        },
+        "deposit": {
+          "before": 5.25,
+          "after": 5
+        }
+      },
+      "statement_url": "https://www.cba.am/en/press-center/press-releases",
+      "statement_text": "The Board of the Central Bank of Armenia decided to reduce the refinancing rate by 0.25 percentage points to 6.5 percent. Twelve-month inflation stood at 3.1 percent in September, below the 4 percent target. External demand has softened and credit growth is slowing. The Board considers that the current stance leaves room for further gradual easing if inflation stays below target. The Lombard repo rate is set at 8.0 percent and the deposit facility rate at 5.0 percent.",
+      "statement_diff": {
+        "added": [
+          "The Board of the Central Bank of Armenia decided to reduce the refinancing rate by 0.25 percentage points to 6.5 percent.",
+          "The Board considers that the current stance leaves room for further gradual easing if inflation stays below target.",
+          "External demand has softened and credit growth is slowing."
+        ],
+        "removed": [
+          "The Board of the Central Bank of Armenia decided to keep the refinancing rate unchanged at 6.75 percent.",
+          "The Board will keep monetary conditions tight until inflation expectations are firmly anchored."
+        ],
+        "previous_event_id": 391
+      },
+      "hawkish_score": -0.45,
+      "hawkish_reason": "Cuts 25 bps and opens the door to further easing as inflation stays below target.",
+      "scorer_version": "claude-haiku-5-5@p1"
+    },
+    {
+      "id": 407,
+      "bank": "FED",
+      "date": "2026-09-16",
+      "rate_type": "target_mid",
+      "rate_before": 3.625,
+      "rate_after": 3.375,
+      "expected": 3.415,
+      "expected_source": "atlanta_fed",
+      "surprise_bps": -4,
+      "rates": {
+        "target_upper": {
+          "before": 3.75,
+          "after": 3.5
+        },
+        "target_lower": {
+          "before": 3.5,
+          "after": 3.25
+        }
+      },
+      "statement_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+      "statement_text": "Recent indicators suggest that growth of economic activity has moderated. Job gains have slowed, and the unemployment rate has edged up. Inflation has eased but remains somewhat elevated. In support of its goals, the Committee decided to lower the target range for the federal funds rate by 1/4 percentage point to 3-1/4 to 3-1/2 percent. In considering additional adjustments, the Committee will carefully assess incoming data, the evolving outlook, and the balance of risks.",
+      "statement_diff": {
+        "added": [
+          "Job gains have slowed, and the unemployment rate has edged up.",
+          "In support of its goals, the Committee decided to lower the target range for the federal funds rate by 1/4 percentage point to 3-1/4 to 3-1/2 percent."
+        ],
+        "removed": [
+          "Job gains have remained solid, and the unemployment rate has stayed low.",
+          "In support of its goals, the Committee decided to maintain the target range for the federal funds rate at 3-1/2 to 3-3/4 percent."
+        ],
+        "previous_event_id": 388
+      },
+      "hawkish_score": -0.35,
+      "hawkish_reason": "Cuts 25 bps and points to a softer labor market; keeps a data-dependent stance.",
+      "scorer_version": "claude-haiku-5-5@p1"
+    },
+    {
+      "id": 403,
+      "bank": "ECB",
+      "date": "2026-09-10",
+      "rate_type": "deposit",
+      "rate_before": 2,
+      "rate_after": 2,
+      "expected": 2,
+      "expected_source": "previous_rate",
+      "surprise_bps": 0,
+      "rates": {
+        "deposit": {
+          "before": 2,
+          "after": 2
+        },
+        "main_refinancing": {
+          "before": 2.15,
+          "after": 2.15
+        },
+        "marginal_lending": {
+          "before": 2.4,
+          "after": 2.4
+        }
+      },
+      "statement_url": "https://www.ecb.europa.eu/press/pr/date/2026/html/index.en.html",
+      "statement_text": "The Governing Council today decided to keep the three key ECB interest rates unchanged. Inflation is currently at around the 2% medium-term target. Wage growth remains robust, which poses some upside risk to services inflation. The Governing Council is determined to ensure that inflation stabilises sustainably at its 2% target.",
+      "statement_diff": {
+        "added": [
+          "Wage growth remains robust, which poses some upside risk to services inflation."
+        ],
+        "removed": [
+          "The incoming information is broadly in line with the previous assessment."
+        ],
+        "previous_event_id": 384
+      },
+      "hawkish_score": 0.1,
+      "hawkish_reason": "Holds rates; flags upside risk from wages but no bias to tighten.",
+      "scorer_version": "claude-haiku-5-5@p1"
+    },
+    {
+      "id": 391,
+      "bank": "CBA",
+      "date": "2026-07-28",
+      "rate_type": "refinancing",
+      "rate_before": 6.75,
+      "rate_after": 6.75,
+      "expected": 6.75,
+      "expected_source": "previous_rate",
+      "surprise_bps": 0,
+      "rates": {
+        "refinancing": {
+          "before": 6.75,
+          "after": 6.75
+        },
+        "lombard": {
+          "before": 8.25,
+          "after": 8.25
+        },
+        "deposit": {
+          "before": 5.25,
+          "after": 5.25
+        }
+      },
+      "statement_url": "https://www.cba.am/en/press-center/press-releases",
+      "statement_text": null,
+      "statement_diff": null,
+      "hawkish_score": null,
+      "hawkish_reason": null,
+      "scorer_version": null
+    },
+    {
+      "id": 388,
+      "bank": "FED",
+      "date": "2026-07-29",
+      "rate_type": "target_mid",
+      "rate_before": 3.625,
+      "rate_after": 3.625,
+      "expected": 3.61,
+      "expected_source": "atlanta_fed",
+      "surprise_bps": 1.5,
+      "rates": {
+        "target_upper": {
+          "before": 3.75,
+          "after": 3.75
+        },
+        "target_lower": {
+          "before": 3.5,
+          "after": 3.5
+        }
+      },
+      "statement_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm",
+      "statement_text": "Recent indicators suggest that economic activity has continued to expand at a solid pace. Job gains have remained solid, and the unemployment rate has stayed low. Inflation remains somewhat elevated. In support of its goals, the Committee decided to maintain the target range for the federal funds rate at 3-1/2 to 3-3/4 percent.",
+      "statement_diff": {
+        "added": [
+          "Recent indicators suggest that economic activity has continued to expand at a solid pace."
+        ],
+        "removed": [
+          "Uncertainty about the economic outlook has increased."
+        ],
+        "previous_event_id": 371
+      },
+      "hawkish_score": 0.2,
+      "hawkish_reason": "Holds; describes solid growth and removes the line on rising uncertainty.",
+      "scorer_version": "claude-haiku-5-5@p1"
+    },
+    {
+      "id": 384,
+      "bank": "ECB",
+      "date": "2026-07-23",
+      "rate_type": "deposit",
+      "rate_before": 2,
+      "rate_after": 2,
+      "expected": 2,
+      "expected_source": "previous_rate",
+      "surprise_bps": 0,
+      "rates": {
+        "deposit": {
+          "before": 2,
+          "after": 2
+        },
+        "main_refinancing": {
+          "before": 2.15,
+          "after": 2.15
+        },
+        "marginal_lending": {
+          "before": 2.4,
+          "after": 2.4
+        }
+      },
+      "statement_url": "https://www.ecb.europa.eu/press/pr/date/2026/html/index.en.html",
+      "statement_text": "The Governing Council today decided to keep the three key ECB interest rates unchanged. The incoming information is broadly in line with the previous assessment. Inflation is currently at around the 2% medium-term target.",
+      "statement_diff": {
+        "added": [
+          "Inflation is currently at around the 2% medium-term target."
+        ],
+        "removed": [
+          "Inflation is expected to return to target in the course of next year."
+        ],
+        "previous_event_id": 369
+      },
+      "hawkish_score": 0.05,
+      "hawkish_reason": "Holds; inflation at target, language unchanged in substance.",
+      "scorer_version": "lexicon@v1"
+    }
+  ],
+  "upcoming": [
+    {
+      "bank": "FED",
+      "date": "2026-10-28",
+      "scheduled": true,
+      "days_until": 7
+    },
+    {
+      "bank": "ECB",
+      "date": "2026-10-29",
+      "scheduled": true,
+      "days_until": 8
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-12-08",
+      "scheduled": true,
+      "days_until": 48
+    },
+    {
+      "bank": "FED",
+      "date": "2026-12-09",
+      "scheduled": true,
+      "days_until": 49
+    },
+    {
+      "bank": "ECB",
+      "date": "2026-12-17",
+      "scheduled": true,
+      "days_until": 57
+    },
+    {
+      "bank": "CBA",
+      "date": "2027-01-26",
+      "scheduled": true,
+      "days_until": 97
+    },
+    {
+      "bank": "FED",
+      "date": "2027-01-27",
+      "scheduled": true,
+      "days_until": 98
+    },
+    {
+      "bank": "ECB",
+      "date": "2027-02-04",
+      "scheduled": true,
+      "days_until": 106
+    }
+  ]
+}
