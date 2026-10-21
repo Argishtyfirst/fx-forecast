@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # The experimental AI view (fxf.ai). Off unless GEMINI_API_KEY is set.
     gemini_api_key: str | None = None
     fxf_ai_model: str = "gemini-3.8-flash"
+    # Used for the day when the main model is rate limited or overloaded.
+    fxf_ai_fallback_model: str = "gemini-3.5-flash-lite"
     # Thinking depth for the AI view ("low" | "medium" | "high"); empty uses the model default.
     fxf_ai_thinking: str = "high"
 

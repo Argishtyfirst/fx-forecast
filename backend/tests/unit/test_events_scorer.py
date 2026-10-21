@@ -246,3 +246,60 @@ def test_fr07_gemini_scorer_returns_a_clamped_score_with_its_version(monkeypatch
     body = json.loads(route.calls.last.request.content)
     assert body["systemInstruction"]["parts"][0]["text"] == sc.SYSTEM_PROMPT
     assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+
+
+def test_fr07_an_overloaded_scorer_defers_the_rest_instead_of_failing(session):
+    import datetime as dt
+
+    from fxf.http import SourceError
+    from fxf.jobs import RunContext
+    from fxf.models import CbEvent
+
+    for i in range(3):
+        session.add(
+            CbEvent(
+                bank="FED",
+                date=dt.date(2026, 1, 1 + i),
+                rate_type="target_mid",
+                statement_text=f"Statement {i}.",
+            )
+        )
+    session.commit()
+
+    class Overloaded:
+        version = "gemini-test@p1"
+        calls = 0
+
+        def score(self, bank, statement, diff):
+            self.calls += 1
+            if self.calls == 2:
+                raise SourceError("gemini: failed after 6 attempts: HTTP 503 (overloaded)")
+            return sc.Score(0.2, "Balanced.")
+
+    ctx = RunContext(job="score_statements", run_id=1)
+    scorer = Overloaded()
+    sc.score_statements(ctx, session.get_bind(), scorer=scorer)  # does not raise
+    assert ctx.rows_written == 1
+    assert ctx.meta["deferred"] == 2 and "HTTP 503" in ctx.meta["stopped"]
+    assert scorer.calls == 2  # stopped at the first overload, did not hammer the rest
+
+
+def test_fr07_scoring_is_capped_per_run(session):
+    import datetime as dt
+
+    from fxf.jobs import RunContext
+    from fxf.models import CbEvent
+
+    for i in range(sc.MAX_PER_RUN + 3):
+        session.add(
+            CbEvent(
+                bank="ECB",
+                date=dt.date(2025, 1, 1) + dt.timedelta(days=i),
+                rate_type="deposit",
+                statement_text=f"Text {i}.",
+            )
+        )
+    session.commit()
+    ctx = RunContext(job="score_statements", run_id=1)
+    sc.score_statements(ctx, session.get_bind(), scorer=sc.LexiconScorer())
+    assert ctx.rows_written == sc.MAX_PER_RUN and ctx.meta["deferred"] == 3

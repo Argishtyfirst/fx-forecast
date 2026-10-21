@@ -365,3 +365,34 @@ def test_gemini_calls_are_spaced_and_retried_for_the_free_tier(monkeypatch):
     gemini.generate_json("ctx", {}, model="gemini-test", api_key="k")
     assert waits[0] == gemini.BACKOFF_BASE_S  # the 503 waits 5s before retrying
     assert 0 < waits[1] <= gemini.MIN_INTERVAL_S  # the second call is spaced from the first
+
+
+@respx.mock
+def test_fr17_ai_view_falls_back_to_the_lite_model_when_the_main_one_is_overloaded(
+    session, monkeypatch
+):
+    monkeypatch.setattr(gemini, "RETRIES", 0)
+    seed(session, ("EURAMD",))
+    lite = URL.replace("gemini-test", "gemini-lite")
+    respx.post(URL).mock(
+        return_value=httpx.Response(503, json={"error": {"message": "The model is overloaded."}})
+    )
+    respx.post(lite).mock(return_value=gemini_reply(answer()))
+    rows = ai_view_for_pair(
+        session, EURAMD, RUN, api_key="k", model="gemini-test", fallback_model="gemini-lite"
+    )
+    llm = rows[0]["features_json"]["llm"]
+    assert (llm["model"], llm["fallback_from"]) == ("gemini-lite", "gemini-test")
+    assert rows[0]["model_version"] == "gemini-lite@ai-p3"
+
+
+@respx.mock
+def test_gemini_failure_message_carries_the_api_explanation(monkeypatch):
+    monkeypatch.setattr(gemini, "RETRIES", 0)
+    respx.post(URL).mock(
+        return_value=httpx.Response(
+            429, json={"error": {"message": "Quota exceeded for metric requests per day"}}
+        )
+    )
+    with pytest.raises(http.SourceError, match="Quota exceeded"):
+        gemini.generate_json("ctx", {}, model="gemini-test", api_key="k")

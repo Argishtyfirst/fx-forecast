@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from fxf import http
 from fxf.ai.context import build_context
-from fxf.ai.gemini import generate_json
+from fxf.ai.gemini import generate_json_with_fallback
 from fxf.config import get_settings, git_sha
 from fxf.constants import HORIZONS, JOB_AI, MODEL_LLM, PAIRS, QUANTILE_COLUMNS, PairSpec
 from fxf.db import session_scope
@@ -179,6 +179,7 @@ def ai_view_for_pair(
     api_key: str,
     model: str,
     thinking: str | None = None,
+    fallback_model: str | None = None,
 ) -> list[dict[str, Any]]:
     served = _served_rows(session, pair.id, run_date)
     if not served:
@@ -188,11 +189,11 @@ def ai_view_for_pair(
     ctx = build_context(session, pair, run_date, served)
     text = json.dumps(ctx, default=str, separators=(",", ":"))
     digest = hashlib.sha256(text.encode()).hexdigest()
-    raw = generate_json(
+    raw, used = generate_json_with_fallback(
         f"Context:\n{text}\n\nGive your independent read for horizons (trading days): "
         f"{list(HORIZONS)}.",
         RESPONSE_SCHEMA,
-        model=model,
+        models=[model, fallback_model or ""],
         api_key=api_key,
         system=SYSTEM,
         thinking_level=thinking,
@@ -203,9 +204,12 @@ def ai_view_for_pair(
         raise http.SchemaError(
             f"gemini: answered horizons {sorted(by_days)}, expected {list(HORIZONS)}"
         )
-    rows = [_row(r, by_days[r.horizon_days], digest, model) for r in served]
+    rows = [_row(r, by_days[r.horizon_days], digest, used) for r in served]
     for row in rows:
-        row["features_json"]["llm"]["thinking"] = thinking or "default"
+        llm = row["features_json"]["llm"]
+        llm["thinking"] = thinking or "default"
+        if used != model:
+            llm["fallback_from"] = model
     return rows
 
 
@@ -216,6 +220,7 @@ def run_ai_view(
     api_key: str,
     model: str,
     thinking: str | None = None,
+    fallback_model: str | None = None,
 ) -> int:
     """Write the AI view for every pair. Tries every pair, then raises if any failed."""
     rows: list[dict[str, Any]] = []
@@ -224,7 +229,13 @@ def run_ai_view(
         try:
             rows.extend(
                 ai_view_for_pair(
-                    session, pair, run_date, api_key=api_key, model=model, thinking=thinking
+                    session,
+                    pair,
+                    run_date,
+                    api_key=api_key,
+                    model=model,
+                    thinking=thinking,
+                    fallback_model=fallback_model,
                 )
             )
         except Exception as exc:  # one pair failing must not lose the others
@@ -266,6 +277,7 @@ def run_ai_view_job(engine: Engine | None = None, *, run_date: dt.date | None = 
                     api_key=s.gemini_api_key,
                     model=s.fxf_ai_model,
                     thinking=s.fxf_ai_thinking or None,
+                    fallback_model=s.fxf_ai_fallback_model or None,
                 )
         return True
     except Exception:

@@ -45,6 +45,9 @@ LEXICON_VERSION: Final = "lexicon@v1"
 MAX_STATEMENT_CHARS: Final = 6000
 MAX_DIFF_SENTENCES: Final = 15
 MAX_TOKENS: Final = 1024  # room for adaptive thinking plus a one-line JSON answer
+# Statements scored per run. A full rescore after a scorer change spreads over a few runs
+# instead of one long run against a rate-limited free tier.
+MAX_PER_RUN: Final = 12
 
 SYSTEM_PROMPT: Final = (
     "You rate central bank monetary policy statements for a currency forecasting model. "
@@ -320,15 +323,25 @@ def score_statements(
     ctx.meta.update(
         {"scorer_version": scorer.version, "rescore_all": rescore, "candidates": len(ids)}
     )
+    from fxf.ai.gemini import is_transient
+
     errors: list[str] = []
-    for event_id in ids:
+    ctx.meta["deferred"] = max(0, len(ids) - MAX_PER_RUN)
+    for n, event_id in enumerate(ids[:MAX_PER_RUN]):
         with session_scope(engine) as s:
             ev = s.get(CbEvent, event_id)
             if ev is None or not ev.statement_text:
                 continue
             try:
                 result = scorer.score(ev.bank, ev.statement_text, ev.statement_diff)
-            except Exception as exc:  # one bad statement must not block the others
+            except Exception as exc:
+                if is_transient(exc):
+                    # Rate limited or overloaded: stop for this run; the rest wait for the next.
+                    ctx.meta["deferred"] = len(ids) - n
+                    ctx.meta["stopped"] = str(exc)[:300]
+                    log.warning("scorer unavailable; deferring", extra={"error": str(exc)})
+                    break
+                # One bad statement must not block the others.
                 errors.append(f"{ev.bank} {ev.date}: {type(exc).__name__}: {exc}")
                 log.warning(
                     "statement scoring failed", extra={"event_id": event_id, "error": str(exc)}

@@ -96,7 +96,13 @@ def fetch(
                     extra={"source": source, "url": url, "attempt": i + 1, "delay_s": delay},
                 )
                 sleep(delay)
-    raise SourceError(f"{source}: failed after {attempts} attempts: {last_exc}") from last_exc
+    detail = ""
+    if isinstance(last_exc, httpx.HTTPStatusError):
+        body = " ".join(last_exc.response.text.split())[:240]
+        detail = f" ({body})" if body else ""
+    raise SourceError(
+        f"{source}: failed after {attempts} attempts: {last_exc}{detail}"
+    ) from last_exc
 
 
 def post_json[T](

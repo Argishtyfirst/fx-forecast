@@ -125,3 +125,36 @@ def generate_json(
     except ValueError as exc:
         reason = candidate.finishReason or "unknown"
         raise SchemaError(f"{SOURCE}: answer is not JSON (finishReason={reason})") from exc
+
+
+def is_transient(exc: Exception) -> bool:
+    """429 (rate limited or out of quota) or 5xx (overloaded) after all retries."""
+    msg = str(exc)
+    return isinstance(exc, SourceError) and ("HTTP 429" in msg or "HTTP 5" in msg)
+
+
+def generate_json_with_fallback(
+    prompt: str,
+    response_schema: dict[str, Any],
+    *,
+    models: list[str],
+    api_key: str,
+    **kw: Any,
+) -> tuple[Any, str]:
+    """Try each model in order, moving on only when one is rate limited or overloaded.
+
+    Returns (answer, model that answered), so callers record the model that actually spoke.
+    """
+    last: Exception | None = None
+    for model in dict.fromkeys(m for m in models if m):
+        try:
+            return generate_json(prompt, response_schema, model=model, api_key=api_key, **kw), model
+        except SourceError as exc:
+            if not is_transient(exc):
+                raise
+            log.warning(
+                "gemini model unavailable, trying the next",
+                extra={"model": model, "error": str(exc)},
+            )
+            last = exc
+    raise last or SourceError(f"{SOURCE}: no model to call")
