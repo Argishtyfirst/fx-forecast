@@ -274,6 +274,47 @@ class EventsResponse(BaseModel):
     upcoming: list[UpcomingMeeting]  # soonest first
 
 
+# --- /api/meetings/{pair} (meeting reaction study) -------------------------------------------
+
+
+class MeetingReactionOut(BaseModel):
+    """How the pair moved around one meeting (fxf.events.study). Moves in percent."""
+
+    bank: str
+    date: dt.date
+    surprise_bps: float | None
+    hawkish_score: float | None
+    rate_change_bps: float | None
+    run_up_pct: float | None  # 5 fixes into the meeting
+    reaction_pct: float  # last fix before the decision to the first fix after
+    follow_pct: float | None  # 5 fixes after the reaction
+    expected_sign: int  # +1 a hawkish signal should lift the pair, -1 lower it, 0 no view
+    signal: int  # +1 hawkish (surprise, else tone), -1 dovish, 0 neutral
+    followed: bool | None  # the reaction went the way the signal implies
+
+
+class BankReactionSummaryOut(BaseModel):
+    bank: str
+    n: int
+    mean_abs_reaction_pct: float | None
+    normal_abs_move_pct: float | None  # median |daily move| on other days
+    reaction_ratio: float | None  # mean |reaction| / normal move
+    mean_run_up_pct: float | None
+    mean_follow_pct: float | None
+    n_signed: int
+    consistency: float | None  # share of signed meetings the reaction followed
+    correlation: float | None
+
+
+class MeetingStudyResponse(BaseModel):
+    pair: str
+    as_of: dt.date
+    lookback_days: int
+    window_days: int  # fixes counted for the run-up and the follow-through
+    banks: list[BankReactionSummaryOut]
+    meetings: list[MeetingReactionOut]  # most recent first
+
+
 # --- /api/health ----------------------------------------------------------------------------
 
 

@@ -83,3 +83,46 @@ def test_job_run_records_success_and_failure(clean_db, _capture_alerts):
     assert [(r.status, r.rows_written) for r in rows] == [("success", 3), ("failed", 0)]
     assert "source down" in rows[1].error
     assert _capture_alerts and "unit_job" in _capture_alerts[0]["title"]
+
+
+def test_fed_mid_falls_back_to_the_feds_own_decisions_after_freds_last_value(session):
+    import datetime as dt
+    from decimal import Decimal
+
+    from fxf.constants import FED_MID
+    from fxf.data_access import load_macro_frame
+    from fxf.models import CbEvent, MacroSeries, utcnow
+
+    for sid, v in (("DFEDTARU", "4.50"), ("DFEDTARL", "4.25")):
+        session.add(
+            MacroSeries(
+                series_id=sid,
+                date=dt.date(2026, 9, 10),
+                value=Decimal(v),
+                source="fred",
+                published_at=dt.datetime(2026, 9, 10, tzinfo=dt.UTC),
+                fetched_at=utcnow(),
+            )
+        )
+    session.add(
+        CbEvent(
+            bank="FED",
+            date=dt.date(2026, 7, 29),
+            rate_type="target_mid",
+            rate_after=Decimal("4.375"),
+        )
+    )
+    session.add(
+        CbEvent(
+            bank="FED",
+            date=dt.date(2026, 9, 16),
+            rate_type="target_mid",
+            rate_after=Decimal("4.125"),
+        )
+    )
+    session.commit()
+
+    frame = load_macro_frame(session, FED_MID)
+    assert frame["value"].tolist() == [4.375, 4.125]  # FRED's value, then the Fed's decision
+    assert frame.index[-1] == pd.Timestamp("2026-09-17")  # effective the next day
+    assert frame["published_at"].iloc[-1] == pd.Timestamp("2026-09-16T19:00Z")

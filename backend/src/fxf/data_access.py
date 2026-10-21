@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from fxf.constants import FED_MID
-from fxf.models import MacroSeries, Rate
+from fxf.models import CbEvent, MacroSeries, Rate
 
 
 def load_rates(
@@ -46,12 +46,13 @@ def load_macro_frame(session: Session, series_id: str) -> pd.DataFrame:
         if u.empty or lo.empty:
             return pd.DataFrame(columns=["value", "published_at"])
         j = u.join(lo, how="inner", lsuffix="_u", rsuffix="_l")
-        return pd.DataFrame(
+        frame = pd.DataFrame(
             {
                 "value": (j["value_u"] + j["value_l"]) / 2.0,
                 "published_at": j[["published_at_u", "published_at_l"]].max(axis=1),
             }
         )
+        return _with_fed_decisions(session, frame)
     rows = session.execute(
         select(MacroSeries.date, MacroSeries.value, MacroSeries.published_at)
         .where(MacroSeries.series_id == series_id)
@@ -66,6 +67,40 @@ def load_macro_frame(session: Session, series_id: str) -> pd.DataFrame:
         },
         index=pd.DatetimeIndex([pd.Timestamp(r.date) for r in rows], name="date"),
     )
+
+
+def _with_fed_decisions(session: Session, frame: pd.DataFrame) -> pd.DataFrame:
+    """Fill any gap after FRED's last observation with the Fed's own decisions.
+
+    FRED can lag or be unreachable; the Fed decisions in cb_events (parsed from its press
+    releases) carry the new target midpoint. A decision on day d takes effect on d + 1, as FRED
+    records it, and was public at the statement (d at FED_STATEMENT_UTC_HOUR UTC) unless the
+    event's own published_at says otherwise.
+    """
+    last = frame.index.max() if not frame.empty else None
+    rows = session.execute(
+        select(CbEvent.date, CbEvent.rate_after, CbEvent.published_at)
+        .where(CbEvent.bank == "FED", CbEvent.rate_after.is_not(None))
+        .order_by(CbEvent.date)
+    ).all()
+    extra = []
+    for d, rate, published in rows:
+        effective = pd.Timestamp(d + dt.timedelta(days=1))
+        if last is not None and effective <= last:
+            continue
+        pub = published or dt.datetime.combine(d, dt.time(FED_STATEMENT_UTC_HOUR), tzinfo=dt.UTC)
+        extra.append((effective, float(rate), pd.Timestamp(pub).tz_convert("UTC")))
+    if not extra:
+        return frame
+    add = pd.DataFrame(
+        {"value": [v for _, v, _ in extra], "published_at": [p for _, _, p in extra]},
+        index=pd.DatetimeIndex([e for e, _, _ in extra], name="date"),
+    )
+    return pd.concat([frame, add]).sort_index()
+
+
+# The FOMC statement comes out at 14:00 New York time: 18:00 or 19:00 UTC.
+FED_STATEMENT_UTC_HOUR = 19
 
 
 def asof_value(frame: pd.DataFrame, cutoff: dt.datetime) -> float | None:

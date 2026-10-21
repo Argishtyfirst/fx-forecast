@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import asdict
 from typing import Annotated, Final
 
 from dateutil.relativedelta import relativedelta
@@ -20,12 +21,15 @@ from fxf.api.schemas import (
     BacktestMetricOut,
     BacktestResponse,
     BacktestTargets,
+    BankReactionSummaryOut,
     DecisionOut,
     EventsResponse,
     ForecastRunResponse,
     HealthResponse,
     HorizonOut,
     LatestForecastResponse,
+    MeetingReactionOut,
+    MeetingStudyResponse,
     PairOut,
     PairsResponse,
     RatePoint,
@@ -268,6 +272,28 @@ def _decision_out(e: CbEvent) -> DecisionOut:
         hawkish_score=convert.num(e.hawkish_score),
         hawkish_reason=e.hawkish_reason,
         scorer_version=e.scorer_version,
+    )
+
+
+@router.get("/meetings/{pair}", response_model=MeetingStudyResponse)
+def meeting_study(
+    pair: PairDep,
+    session: SessionDep,
+    today: TodayDep,
+    lookback_days: Annotated[int, Query(ge=60, le=3650)] = 365,
+) -> MeetingStudyResponse:
+    """How the pair moved around each meeting of its banks: run-up, reaction, follow-through."""
+    from fxf.events.study import RUN_DAYS, load_study
+
+    as_of = session.scalar(select(func.max(Rate.date)).where(Rate.pair == pair.id)) or today
+    summaries, reactions = load_study(session, pair, as_of, lookback_days)
+    return MeetingStudyResponse(
+        pair=pair.id,
+        as_of=as_of,
+        lookback_days=lookback_days,
+        window_days=RUN_DAYS,
+        banks=[BankReactionSummaryOut(**asdict(s)) for s in summaries],
+        meetings=[MeetingReactionOut(**asdict(r)) for r in reversed(reactions)],
     )
 
 

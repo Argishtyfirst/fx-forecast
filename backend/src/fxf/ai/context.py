@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from fxf.constants import BANDS, HORIZON_LABELS, PAIRS, RUBAMD, PairSpec
 from fxf.data_access import load_rates
+from fxf.events.study import load_study
 from fxf.models import CbEvent, Forecast
 
 HISTORY_DAYS = 90
@@ -120,6 +121,45 @@ def _rate_path(session: Session, bank: str, before: dt.date, n: int = 4) -> list
     return out
 
 
+def _meeting_reactions(session: Session, pair: PairSpec, spot_date: dt.date) -> dict[str, Any]:
+    """How this pair moved around each bank's meetings over the last year (fxf.events.study):
+    per bank a summary, and per meeting the run-up, the reaction and the follow-through."""
+    summaries, reactions = load_study(session, pair, spot_date)
+    return {
+        "note": "moves in percent of the pair; reaction = last fix before the decision to the "
+        "first fix after; run_up and follow = 5 fixes before and after; expected_sign +1 means "
+        "a hawkish surprise or tone should lift the pair",
+        "per_bank": [
+            {
+                "bank": s.bank,
+                "meetings": s.n,
+                "mean_abs_reaction_pct": s.mean_abs_reaction_pct,
+                "normal_day_abs_move_pct": s.normal_abs_move_pct,
+                "reaction_vs_normal": s.reaction_ratio,
+                "mean_run_up_pct": s.mean_run_up_pct,
+                "mean_follow_pct": s.mean_follow_pct,
+                "followed_signal_share": s.consistency,
+                "signed_meetings": s.n_signed,
+                "signal_reaction_correlation": s.correlation,
+            }
+            for s in summaries
+        ],
+        "meetings": [
+            {
+                "bank": r.bank,
+                "date": r.date.isoformat(),
+                "surprise_bps": r.surprise_bps,
+                "hawkish_score": r.hawkish_score,
+                "run_up_pct": r.run_up_pct,
+                "reaction_pct": r.reaction_pct,
+                "follow_pct": r.follow_pct,
+                "expected_sign": r.expected_sign,
+            }
+            for r in reactions[-12:]
+        ],
+    }
+
+
 def build_context(
     session: Session, pair: PairSpec, run_date: dt.date, served: list[Forecast]
 ) -> dict[str, Any]:
@@ -171,6 +211,7 @@ def build_context(
         },
         "policy_rate_paths": {bank: _rate_path(session, bank, run_date) for bank in pair.banks},
         "last_decisions": _last_decisions(session, pair.banks, run_date),
+        "meeting_reactions": _meeting_reactions(session, pair, spot_date),
     }
     if pair.quote == "AMD":
         ctx["rub_amd_recent_moves"] = _recent_moves(session, RUBAMD, spot_date)

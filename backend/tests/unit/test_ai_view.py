@@ -145,9 +145,9 @@ def test_fr17_ai_view_is_stored_as_unserved_llm_rows(session):
         assert (llm["provider"], llm["model"], llm["prompt_version"]) == (
             "gemini",
             "gemini-test",
-            "ai-p3",
+            "ai-p4",
         )
-        assert r.model_version == "gemini-test@ai-p3"
+        assert r.model_version == "gemini-test@ai-p4"
         assert len(llm["context_sha256"]) == 64
 
     # Idempotent: a rerun replaces the rows instead of adding more.
@@ -237,7 +237,7 @@ def _llm_history(session: Session, n: int, good: bool) -> None:
     for i in range(n):
         run, target = days[i], days[i + 5]
         row = served_row("EURAMD", 5, rate[run], run=run, target=target)
-        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p3"
+        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p4"
         lift = 1.008 if good else 1.0
         row.center = Decimal(str(round(rate[run] * lift, 6)))
         row.features_json = {"llm": {"prob_higher": 0.7 if good else 0.5}}
@@ -262,8 +262,8 @@ def test_fr17_ai_is_promoted_only_after_250_live_forecasts_that_beat_the_random_
 
 def test_fr17_a_new_prompt_version_starts_its_track_record_from_zero(session):
     _llm_history(session, 260, good=True)
-    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p3").n_scored == 250
-    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p4").n_scored == 0
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p4").n_scored == 250
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p9").n_scored == 0
 
 
 @respx.mock
@@ -383,7 +383,7 @@ def test_fr17_ai_view_falls_back_to_the_lite_model_when_the_main_one_is_overload
     )
     llm = rows[0]["features_json"]["llm"]
     assert (llm["model"], llm["fallback_from"]) == ("gemini-lite", "gemini-test")
-    assert rows[0]["model_version"] == "gemini-lite@ai-p3"
+    assert rows[0]["model_version"] == "gemini-lite@ai-p4"
 
 
 @respx.mock

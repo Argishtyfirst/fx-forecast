@@ -32,23 +32,29 @@ from fxf.models import Forecast, upsert, utcnow
 log = get_logger(__name__)
 
 PROVIDER: Final = "gemini"
-PROMPT_VERSION: Final = "ai-p3"
+PROMPT_VERSION: Final = "ai-p4"
 PROB_BOUNDS: Final = (0.05, 0.95)
 
 # ai-p2: an independent read. ai-p1 showed the model the statistical verdict and told it to
 # stay near 0.5, and it simply echoed the random walk. ai-p3: thinking on (settings
 # fxf_ai_thinking) and up to three sentences of reasoning that say how the drivers net out.
+# ai-p4: the context adds the meeting reaction study (how the pair moved around each bank's
+# meetings over the last year) and the prompt asks the model to use it for meetings ahead.
 SYSTEM: Final = """You are an experienced foreign-exchange analyst giving your own independent \
 read on one currency pair. The JSON context holds spot, recent moves, a year of month-end \
 closes, related pairs, policy rates and their recent path, central bank meetings inside each \
-horizon, each bank's last decision and its new statement sentences, and a statistical risk \
-range per horizon (how far the rate typically moves, not a direction).
+horizon, each bank's last decision and its new statement sentences, a meeting reaction study \
+(how this pair moved around each bank's meetings over the last year: the run-up, the reaction \
+and the follow-through, and how often the reaction followed the surprise or tone), and a \
+statistical risk range per horizon (how far the rate typically moves, not a direction).
 
 For each horizon, estimate the probability that the rate on the target date will be HIGHER \
 than spot, the expected change in percent, your confidence, and why. Form your own view from \
 the drivers: trend and momentum, interest-rate differentials and the direction of policy, the \
-likely outcome and surprise of meetings inside the horizon, the tone of recent statements, how \
-the related pairs and the CBA's managed float have behaved, and anything else in the context. \
+likely outcome and surprise of meetings inside the horizon and how this pair has typically \
+reacted to that bank's meetings (use the meeting reaction study, and remember a year holds only \
+about 8 meetings per bank), the tone of recent statements, how the related pairs and the CBA's \
+managed float have behaved, and anything else in the context. \
 Commit to a lean when you see one; use 0.50 only when you genuinely see none.
 
 Stay honest about uncertainty: exchange rates are hard to predict, so probabilities beyond \
