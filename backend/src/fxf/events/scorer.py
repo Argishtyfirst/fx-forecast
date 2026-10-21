@@ -3,8 +3,9 @@
 Each statement is scored from -1 (dovish) to +1 (hawkish) with a one-line reason, given the
 statement text and its sentence diff against the bank's previous statement.
 
-- With GEMINI_API_KEY set (the default in production): Gemini, the same model as the AI view
-  (settings.fxf_ai_model, default gemini-3.8-flash) through fxf.ai.gemini, strict JSON
+- With GEMINI_API_KEY set (the default in production): Gemini (settings.fxf_scorer_gemini_model,
+  default gemini-3.5-flash-lite: tone scoring is simple, and its own free quota leaves the AI
+  view's model quota untouched) through fxf.ai.gemini, strict JSON
   through a response schema, low thinking, scorer_version "<model>@<PROMPT_VERSION>". Free
   tier, so NFR-07 holds at zero cost.
 - Else with ANTHROPIC_API_KEY set: Claude (settings.fxf_scorer_model, default
@@ -47,7 +48,7 @@ MAX_DIFF_SENTENCES: Final = 15
 MAX_TOKENS: Final = 1024  # room for adaptive thinking plus a one-line JSON answer
 # Statements scored per run. A full rescore after a scorer change spreads over a few runs
 # instead of one long run against a rate-limited free tier.
-MAX_PER_RUN: Final = 12
+MAX_PER_RUN: Final = 24
 
 SYSTEM_PROMPT: Final = (
     "You rate central bank monetary policy statements for a currency forecasting model. "
@@ -283,7 +284,7 @@ def active_scorer(client: Any | None = None) -> Scorer:
     if client is not None:
         return ClaudeScorer(s.fxf_scorer_model, client=client, api_key=s.anthropic_api_key)
     if s.gemini_api_key:
-        return GeminiScorer(s.fxf_ai_model, s.gemini_api_key)
+        return GeminiScorer(s.fxf_scorer_gemini_model, s.gemini_api_key)
     if s.anthropic_api_key:
         return ClaudeScorer(s.fxf_scorer_model, api_key=s.anthropic_api_key)
     return LexiconScorer()

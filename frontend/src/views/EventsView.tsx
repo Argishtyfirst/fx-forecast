@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api/client";
-import type { DecisionOut, PairId, UpcomingMeeting } from "../api/types";
+import type { DecisionOut, MeetingReactionOut, PairId, UpcomingMeeting } from "../api/types";
 import { DataStatus } from "../components/DataStatus";
 import { HawkishScale } from "../components/HawkishScale";
 import { MeetingStudy } from "../components/MeetingStudy";
@@ -25,9 +25,22 @@ interface EventsViewProps {
 }
 
 const EXPECTED_SOURCE_LABELS: Record<string, string> = {
-  atlanta_fed: "Atlanta Fed market path",
+  atlanta_fed: "Atlanta Fed market expectation",
+  atlanta_fed_mpt: "Atlanta Fed market expectation",
   previous_rate: "previous rate, no change",
 };
+
+/** Who scored the statement's tone, in plain words. */
+function scorerLabel(version: string): string {
+  const model = version.split("@")[0];
+  if (model.startsWith("lexicon")) return "Scored by word count (fallback until Gemini scores it)";
+  if (model.startsWith("gemini")) return `Scored by Gemini (${model})`;
+  if (model.startsWith("claude")) return `Scored by Claude (${model})`;
+  return `Scored by ${model}`;
+}
+
+const signedPct = (v: number | null | undefined) =>
+  v == null ? "n/a" : `${v > 0 ? "+" : v < 0 ? "\u2212" : ""}${Math.abs(v).toFixed(2)}%`;
 
 export function EventsView({ pair, bank, onBank }: EventsViewProps) {
   const filter = BANKS.find((b) => b === bank?.toUpperCase());
@@ -38,6 +51,11 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
   const upcoming = (events.data?.upcoming ?? []).filter((m) => !filter || m.bank === filter);
   const pairBanks = PAIRS[pair].banks;
   const study = useApi(`meetings:${pair}`, () => api.meetings(pair, 365));
+  // The same study over the decision list's two years, to show each decision's move.
+  const moves = useApi(`meetings:${pair}:730`, () => api.meetings(pair, 730));
+  const moveByDecision = new Map(
+    (moves.data?.meetings ?? []).map((m) => [`${m.bank}|${m.date}`, m] as const),
+  );
 
   return (
     <div className="view">
@@ -111,7 +129,12 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
             {decisions.length ? (
               <ol className="decisions" data-testid="decision-list">
                 {decisions.map((d) => (
-                  <DecisionItem key={d.id} d={d} />
+                  <DecisionItem
+                    key={d.id}
+                    d={d}
+                    pairLabel={PAIRS[pair].label}
+                    move={moveByDecision.get(`${d.bank}|${d.date}`)}
+                  />
                 ))}
               </ol>
             ) : (
@@ -148,7 +171,39 @@ function decisionVerb(d: DecisionOut): string {
   return bps > 0 ? `Hike ${bps} bps` : `Cut ${-bps} bps`;
 }
 
-function DecisionItem({ d }: { d: DecisionOut }) {
+function followedText(m: MeetingReactionOut): string | null {
+  if (m.followed === true) return "moved the way the surprise or tone implied";
+  if (m.followed === false) return "moved against the surprise or tone";
+  if (m.expected_sign === 0) return null;
+  return null;
+}
+
+/** How the pair moved around this decision: 5 fixes before, the reaction, 5 fixes after. */
+function DecisionMove({ m, pairLabel }: { m: MeetingReactionOut; pairLabel: string }) {
+  const followed = followedText(m);
+  return (
+    <div className="decision-move" data-testid="decision-move">
+      <p className="decision-move-title">{pairLabel} around this decision</p>
+      <dl className="decision-move-stats">
+        <div>
+          <dt>5 days before</dt>
+          <dd className="num">{signedPct(m.run_up_pct)}</dd>
+        </div>
+        <div>
+          <dt>Reaction</dt>
+          <dd className="num decision-move-reaction">{signedPct(m.reaction_pct)}</dd>
+        </div>
+        <div>
+          <dt>5 days after</dt>
+          <dd className="num">{signedPct(m.follow_pct)}</dd>
+        </div>
+      </dl>
+      {followed && <p className="decision-move-note">The reaction {followed}.</p>}
+    </div>
+  );
+}
+
+function DecisionItem({ d, pairLabel, move }: { d: DecisionOut; pairLabel: string; move?: MeetingReactionOut }) {
   const [open, setOpen] = useState(false);
   const diff = d.statement_diff;
   const added = diff?.added ?? [];
@@ -207,9 +262,11 @@ function DecisionItem({ d }: { d: DecisionOut }) {
         <HawkishScale score={d.hawkish_score} compact />
         <div className="decision-reason">
           <p>{d.hawkish_reason ?? "This statement has not been scored yet."}</p>
-          {d.scorer_version && <p className="scorer">scorer {d.scorer_version}</p>}
+          {d.scorer_version && <p className="scorer">{scorerLabel(d.scorer_version)}</p>}
         </div>
       </div>
+
+      {move && <DecisionMove m={move} pairLabel={pairLabel} />}
 
       <div className="decision-actions">
         {diff ? (

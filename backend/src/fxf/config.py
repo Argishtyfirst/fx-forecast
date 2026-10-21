@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     fxf_ai_model: str = "gemini-3.8-flash"
     # Used for the day when the main model is rate limited or overloaded.
     fxf_ai_fallback_model: str = "gemini-3.5-flash-lite"
+    # Statement tone scoring is a simple task; flash-lite has its own, larger free quota and
+    # leaves the AI view's model quota for the daily forecasts.
+    fxf_scorer_gemini_model: str = "gemini-3.5-flash-lite"
     # Thinking depth for the AI view ("low" | "medium" | "high"); empty uses the model default.
     fxf_ai_thinking: str = "high"
 
