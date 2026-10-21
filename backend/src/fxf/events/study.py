@@ -42,6 +42,9 @@ from fxf.models import CbEvent
 
 CURRENCY_BANK = {"EUR": "ECB", "USD": "FED", "AMD": "CBA"}
 RUN_DAYS = 5
+# Day-by-day path around each meeting: fixes from PATH_DAYS before the pre-decision fix
+# (offset 0) to PATH_DAYS after it (offset 1 is the first fix after the decision).
+PATH_DAYS = 10
 LOOKBACK_DAYS = 365
 MIN_SURPRISE_BPS = 1.0
 MIN_TONE = 0.15
@@ -61,6 +64,8 @@ class MeetingReaction:
     expected_sign: int  # +1 the pair should rise on a hawkish signal, -1 fall, 0 no view
     signal: int  # +1 hawkish (surprise, else tone), -1 dovish, 0 neutral
     followed: bool | None  # reaction went the way the signal implies (None when unsigned)
+    # (offset, date, % vs the pre-decision fix) for offsets -PATH_DAYS..+PATH_DAYS known so far.
+    path: tuple[tuple[int, dt.date, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -75,6 +80,8 @@ class BankReactionSummary:
     n_signed: int
     consistency: float | None
     correlation: float | None  # of the signed signal with the reaction, n >= MIN_CORRELATION_N
+    # (offset, mean |% vs the pre-decision fix|, meetings): how far the pair typically strays.
+    typical_path: tuple[tuple[int, float, int], ...] = ()
 
 
 def expected_sign(pair: PairSpec, bank: str) -> int:
@@ -146,6 +153,11 @@ def study(
         sign, _ = _signal(surprise, tone)
         exp = expected_sign(pair, bank)
         reaction = _pct(values[impact], values[pre])
+        path = tuple(
+            (k, pd.Timestamp(dates[pre + k]).date(), _pct(values[pre + k], values[pre]))
+            for k in range(-PATH_DAYS, PATH_DAYS + 1)
+            if 0 <= pre + k < len(values)
+        )
         followed = (
             None if sign == 0 or exp == 0 or reaction == 0 else (reaction > 0) == (sign * exp > 0)
         )
@@ -164,6 +176,7 @@ def study(
                 expected_sign=exp,
                 signal=sign,
                 followed=followed,
+                path=path,
             )
         )
 
@@ -189,6 +202,13 @@ def study(
             x, y = np.array([p[0] for p in pairs_]), np.array([p[1] for p in pairs_])
             if x.std() > 0 and y.std() > 0:
                 corr = round(float(np.corrcoef(x, y)[0, 1]), 3)
+        by_offset: dict[int, list[float]] = {}
+        for r in rs:
+            for k, _, v in r.path:
+                by_offset.setdefault(k, []).append(abs(v))
+        typical = tuple(
+            (k, round(float(np.mean(vs)), 4), len(vs)) for k, vs in sorted(by_offset.items())
+        )
         summaries.append(
             BankReactionSummary(
                 bank=bank,
@@ -205,6 +225,7 @@ def study(
                 if signed
                 else None,
                 correlation=corr,
+                typical_path=typical,
             )
         )
     return summaries, reactions

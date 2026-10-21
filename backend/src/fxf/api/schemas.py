@@ -334,6 +334,18 @@ class EventsResponse(BaseModel):
 # --- /api/meetings/{pair} (meeting reaction study) -------------------------------------------
 
 
+class PathPoint(BaseModel):
+    offset: int  # trading days from the last fix before the decision (1 = first fix after)
+    date: dt.date
+    pct: float  # % change against the last fix before the decision
+
+
+class TypicalPathPoint(BaseModel):
+    offset: int
+    mean_abs_pct: float  # how far, on average, the pair was from its pre-decision level
+    meetings: int
+
+
 class MeetingReactionOut(BaseModel):
     """How the pair moved around one meeting (fxf.events.study). Moves in percent."""
 
@@ -348,6 +360,7 @@ class MeetingReactionOut(BaseModel):
     expected_sign: int  # +1 a hawkish signal should lift the pair, -1 lower it, 0 no view
     signal: int  # +1 hawkish (surprise, else tone), -1 dovish, 0 neutral
     followed: bool | None  # the reaction went the way the signal implies
+    path: list[PathPoint] = Field(default_factory=list)  # day by day, -10..+10
 
 
 class BankReactionSummaryOut(BaseModel):
@@ -361,6 +374,7 @@ class BankReactionSummaryOut(BaseModel):
     n_signed: int
     consistency: float | None  # share of signed meetings the reaction followed
     correlation: float | None
+    typical_path: list[TypicalPathPoint] = Field(default_factory=list)
 
 
 class MeetingStudyResponse(BaseModel):
@@ -368,6 +382,7 @@ class MeetingStudyResponse(BaseModel):
     as_of: dt.date
     lookback_days: int
     window_days: int  # fixes counted for the run-up and the follow-through
+    path_days: int = 10  # each path runs from -path_days to +path_days
     banks: list[BankReactionSummaryOut]
     meetings: list[MeetingReactionOut]  # most recent first
 

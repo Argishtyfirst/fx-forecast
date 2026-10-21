@@ -35,9 +35,11 @@ from fxf.api.schemas import (
     MeetingStudyResponse,
     PairOut,
     PairsResponse,
+    PathPoint,
     RatePoint,
     RatesResponse,
     StatementDiff,
+    TypicalPathPoint,
     UpcomingMeeting,
 )
 from fxf.constants import (
@@ -366,7 +368,7 @@ def meeting_study(
     lookback_days: Annotated[int, Query(ge=60, le=3650)] = 365,
 ) -> MeetingStudyResponse:
     """How the pair moved around each meeting of its banks: run-up, reaction, follow-through."""
-    from fxf.events.study import RUN_DAYS, load_study
+    from fxf.events.study import PATH_DAYS, RUN_DAYS, load_study
 
     as_of = session.scalar(select(func.max(Rate.date)).where(Rate.pair == pair.id)) or today
     summaries, reactions = load_study(session, pair, as_of, lookback_days)
@@ -375,8 +377,25 @@ def meeting_study(
         as_of=as_of,
         lookback_days=lookback_days,
         window_days=RUN_DAYS,
-        banks=[BankReactionSummaryOut(**asdict(s)) for s in summaries],
-        meetings=[MeetingReactionOut(**asdict(r)) for r in reversed(reactions)],
+        path_days=PATH_DAYS,
+        banks=[
+            BankReactionSummaryOut(
+                **{
+                    **asdict(s),
+                    "typical_path": [
+                        TypicalPathPoint(offset=k, mean_abs_pct=v, meetings=n)
+                        for k, v, n in s.typical_path
+                    ],
+                }
+            )
+            for s in summaries
+        ],
+        meetings=[
+            MeetingReactionOut(
+                **{**asdict(r), "path": [PathPoint(offset=k, date=d, pct=v) for k, d, v in r.path]}
+            )
+            for r in reversed(reactions)
+        ],
     )
 
 
