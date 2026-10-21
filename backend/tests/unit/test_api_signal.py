@@ -148,3 +148,19 @@ def test_fr17_no_lean_without_the_promotion_rule_or_direction_skill():
 def test_fr17_small_edge_is_no_edge():
     s = build_signal(EURAMD, forecast(406.3), evidence())
     assert (s.action, s.confidence) == ("no_edge", "low")
+
+
+def test_fr17_a_stated_45_percent_is_a_full_five_point_edge():
+    from fxf.api.signal import AiBasis
+
+    ai = AiBasis(
+        prob_better_if_wait=0.45,
+        expected_change_pct=-0.2,
+        model="llm",
+        hit_rate=0.6,
+        dm_pvalue=0.04,
+        mae_ratio_rw=0.95,
+        n_scored=250,
+    )
+    s = build_signal(EURAMD, forecast(406.0, model="random_walk"), None, ai)
+    assert s.action == "sell_now"

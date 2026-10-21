@@ -288,3 +288,13 @@ def test_fr17_latest_forecast_shows_the_ai_view_beside_the_statistical_verdict(c
     # Unproven, so the statistical answer still decides.
     assert h["signal"]["verdict_source"] == "statistical"
     assert h["signal"]["action"] == "no_edge"
+
+
+@respx.mock
+def test_fr17_ai_lean_treats_45_percent_as_sell_now(clean_db):
+    with Session(clean_db) as s:
+        seed(s)
+        respx.post(URL).mock(return_value=gemini_reply(answer(prob=0.45, change=-0.2)))
+        run_ai_view(s, RUN, api_key="k", model="gemini-test")
+    body = TestClient(create_app(frontend_dist=None)).get("/api/forecasts/EURAMD/latest").json()
+    assert {h["ai_view"]["lean"] for h in body["horizons"]} == {"sell_now"}

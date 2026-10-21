@@ -98,7 +98,9 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
     for row in rows:
         llm = (row.features_json or {}).get("llm") or {}
         try:
-            edge = float(llm["prob_higher"]) - 0.5
+            # Rounded so a stated 0.45 counts as the full 5-point edge (0.45 - 0.5 is
+            # -0.04999... in floating point).
+            edge = round(float(llm["prob_higher"]) - 0.5, 6)
             lean = "wait" if edge >= MIN_EDGE else "sell_now" if edge <= -MIN_EDGE else "no_edge"
             out[row.horizon_days] = AiView(
                 provider=llm["provider"],

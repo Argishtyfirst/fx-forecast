@@ -184,7 +184,7 @@ def build_signal(
             and dm < PROMOTION_DM_PVALUE
         )
         name = f"{MODEL_NAMES.get(row.model, row.model)} model"
-    edge = abs(p - 0.5)
+    edge = round(abs(p - 0.5), 6)  # 0.45 must count as a full 5-point edge
 
     action: Literal["sell_now", "wait", "no_edge"] = "no_edge"
     confidence: Literal["none", "low", "medium", "high"] = "none"
