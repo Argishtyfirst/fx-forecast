@@ -9,7 +9,11 @@ every 63 origins (params.GARCH_REFIT_EVERY / LGBM_REFIT_EVERY).
 
 Metrics per pair x horizon x center candidate x window. "250d" is the last 250 origins with
 a realised outcome, "full" is every origin; start_date and end_date are the first and last
-origin. pinball_ref scores GARCH-only bands (random-walk center, no event widening, no
+origin. Event windows split the 250d origins: "evt_<BANK>" for origins whose horizon
+(t, t + h] contains the impact day (first trading day after the meeting) of a scheduled
+meeting of that bank (banks of the pair only), "evt_none" for horizons with no impact day of
+any of the pair's banks; subsets with fewer than 5 origins are not written. mae_ratio_rw and
+dm_pvalue compare with the random walk on the same subset (DM treats the subset as one series). pinball_ref scores GARCH-only bands (random-walk center, no event widening, no
 empirical check, no calibration) on the same dates. The walk-forward starts CAL_WINDOW + 21
 origins before `start` so the first scored origins already have a calibrated band. A model without a prediction on some origins (missing
 inputs) is scored on the origins where it has one, against the random walk on those origins.
@@ -23,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
@@ -52,6 +57,7 @@ from fxf.forecast.core import (
 )
 from fxf.forecast.inputs import load_pair_inputs
 from fxf.forecast.selection import MetricSummary, select_from_metrics
+from fxf.forecast.widening import impact_indices
 from fxf.jobs import RunContext, run_job
 from fxf.logging_setup import get_logger
 from fxf.models import BacktestMetric, upsert
@@ -73,6 +79,10 @@ METRIC_COLS = [
     "pinball_ref",
     "dm_pvalue",
 ]
+# Event windows (subsets of the 250d origins): "evt_FED", "evt_ECB", "evt_CBA", "evt_none".
+EVENT_WINDOW_PREFIX = "evt_"
+EVENT_WINDOW_NONE = "evt_none"
+EVENT_MIN_OBS = 5
 # cov50/cov80/cov95 -> column positions of the band's quantiles in bands.QUANTILE_NAMES.
 BAND_COLS = {
     f"cov{label}": (bands.QUANTILE_NAMES.index(lo), bands.QUANTILE_NAMES.index(hi))
@@ -100,6 +110,23 @@ def backtest_origins(data: PairData, start: dt.date) -> np.ndarray:
     )
     last = data.n - 2
     return np.arange(first, last + 1) if last >= first else np.array([], dtype=int)
+
+
+def meeting_hits(data: PairData, origins: np.ndarray, h: int) -> dict[str, np.ndarray]:
+    """Per bank of the pair: does the horizon (origin, origin + h] contain the impact day (first
+    trading day after the meeting date) of one of its scheduled meetings?"""
+    m = data.inputs.meetings
+    out: dict[str, np.ndarray] = {}
+    for bank in data.inputs.spec.banks:
+        sel = m[(m["bank"] == bank) & m["scheduled"]] if not m.empty else m
+        ind = np.zeros(data.n + 1)
+        if len(sel):
+            imp = impact_indices(pd.DatetimeIndex(sel["date"]).values, data.dates64)
+            imp = imp[imp < data.n]
+            ind[imp] = 1.0
+        cs = np.concatenate([[0.0], np.cumsum(ind)])  # cs[k] = impact days with index < k
+        out[bank] = (cs[origins + h + 1] - cs[origins + 1]) > 0
+    return out
 
 
 def _zmat(nu_h: np.ndarray) -> np.ndarray:
@@ -134,6 +161,13 @@ def pair_metrics(
         recent = np.zeros(len(oi), dtype=bool)
         recent[-BACKTEST_WINDOW_DAYS:] = True
         windows = {WINDOW_FULL: np.ones(len(oi), dtype=bool), WINDOW_RECENT: recent}
+        # Event subsets of the 250d origins (written only with >= EVENT_MIN_OBS observations).
+        hits = meeting_hits(data, oi, h)
+        for bank, hit in hits.items():
+            windows[f"{EVENT_WINDOW_PREFIX}{bank}"] = recent & hit
+        windows[EVENT_WINDOW_NONE] = (
+            recent & ~np.any(list(hits.values()), axis=0) if hits else recent
+        )
         for model in CENTER_CANDIDATES[h]:
             mu = ho.mu[model][valid]
             avail = np.isfinite(mu)
@@ -143,7 +177,7 @@ def pair_metrics(
             for wname, wmask in windows.items():
                 sel = wmask & avail
                 n = int(sel.sum())
-                if n == 0:
+                if n == 0 or (wname.startswith(EVENT_WINDOW_PREFIX) and n < EVENT_MIN_OBS):
                     continue
                 m_mae = M.mae(err[sel])
                 rw_mae = M.mae(rw_err[sel])

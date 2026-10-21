@@ -24,6 +24,9 @@ jobs:
       # Neon's pooled connection string (any postgres:// form works).
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # The weekly AI analysis (Gemini), after the backtest.
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      FXF_AI_MODEL: ${{ vars.FXF_AI_MODEL || 'gemini-3.8-flash' }}
       GIT_SHA: ${{ github.sha }}
     steps:
       - name: Check configuration
@@ -36,6 +39,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --frozen --no-dev
+        if: env.DATABASE_URL != ''
+      - run: uv run fxf init-db
         if: env.DATABASE_URL != ''
       - run: uv run fxf weekly
         if: env.DATABASE_URL != ''

@@ -161,6 +161,7 @@ JOB_FORECAST: Final = "forecast"
 JOB_BACKTEST: Final = "backtest"
 JOB_SCORE: Final = "score_statements"
 JOB_AI: Final = "ai_view"
+JOB_AI_ANALYSIS: Final = "ai_analysis"
 
 # Hours after which a source with no newer successful run counts as stale.
 # Daily sources tolerate a weekend plus a holiday.

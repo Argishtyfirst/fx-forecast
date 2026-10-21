@@ -228,11 +228,50 @@ class BacktestMetricOut(BaseModel):
     served: bool  # served in the latest forecast run
 
 
+class EventWindowMetricOut(BaseModel):
+    """Backtest metrics over the last 250 origins, split by whether a meeting of `bank` fell
+    inside the horizon ("none": no meeting of any of the pair's banks). backtest_metrics
+    rows with window "evt_<BANK>" / "evt_none"."""
+
+    horizon_days: int
+    model: str
+    bank: str  # "FED" | "ECB" | "CBA" | "none"
+    n_obs: int
+    mae_ratio_rw: float
+    hit_rate: float | None
+    cov50: float
+    cov80: float
+    cov95: float
+
+
+class AiTrackRow(BaseModel):
+    horizon_days: int
+    model_version: str | None  # the AI view's latest "<model>@<prompt>", None if it never ran
+    track_record: AiTrackRecord
+
+
+class AiAnalysisOut(BaseModel):
+    """Experimental: the AI's weekly reading of the meeting study and the around-meetings
+    backtest (fxf.ai.analysis). Written text, not a forecast."""
+
+    run_date: dt.date
+    provider: str
+    model: str
+    prompt_version: str
+    generated_at: dt.datetime
+    headline: str
+    points: list[str]
+    watch_next: str
+
+
 class BacktestResponse(BaseModel):
     pair: str
     run_date: dt.date | None
     targets: BacktestTargets
-    metrics: list[BacktestMetricOut]
+    metrics: list[BacktestMetricOut]  # windows "250d" and "full"
+    event_metrics: list[EventWindowMetricOut] = Field(default_factory=list)
+    ai_track: list[AiTrackRow] = Field(default_factory=list)
+    ai_analysis: AiAnalysisOut | None = None
 
 
 # --- /api/events ---------------------------------------------------------------------------

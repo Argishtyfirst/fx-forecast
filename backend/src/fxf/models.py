@@ -225,3 +225,27 @@ def upsert(
         session.execute(stmt)
         n += len(chunk)
     return n
+
+
+class AiAnalysis(Base):
+    """Written AI analyses (fxf.ai.analysis), e.g. the weekly reading of the meeting study.
+
+    An eighth table beside the spec's seven: free text with its model and prompt version,
+    one row per kind, pair and run date.
+    """
+
+    __tablename__ = "ai_analyses"
+    __table_args__ = (
+        UniqueConstraint("kind", "pair", "run_date", name="uq_ai_analyses_kind_pair_run"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    pair: Mapped[str] = mapped_column(String(12), nullable=False)
+    run_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    model: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, server_default=func.now()
+    )

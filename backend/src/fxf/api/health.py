@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from fxf.api.schemas import HealthResponse, JobStatus, SourceStatus
 from fxf.constants import (
     JOB_AI,
+    JOB_AI_ANALYSIS,
     JOB_BACKTEST,
     JOB_FORECAST,
     JOB_SCORE,
@@ -59,7 +60,13 @@ BANK_SOURCES: Final[dict[str, tuple[str, ...]]] = {
     "CBA": (SOURCE_CBA, SOURCE_CBA_NEWS),
 }
 
-PIPELINE_JOBS: Final[tuple[str, ...]] = (JOB_FORECAST, JOB_BACKTEST, JOB_SCORE, JOB_AI)
+PIPELINE_JOBS: Final[tuple[str, ...]] = (
+    JOB_FORECAST,
+    JOB_BACKTEST,
+    JOB_SCORE,
+    JOB_AI,
+    JOB_AI_ANALYSIS,
+)
 DEFAULT_STALE_HOURS: Final = 96
 
 

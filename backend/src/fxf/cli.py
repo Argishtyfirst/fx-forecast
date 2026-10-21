@@ -118,6 +118,14 @@ def ai(
     raise typer.Exit(0 if run_ai_view_job(run_date=_date(date)) else 1)
 
 
+@app.command("ai-analysis")
+def ai_analysis() -> None:
+    """Weekly AI analysis of the meeting study and the around-meetings backtest (Gemini)."""
+    from fxf.ai.analysis import run_ai_analysis_job
+
+    raise typer.Exit(0 if run_ai_analysis_job() else 1)
+
+
 @app.command()
 def daily(
     force: Annotated[
@@ -180,6 +188,11 @@ def weekly() -> None:
     typer.echo(f"  {'ok  ' if bt_ok else 'FAIL'} backtest")
     fc_ok = run_forecast_job(run_date=today)
     typer.echo(f"  {'ok  ' if fc_ok else 'FAIL'} forecast")
+    from fxf.ai.analysis import run_ai_analysis_job
+
+    # Experimental and optional: recorded and alerted on failure, never fails the run.
+    an_ok = run_ai_analysis_job(run_date=today)
+    typer.echo(f"  {'ok  ' if an_ok else 'FAIL'} ai analysis")
     raise typer.Exit(0 if (bt_ok and fc_ok) else 1)
 
 

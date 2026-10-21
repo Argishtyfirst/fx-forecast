@@ -18,12 +18,15 @@ from fxf.api.forecasts import NoForecast, build_latest, build_run, model_order, 
 from fxf.api.health import build_health
 from fxf.api.metrics import CONTENT_TYPE, collect_metrics
 from fxf.api.schemas import (
+    AiAnalysisOut,
+    AiTrackRow,
     BacktestMetricOut,
     BacktestResponse,
     BacktestTargets,
     BankReactionSummaryOut,
     DecisionOut,
     EventsResponse,
+    EventWindowMetricOut,
     ForecastRunResponse,
     HealthResponse,
     HorizonOut,
@@ -41,6 +44,7 @@ from fxf.constants import (
     BANKS,
     HORIZON_LABELS,
     HORIZONS,
+    MODEL_LLM,
     PAIRS,
     PROMOTION_DM_PVALUE,
     PROMOTION_MAE_RATIO,
@@ -48,7 +52,7 @@ from fxf.constants import (
     WINDOW_RECENT,
     PairSpec,
 )
-from fxf.models import BacktestMetric, CbEvent, CbMeeting, Rate
+from fxf.models import AiAnalysis, BacktestMetric, CbEvent, CbMeeting, Forecast, Rate
 
 router = APIRouter(prefix="/api")
 
@@ -146,15 +150,25 @@ def get_backtests(
     run_date = session.scalar(
         select(func.max(BacktestMetric.run_date)).where(BacktestMetric.pair == pair.id)
     )
+    ai_track, ai_analysis = _ai_backtest_parts(session, pair, horizon)
     if run_date is None:
-        return BacktestResponse(pair=pair.id, run_date=None, targets=BacktestTargets(), metrics=[])
+        return BacktestResponse(
+            pair=pair.id,
+            run_date=None,
+            targets=BacktestTargets(),
+            metrics=[],
+            ai_track=ai_track,
+            ai_analysis=ai_analysis,
+        )
     q = select(BacktestMetric).where(
         BacktestMetric.pair == pair.id, BacktestMetric.run_date == run_date
     )
     if horizon is not None:
         q = q.where(BacktestMetric.horizon_days == horizon)
+    all_rows = list(session.scalars(q))
+    events = [m for m in all_rows if m.window.startswith(EVENT_WINDOW_PREFIX)]
     rows = sorted(
-        session.scalars(q),
+        (m for m in all_rows if not m.window.startswith(EVENT_WINDOW_PREFIX)),
         key=lambda m: (
             m.horizon_days,
             model_order(m.model),
@@ -189,7 +203,75 @@ def get_backtests(
             )
             for m in rows
         ],
+        event_metrics=[
+            EventWindowMetricOut(
+                horizon_days=m.horizon_days,
+                model=m.model,
+                bank=m.window[len(EVENT_WINDOW_PREFIX) :],
+                n_obs=m.n_obs,
+                mae_ratio_rw=m.mae_ratio_rw,
+                hit_rate=m.hit_rate,
+                cov50=m.cov50,
+                cov80=m.cov80,
+                cov95=m.cov95,
+            )
+            for m in sorted(events, key=lambda m: (m.horizon_days, model_order(m.model), m.window))
+        ],
+        ai_track=ai_track,
+        ai_analysis=ai_analysis,
     )
+
+
+# Backtest windows split by meetings inside the horizon: "evt_FED", "evt_ECB", "evt_CBA",
+# "evt_none" (fxf.backtest.runner).
+EVENT_WINDOW_PREFIX: Final = "evt_"
+
+
+def _ai_backtest_parts(
+    session: Session, pair: PairSpec, horizon: int | None
+) -> tuple[list[AiTrackRow], AiAnalysisOut | None]:
+    """The AI view's live record per horizon and its latest weekly analysis for the pair."""
+    from fxf.ai.track import track_record
+    from fxf.data_access import load_rates
+
+    rates = load_rates(session, pair.id)
+    track = []
+    for h in [horizon] if horizon else list(HORIZONS):
+        version = session.scalar(
+            select(Forecast.model_version)
+            .where(
+                Forecast.pair == pair.id, Forecast.horizon_days == h, Forecast.model == MODEL_LLM
+            )
+            .order_by(Forecast.run_date.desc())
+            .limit(1)
+        )
+        track.append(
+            AiTrackRow(
+                horizon_days=h,
+                model_version=version,
+                track_record=track_record(session, pair.id, h, rates, version),
+            )
+        )
+    row = session.scalars(
+        select(AiAnalysis)
+        .where(AiAnalysis.pair == pair.id, AiAnalysis.kind == "event_study")
+        .order_by(AiAnalysis.run_date.desc())
+        .limit(1)
+    ).first()
+    analysis = None
+    if row is not None:
+        c = row.content or {}
+        analysis = AiAnalysisOut(
+            run_date=row.run_date,
+            provider=c.get("provider", "gemini"),
+            model=row.model,
+            prompt_version=row.prompt_version,
+            generated_at=c.get("generated_at") or row.created_at,
+            headline=c.get("headline", ""),
+            points=list(c.get("points") or []),
+            watch_next=c.get("watch_next", ""),
+        )
+    return track, analysis
 
 
 def is_promoted(m: BacktestMetric) -> bool:
