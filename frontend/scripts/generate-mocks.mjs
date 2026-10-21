@@ -1270,3 +1270,77 @@ console.log(
     writeFileSync(btFile, JSON.stringify(bt, null, 2) + "\n");
   }
 }
+
+// --- day-by-day paths around each meeting (-10..+10 trading days) ---------------------------------
+{
+  const DAYS = 10;
+  const weekdayStep = (iso, n) => {
+    let cur = iso;
+    let left = Math.abs(n);
+    while (left > 0) {
+      cur = addDays(cur, n > 0 ? 1 : -1);
+      const wd = weekday(cur);
+      if (wd !== 0 && wd !== 6) left -= 1;
+    }
+    return cur;
+  };
+  // The real EUR/USD path around the Fed on 16 Sep 2026, used verbatim for that meeting.
+  const REAL = { "-10": 0.35, "-5": 0.99, "-1": 0.02, "0": 0, "1": -0.49, "5": -1.1, "10": -1.59 };
+  for (const pair of ["EURUSD", "USDAMD", "EURAMD"]) {
+    const file = join(OUT, `meetings.${pair}.json`);
+    const study = JSON.parse(readFileSync(file, "utf8"));
+    const rand = mulberry32(pair.charCodeAt(0) * 7 + pair.charCodeAt(5) * 13);
+    const dailyVol = { EURUSD: 0.19, USDAMD: 0.17, EURAMD: 0.2 }[pair];
+    for (const m of study.meetings) {
+      const pts = {};
+      pts[0] = 0;
+      pts[1] = m.reaction_pct;
+      // Before: walk back from 0 so that -5 sits at -run_up (the drift into the meeting).
+      const target5 = -(m.run_up_pct ?? 0);
+      for (let k = -1; k >= -DAYS; k -= 1) {
+        const prev = pts[k + 1];
+        const pull = k >= -5 ? (target5 - prev) / (k + 6) : 0;
+        pts[k] = round(prev + pull + (rand() - 0.5) * dailyVol * 0.9, 3);
+      }
+      pts[-5] = round(target5, 3);
+      // After: from the reaction, drift so that +6 sits near reaction + follow-through.
+      const target6 = m.reaction_pct + (m.follow_pct ?? 0);
+      for (let k = 2; k <= DAYS; k += 1) {
+        const prev = pts[k - 1];
+        const pull = k <= 6 ? (target6 - prev) / (7 - k) : 0;
+        pts[k] = round(prev + pull + (rand() - 0.5) * dailyVol * 0.9, 3);
+      }
+      if (pair === "EURUSD" && m.bank === "FED" && m.date === "2026-09-16") {
+        for (const [k, v] of Object.entries(REAL)) pts[k] = v;
+        for (const k of [-9, -8, -7, -6]) pts[k] = round(0.35 + ((0.99 - 0.35) * (k + 10)) / 5, 3);
+        for (const k of [-4, -3, -2]) pts[k] = round(0.99 + ((0.02 - 0.99) * (k + 5)) / 4, 3);
+        for (const k of [2, 3, 4]) pts[k] = round(-0.49 + ((-1.1 + 0.49) * (k - 1)) / 4, 3);
+        for (const k of [6, 7, 8, 9]) pts[k] = round(-1.1 + ((-1.59 + 1.1) * (k - 5)) / 5, 3);
+        m.reaction_pct = -0.49;
+      }
+      // A meeting whose later fixes are not in yet keeps a shorter path (CBA on 6 Oct).
+      const last = m.date === "2026-10-06" ? 10 : DAYS;
+      m.path = [];
+      for (let k = -DAYS; k <= last; k += 1) {
+        const date = k === 0 ? m.date : weekdayStep(m.date, k);
+        if (date > SPOT_DATE) break;
+        m.path.push({ offset: k, date, pct: pts[k] });
+      }
+    }
+    for (const b of study.banks) {
+      const own = study.meetings.filter((m) => m.bank === b.bank);
+      b.typical_path = [];
+      for (let k = -DAYS; k <= DAYS; k += 1) {
+        const vals = own.map((m) => m.path.find((p) => p.offset === k)?.pct).filter((v) => v !== undefined);
+        if (!vals.length) continue;
+        b.typical_path.push({
+          offset: k,
+          mean_abs_pct: round(vals.reduce((a, v) => a + Math.abs(v), 0) / vals.length, 3),
+          meetings: vals.length,
+        });
+      }
+    }
+    study.path_days = DAYS;
+    writeFileSync(file, JSON.stringify(study, null, 2) + "\n");
+  }
+}

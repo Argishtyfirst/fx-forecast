@@ -336,6 +336,19 @@ export interface EventsResponse {
 
 // --- /api/meetings/{pair}?lookback_days= -------------------------------------------------------
 
+/** One day of a meeting's path: % change against the last fix before the decision. */
+export interface PathPoint {
+  offset: number; // trading days from the last fix before the decision (1 = first fix after)
+  date: IsoDate;
+  pct: number;
+}
+
+export interface TypicalPathPoint {
+  offset: number;
+  mean_abs_pct: number; // how far, on average, the pair was from its pre-decision level
+  meetings: number;
+}
+
 /** How the pair moved around one meeting. Moves in percent. */
 export interface MeetingReactionOut {
   bank: string;
@@ -349,6 +362,7 @@ export interface MeetingReactionOut {
   expected_sign: number; // +1 a hawkish signal should lift the pair, -1 lower it, 0 no view
   signal: number; // +1 hawkish (surprise, else tone), -1 dovish, 0 neutral
   followed: boolean | null; // the reaction went the way the signal implies
+  path?: PathPoint[]; // day by day, -10..+10
 }
 
 export interface BankReactionSummaryOut {
@@ -362,6 +376,7 @@ export interface BankReactionSummaryOut {
   n_signed: number;
   consistency: number | null; // share of signed meetings the reaction followed
   correlation: number | null;
+  typical_path?: TypicalPathPoint[];
 }
 
 export interface MeetingStudyResponse {
@@ -371,6 +386,7 @@ export interface MeetingStudyResponse {
   window_days: number; // fixes counted for the run-up and the follow-through
   banks: BankReactionSummaryOut[];
   meetings: MeetingReactionOut[]; // most recent first
+  path_days?: number; // each path runs from -path_days to +path_days
 }
 
 // --- /api/health ----------------------------------------------------------------------------

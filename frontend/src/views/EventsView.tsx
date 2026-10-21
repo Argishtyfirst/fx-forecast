@@ -178,26 +178,70 @@ function followedText(m: MeetingReactionOut): string | null {
   return null;
 }
 
-/** How the pair moved around this decision: 5 fixes before, the reaction, 5 fixes after. */
+/** One sentence from the path: which way the decision moved the pair, and what came after. */
+export function pathSentence(m: MeetingReactionOut): string | null {
+  const at = (k: number) => m.path?.find((p) => p.offset === k)?.pct ?? null;
+  const r = at(1) ?? m.reaction_pct;
+  const lastPoint = m.path && m.path.length ? m.path[m.path.length - 1] : null;
+  if (!lastPoint || lastPoint.offset < 2) return null;
+  const e = lastPoint.pct;
+  const later = `${lastPoint.offset} days later`;
+  const abs = (v: number) => `${Math.abs(v).toFixed(2)}%`;
+  if (Math.abs(r) < 0.05) return `Barely moved on the decision; ${signedPct(e)} ${later}.`;
+  const verb = r < 0 ? "Fell" : "Rose";
+  const going = r < 0 ? "kept falling" : "kept rising";
+  if (Math.sign(e) !== Math.sign(r) && Math.abs(e) >= 0.05) return `${verb} ${abs(r)} on the decision, then reversed: ${signedPct(e)} ${later}.`;
+  if (Math.abs(e) > Math.abs(r) + 0.05) return `${verb} ${abs(r)} on the decision and ${going}: ${signedPct(e)} ${later}.`;
+  if (Math.abs(e) < Math.abs(r) - 0.05) return `${verb} ${abs(r)} on the decision, then gave some back: ${signedPct(e)} ${later}.`;
+  return `${verb} ${abs(r)} on the decision and held there: ${signedPct(e)} ${later}.`;
+}
+
+/** A compact sparkline of the pair's path around this decision, 10 trading days each side. */
 function DecisionMove({ m, pairLabel }: { m: MeetingReactionOut; pairLabel: string }) {
   const followed = followedText(m);
+  const path = m.path ?? [];
+  const sentence = pathSentence(m);
+  if (path.length < 2) return null;
+  const W = 240;
+  const H = 56;
+  const pad = { l: 2, r: 4, t: 6, b: 6 };
+  const offs = path.map((p) => p.offset);
+  const lo = Math.min(...offs);
+  const hi = Math.max(10, ...offs);
+  const ext = Math.max(0.2, ...path.map((p) => Math.abs(p.pct))) * 1.15;
+  const x = (k: number) => pad.l + ((k - lo) / (hi - lo)) * (W - pad.l - pad.r);
+  const y = (v: number) => pad.t + ((ext - v) / (2 * ext)) * (H - pad.t - pad.b);
+  const d = path.map((p, i) => `${i ? "L" : "M"}${x(p.offset).toFixed(1)},${y(p.pct).toFixed(1)}`).join("");
+  const reaction = path.find((p) => p.offset === 1);
+  const at5 = path.find((p) => p.offset === 5);
+  const at10 = path.find((p) => p.offset === 10);
+  const label = `${pairLabel} around this decision: ${sentence ?? ""}`;
   return (
     <div className="decision-move" data-testid="decision-move">
       <p className="decision-move-title">{pairLabel} around this decision</p>
-      <dl className="decision-move-stats">
-        <div>
-          <dt>5 days before</dt>
-          <dd className="num">{signedPct(m.run_up_pct)}</dd>
-        </div>
-        <div>
-          <dt>Reaction</dt>
-          <dd className="num decision-move-reaction">{signedPct(m.reaction_pct)}</dd>
-        </div>
-        <div>
-          <dt>5 days after</dt>
-          <dd className="num">{signedPct(m.follow_pct)}</dd>
-        </div>
-      </dl>
+      <div className="decision-spark">
+        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label} className="spark">
+          <line className="spark-zero" x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} />
+          <line className="spark-decision" x1={x(0.5)} x2={x(0.5)} y1={2} y2={H - 2} />
+          <path className="spark-line" d={d} />
+          {reaction && <circle className="spark-reaction" cx={x(1)} cy={y(reaction.pct)} r={3.5} />}
+        </svg>
+        <dl className="spark-ends">
+          {at5 && (
+            <div>
+              <dt>+5 days</dt>
+              <dd className="num">{signedPct(at5.pct)}</dd>
+            </div>
+          )}
+          {at10 && (
+            <div>
+              <dt>+10 days</dt>
+              <dd className="num">{signedPct(at10.pct)}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      {sentence && <p className="decision-move-sentence">{sentence}</p>}
       {followed && <p className="decision-move-note">The reaction {followed}.</p>}
     </div>
   );
