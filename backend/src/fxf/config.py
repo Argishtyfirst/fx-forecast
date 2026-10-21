@@ -38,7 +38,9 @@ class Settings(BaseSettings):
     fxf_scorer_model: str = "claude-haiku-5-5"
     # The experimental AI view (fxf.ai). Off unless GEMINI_API_KEY is set.
     gemini_api_key: str | None = None
-    fxf_ai_model: str = "gemini-3.5-flash-lite"
+    fxf_ai_model: str = "gemini-3.8-flash"
+    # Thinking depth for the AI view ("low" | "medium" | "high"); empty uses the model default.
+    fxf_ai_thinking: str = "high"
 
     slack_webhook_url: str | None = None
     alert_email_to: str | None = None

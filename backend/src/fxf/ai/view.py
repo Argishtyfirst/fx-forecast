@@ -32,11 +32,12 @@ from fxf.models import Forecast, upsert, utcnow
 log = get_logger(__name__)
 
 PROVIDER: Final = "gemini"
-PROMPT_VERSION: Final = "ai-p2"
+PROMPT_VERSION: Final = "ai-p3"
 PROB_BOUNDS: Final = (0.05, 0.95)
 
 # ai-p2: an independent read. ai-p1 showed the model the statistical verdict and told it to
-# stay near 0.5, and it simply echoed the random walk.
+# stay near 0.5, and it simply echoed the random walk. ai-p3: thinking on (settings
+# fxf_ai_thinking) and up to three sentences of reasoning that say how the drivers net out.
 SYSTEM: Final = """You are an experienced foreign-exchange analyst giving your own independent \
 read on one currency pair. The JSON context holds spot, recent moves, a year of month-end \
 closes, related pairs, policy rates and their recent path, central bank meetings inside each \
@@ -53,8 +54,9 @@ Commit to a lean when you see one; use 0.50 only when you genuinely see none.
 Stay honest about uncertainty: exchange rates are hard to predict, so probabilities beyond \
 0.35-0.65 need strong, specific reasons. The expected change must have the same sign as \
 (probability - 0.5) and stay inside the 80% risk band. Confidence: "low" for a weak lean, \
-"medium" for one clear reason, "high" for several reasons that agree. Reasoning: at most two \
-sentences naming the specific drivers. Describe the forecast; never tell anyone what to do."""
+"medium" for one clear reason, "high" for several reasons that agree. Think it through before \
+answering. Reasoning: at most three sentences that name the specific drivers, which way each \
+points, and how they net out. Describe the forecast; never tell anyone what to do."""
 
 RESPONSE_SCHEMA: Final[dict[str, Any]] = {
     "type": "OBJECT",
@@ -170,7 +172,13 @@ def _row(row: Forecast, ans: HorizonAnswer, ctx_digest: str, model: str) -> dict
 
 
 def ai_view_for_pair(
-    session: Session, pair: PairSpec, run_date: dt.date, *, api_key: str, model: str
+    session: Session,
+    pair: PairSpec,
+    run_date: dt.date,
+    *,
+    api_key: str,
+    model: str,
+    thinking: str | None = None,
 ) -> list[dict[str, Any]]:
     served = _served_rows(session, pair.id, run_date)
     if not served:
@@ -187,6 +195,7 @@ def ai_view_for_pair(
         model=model,
         api_key=api_key,
         system=SYSTEM,
+        thinking_level=thinking,
     )
     answer: Answer = http.validate("gemini", raw, ANSWER)
     by_days = {h.days: h for h in answer.horizons}
@@ -194,16 +203,30 @@ def ai_view_for_pair(
         raise http.SchemaError(
             f"gemini: answered horizons {sorted(by_days)}, expected {list(HORIZONS)}"
         )
-    return [_row(r, by_days[r.horizon_days], digest, model) for r in served]
+    rows = [_row(r, by_days[r.horizon_days], digest, model) for r in served]
+    for row in rows:
+        row["features_json"]["llm"]["thinking"] = thinking or "default"
+    return rows
 
 
-def run_ai_view(session: Session, run_date: dt.date, *, api_key: str, model: str) -> int:
+def run_ai_view(
+    session: Session,
+    run_date: dt.date,
+    *,
+    api_key: str,
+    model: str,
+    thinking: str | None = None,
+) -> int:
     """Write the AI view for every pair. Tries every pair, then raises if any failed."""
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
     for pair in PAIRS.values():
         try:
-            rows.extend(ai_view_for_pair(session, pair, run_date, api_key=api_key, model=model))
+            rows.extend(
+                ai_view_for_pair(
+                    session, pair, run_date, api_key=api_key, model=model, thinking=thinking
+                )
+            )
         except Exception as exc:  # one pair failing must not lose the others
             log.warning("ai view failed", extra={"pair": pair.id, "error": str(exc)})
             errors.append(f"{pair.id}: {exc}")
@@ -230,14 +253,19 @@ def run_ai_view_job(engine: Engine | None = None, *, run_date: dt.date | None = 
         log.info("ai view off: GEMINI_API_KEY is not set")
         return True
     try:
-        with job_run(JOB_AI, engine=engine, meta={"model": s.fxf_ai_model}) as run:
+        meta = {"model": s.fxf_ai_model, "thinking": s.fxf_ai_thinking or "default"}
+        with job_run(JOB_AI, engine=engine, meta=meta) as run:
             with session_scope(engine) as session:
                 day = run_date or latest_served_run_date(session)
                 if day is None:
                     raise RuntimeError("no served forecast yet")
                 run.meta["run_date"] = day.isoformat()
                 run.rows_written = run_ai_view(
-                    session, day, api_key=s.gemini_api_key, model=s.fxf_ai_model
+                    session,
+                    day,
+                    api_key=s.gemini_api_key,
+                    model=s.fxf_ai_model,
+                    thinking=s.fxf_ai_thinking or None,
                 )
         return True
     except Exception:

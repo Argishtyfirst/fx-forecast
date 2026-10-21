@@ -17,7 +17,7 @@ def _forecast(model: str, served: bool, features: dict) -> Forecast:
         horizon_days=21,
         target_date=dt.date(2026, 11, 19),
         model=model,
-        model_version="gemini-test@ai-p2" if model == "llm" else "rw1",
+        model_version="gemini-test@ai-p3" if model == "llm" else "rw1",
         spot=d("405.92"),
         center=d("405.3"),
         q025=d("390"),
@@ -77,7 +77,7 @@ def test_report_covers_models_ai_view_and_health(session):
     assert "Statistical estimate. Not financial advice." in text
     assert "| EUR/AMD | 1M | random_walk | 81.2% | 56.4% | 96.0% | lightgbm (0.982, 0.43) |" in text
     assert "| EUR/AMD | 1M | Sell now (2026-10-21) | 45% | medium | 0 of 250 |" in text
-    assert "Model and prompt: gemini-test@ai-p2." in text
+    assert "Model and prompt: gemini-test@ai-p3." in text
     assert "| backtest |" in text and "| ai_view | never | never ran |" in text
     assert "—" not in text and "–" not in text
 

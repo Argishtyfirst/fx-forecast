@@ -37,7 +37,9 @@ jobs:
       # Optional: turns on the experimental AI view (Gemini).
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # Repository variable FXF_AI_MODEL switches the model; a new model starts a fresh track record.
-      FXF_AI_MODEL: ${{ vars.FXF_AI_MODEL || 'gemini-3.5-flash-lite' }}
+      FXF_AI_MODEL: ${{ vars.FXF_AI_MODEL || 'gemini-3.8-flash' }}
+      # Thinking depth: low | medium | high.
+      FXF_AI_THINKING: ${{ vars.FXF_AI_THINKING || 'high' }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       GIT_SHA: ${{ github.sha }}
     steps:

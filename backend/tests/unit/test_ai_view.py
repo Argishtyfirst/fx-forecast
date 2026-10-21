@@ -145,9 +145,9 @@ def test_fr17_ai_view_is_stored_as_unserved_llm_rows(session):
         assert (llm["provider"], llm["model"], llm["prompt_version"]) == (
             "gemini",
             "gemini-test",
-            "ai-p2",
+            "ai-p3",
         )
-        assert r.model_version == "gemini-test@ai-p2"
+        assert r.model_version == "gemini-test@ai-p3"
         assert len(llm["context_sha256"]) == 64
 
     # Idempotent: a rerun replaces the rows instead of adding more.
@@ -237,7 +237,7 @@ def _llm_history(session: Session, n: int, good: bool) -> None:
     for i in range(n):
         run, target = days[i], days[i + 5]
         row = served_row("EURAMD", 5, rate[run], run=run, target=target)
-        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p2"
+        row.model, row.served, row.model_version = MODEL_LLM, False, "gemini-test@ai-p3"
         lift = 1.008 if good else 1.0
         row.center = Decimal(str(round(rate[run] * lift, 6)))
         row.features_json = {"llm": {"prob_higher": 0.7 if good else 0.5}}
@@ -262,8 +262,8 @@ def test_fr17_ai_is_promoted_only_after_250_live_forecasts_that_beat_the_random_
 
 def test_fr17_a_new_prompt_version_starts_its_track_record_from_zero(session):
     _llm_history(session, 260, good=True)
-    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p2").n_scored == 250
-    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p3").n_scored == 0
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p3").n_scored == 250
+    assert track_record(session, "EURAMD", 5, model_version="gemini-test@ai-p4").n_scored == 0
 
 
 @respx.mock
@@ -301,3 +301,53 @@ def test_fr17_ai_lean_treats_45_percent_as_sell_now(clean_db):
         run_ai_view(s, RUN, api_key="k", model="gemini-test")
     body = TestClient(create_app(frontend_dist=None)).get("/api/forecasts/EURAMD/latest").json()
     assert {h["ai_view"]["lean"] for h in body["horizons"]} == {"sell_now"}
+
+
+@respx.mock
+def test_gemini_asks_for_thinking_and_ignores_thought_summaries():
+    text = json.dumps({"horizons": answer()})
+    route = respx.post(URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": "Weighing the Fed meeting against the CBA path...",
+                                    "thought": True,
+                                },
+                                {"text": text},
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+    )
+    out = gemini.generate_json("ctx", {}, model="gemini-test", api_key="k", thinking_level="high")
+    assert out["horizons"][0]["days"] == 1
+    body = json.loads(route.calls.last.request.content)
+    assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "high"}
+
+
+@respx.mock
+def test_gemini_falls_back_to_default_thinking_when_the_level_is_rejected():
+    route = respx.post(URL).mock(
+        side_effect=[
+            httpx.Response(400, json={"error": {"message": "Unknown field"}}),
+            gemini_reply(answer()),
+        ]
+    )
+    out = gemini.generate_json("ctx", {}, model="gemini-test", api_key="k", thinking_level="high")
+    assert len(out["horizons"]) == 3
+    assert "thinkingConfig" not in json.loads(route.calls.last.request.content)["generationConfig"]
+
+
+@respx.mock
+def test_ai_view_records_the_thinking_level(session):
+    seed(session, ("EURAMD",))
+    respx.post(URL).mock(return_value=gemini_reply(answer()))
+    rows = ai_view_for_pair(session, EURAMD, RUN, api_key="k", model="gemini-test", thinking="high")
+    assert {r["features_json"]["llm"]["thinking"] for r in rows} == {"high"}
