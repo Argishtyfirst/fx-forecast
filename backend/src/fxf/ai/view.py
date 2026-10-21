@@ -195,6 +195,10 @@ def ai_view_for_pair(
     ctx = build_context(session, pair, run_date, served)
     text = json.dumps(ctx, default=str, separators=(",", ":"))
     digest = hashlib.sha256(text.encode()).hexdigest()
+    # End the read transaction before the slow model call (a minute or more with high thinking):
+    # an open connection left idle that long is dropped by the database, and the later write
+    # then fails. The loaded rows stay readable (expire_on_commit=False).
+    session.commit()
     raw, used = generate_json_with_fallback(
         f"Context:\n{text}\n\nGive your independent read for horizons (trading days): "
         f"{list(HORIZONS)}.",

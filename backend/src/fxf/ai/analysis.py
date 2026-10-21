@@ -192,6 +192,7 @@ def analyse_pair(
         or run_date
     )
     ctx = build_context(session, pair, as_of)
+    session.commit()  # release the connection during the slow model call
     raw, used = generate_json_with_fallback(
         f"Context:\n{json.dumps(ctx, default=str, separators=(',', ':'))}\n\nWrite the note.",
         RESPONSE_SCHEMA,

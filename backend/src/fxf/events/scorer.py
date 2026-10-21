@@ -333,8 +333,10 @@ def score_statements(
             ev = s.get(CbEvent, event_id)
             if ev is None or not ev.statement_text:
                 continue
+            bank, text, diff = ev.bank, ev.statement_text, ev.statement_diff
+            s.commit()  # release the connection during the slow model call
             try:
-                result = scorer.score(ev.bank, ev.statement_text, ev.statement_diff)
+                result = scorer.score(bank, text, diff)
             except Exception as exc:
                 if is_transient(exc):
                     # Rate limited or overloaded: stop for this run; the rest wait for the next.
