@@ -76,6 +76,7 @@ Open http://localhost:8000. For frontend work, use `npm run dev` in `frontend/` 
 | `fxf weekly` | Walk-forward backtest, then today's forecast with the new served models |
 | `fxf backfill` | Full history for every source |
 | `fxf ai` | The AI view only (needs `GEMINI_API_KEY`) |
+| `fxf report` | Weekly Markdown report in `docs/reports/`: models, AI track record, pipeline health |
 | `fxf status` | Recent job runs |
 | `fxf worker` | APScheduler alternative to GitHub Actions cron |
 
@@ -87,7 +88,9 @@ Open http://localhost:8000. For frontend work, use `npm run dev` in `frontend/` 
 - **Database:** Neon Postgres (free, Frankfurt), provisioned through the Vercel
   Marketplace. Vercel injects `DATABASE_URL`, and `postgres://` URLs are normalised to
   psycopg 3.
-- **Jobs:** GitHub Actions cron in `.github/workflows`. They skip until the secrets exist.
+- **Jobs:** GitHub Actions cron in `.github/workflows`. They skip until the secrets exist. The
+  Saturday job commits a report to [docs/reports](docs/reports). That commit also keeps GitHub
+  from disabling the schedules, which it does after 60 days without repository activity.
 
 Add the repository secrets under GitHub → Settings → Secrets and variables → Actions:
 

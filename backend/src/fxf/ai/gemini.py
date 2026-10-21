@@ -46,7 +46,9 @@ def generate_json(
     model: str,
     api_key: str,
     system: str | None = None,
-    max_output_tokens: int = 1024,
+    # Room for a reasoning model's thinking tokens, which count toward this limit; billing is
+    # on the tokens actually produced.
+    max_output_tokens: int = 8192,
 ) -> Any:
     """One deterministic (temperature 0) call; returns the parsed JSON answer."""
     body: dict[str, Any] = {

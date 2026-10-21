@@ -176,6 +176,23 @@ def weekly() -> None:
 
 
 @app.command()
+def report(
+    out: Annotated[str | None, typer.Option(help="Output folder, default docs/reports")] = None,
+) -> None:
+    """Write the weekly Markdown report (models, AI track record, pipeline health)."""
+    from pathlib import Path
+
+    from fxf.config import REPO_DIR
+    from fxf.db import session_scope
+    from fxf.report import write_report
+
+    with session_scope() as s:
+        paths = write_report(s, Path(out) if out else REPO_DIR / "docs" / "reports")
+    for path in paths:
+        typer.echo(f"  wrote {path}")
+
+
+@app.command()
 def serve(
     host: str = "127.0.0.1",
     port: int = 8000,
