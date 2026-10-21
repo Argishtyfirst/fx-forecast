@@ -56,3 +56,16 @@ def test_raw_response_is_stored_and_pruned_after_30_days():
     later = dt.datetime.now(dt.UTC) + dt.timedelta(days=31)
     assert http.prune_raw(now=later) == 1
     assert not list(root.glob("src/*/*.gz"))
+
+
+@respx.mock
+def test_retry_after_header_is_honoured_and_capped(no_sleep):
+    respx.get("https://x.test/r").mock(
+        side_effect=[
+            httpx.Response(429, headers={"retry-after": "30"}),
+            httpx.Response(503, headers={"retry-after": "9999"}),
+            httpx.Response(200, json={"rate": 1.0}),
+        ]
+    )
+    assert http.fetch_json("src", "https://x.test/r", Body, retries=3, backoff_base_s=5).rate == 1.0
+    assert no_sleep == [30.0, http.MAX_RETRY_AFTER_S]

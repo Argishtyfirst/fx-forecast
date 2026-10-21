@@ -194,7 +194,7 @@ The forecast engine and the backtest runner read rates and features from Postgre
 | Database | Postgres 16, SQLAlchemy, Alembic |
 | Models | statsmodels, arch, LightGBM |
 | Ingest | httpx, feedparser, BeautifulSoup |
-| LLM scoring | Claude API, smallest current model |
+| LLM scoring | Gemini (the AI view's model, gemini-3.8-flash, free tier); Claude API as fallback, then a deterministic lexicon |
 | Scheduler | GitHub Actions cron (APScheduler `fxf worker` as the alternative) |
 | Frontend | React, TypeScript, Vite, visx for the fan chart |
 | Hosting | Vercel Hobby (dashboard and API), Neon Postgres via the Vercel Marketplace, GitHub Actions cron for jobs (all free tiers; Fly.io no longer has a free tier and Render's free Postgres expires after 30 days) |

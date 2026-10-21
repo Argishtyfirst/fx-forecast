@@ -3,9 +3,12 @@
 Each statement is scored from -1 (dovish) to +1 (hawkish) with a one-line reason, given the
 statement text and its sentence diff against the bank's previous statement.
 
-- With ANTHROPIC_API_KEY set: Claude (settings.fxf_scorer_model, default claude-haiku-5-5)
-  via the Anthropic SDK, strict JSON through structured outputs, scorer_version
-  "<model>@<PROMPT_VERSION>".
+- With GEMINI_API_KEY set (the default in production): Gemini, the same model as the AI view
+  (settings.fxf_ai_model, default gemini-3.8-flash) through fxf.ai.gemini, strict JSON
+  through a response schema, low thinking, scorer_version "<model>@<PROMPT_VERSION>". Free
+  tier, so NFR-07 holds at zero cost.
+- Else with ANTHROPIC_API_KEY set: Claude (settings.fxf_scorer_model, default
+  claude-haiku-5-5) via the Anthropic SDK, strict JSON through structured outputs.
 - Without a key: a deterministic lexicon scorer, scorer_version "lexicon@v1", so the
   pipeline still runs.
 
@@ -158,6 +161,37 @@ class ClaudeScorer:
         return validate_output(text)
 
 
+GEMINI_SCHEMA: Final = {
+    "type": "OBJECT",
+    "properties": {"score": {"type": "NUMBER"}, "reason": {"type": "STRING"}},
+    "required": ["score", "reason"],
+}
+
+
+class GeminiScorer:
+    """Gemini through fxf.ai.gemini (paced and retried for the free tier)."""
+
+    def __init__(self, model: str, api_key: str, thinking: str | None = "low") -> None:
+        self.model = model
+        self.api_key = api_key
+        self.thinking = thinking
+        self.version = f"{model}@{PROMPT_VERSION}"
+
+    def score(self, bank: str, statement: str, diff: dict[str, Any] | None) -> Score:
+        from fxf.ai.gemini import generate_json
+
+        raw = generate_json(
+            build_prompt(bank, statement, diff),
+            GEMINI_SCHEMA,
+            model=self.model,
+            api_key=self.api_key,
+            system=SYSTEM_PROMPT,
+            thinking_level=self.thinking,
+            max_output_tokens=2048,
+        )
+        return validate_output(raw)
+
+
 # --- deterministic fallback --------------------------------------------------------------------
 
 _HAWKISH = (
@@ -240,9 +274,15 @@ class LexiconScorer:
 
 
 def active_scorer(client: Any | None = None) -> Scorer:
+    """Gemini when GEMINI_API_KEY is set, else Claude, else the lexicon. `client` injects a
+    Claude client in tests."""
     s = get_settings()
-    if client is not None or s.anthropic_api_key:
+    if client is not None:
         return ClaudeScorer(s.fxf_scorer_model, client=client, api_key=s.anthropic_api_key)
+    if s.gemini_api_key:
+        return GeminiScorer(s.fxf_ai_model, s.gemini_api_key)
+    if s.anthropic_api_key:
+        return ClaudeScorer(s.fxf_scorer_model, api_key=s.anthropic_api_key)
     return LexiconScorer()
 
 

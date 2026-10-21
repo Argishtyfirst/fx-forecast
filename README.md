@@ -97,9 +97,9 @@ Add the repository secrets under GitHub → Settings → Secrets and variables �
 | Secret | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | yes | Neon's pooled connection string, the same value Vercel has |
-| `GEMINI_API_KEY` | no | Turns on the AI view. `FXF_AI_MODEL` (a repository variable) defaults to `gemini-3.8-flash`, with thinking at `high` (`FXF_AI_THINKING`). |
+| `GEMINI_API_KEY` | no | Turns on the AI view and scores statements with Gemini. `FXF_AI_MODEL` (a repository variable) defaults to `gemini-3.8-flash`, with thinking at `high` (`FXF_AI_THINKING`). |
 | `FRED_API_KEY` | no | FRED API instead of the public `fredgraph.csv` |
-| `ANTHROPIC_API_KEY` | no | Claude hawkish scorer instead of the lexicon scorer |
+| `ANTHROPIC_API_KEY` | no | Claude hawkish scorer, used only when `GEMINI_API_KEY` is not set |
 | `SLACK_WEBHOOK_URL` | no | Failure alerts (NFR-04) |
 
 To copy the database URL from the Vercel-provisioned file without pasting it anywhere:

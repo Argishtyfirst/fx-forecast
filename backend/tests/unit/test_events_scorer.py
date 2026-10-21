@@ -109,6 +109,7 @@ def test_active_scorer_without_api_key_is_lexicon(monkeypatch):
 
     get_settings.cache_clear()
     monkeypatch.setattr(get_settings(), "anthropic_api_key", None)
+    monkeypatch.setattr(get_settings(), "gemini_api_key", None)
     assert sc.active_scorer().version == "lexicon@v1"
 
 
@@ -190,3 +191,58 @@ def test_one_failed_score_does_not_block_others_but_fails_the_job(clean_db):
         sc.score_statements(_ctx(), clean_db, scorer=sc.ClaudeScorer("m", client=client))
     scored = [e for e in stored_events(clean_db, "FED") if e.hawkish_score is not None]
     assert len(scored) == 1
+
+
+def test_fr07_active_scorer_prefers_gemini_when_its_key_is_set(monkeypatch):
+    from fxf.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "g-key")
+    monkeypatch.setattr(get_settings(), "anthropic_api_key", "a-key")
+    monkeypatch.setattr(get_settings(), "fxf_ai_model", "gemini-3.8-flash")
+    scorer = sc.active_scorer()
+    assert isinstance(scorer, sc.GeminiScorer)
+    assert scorer.version == "gemini-3.8-flash@p1"
+
+
+def test_fr07_gemini_scorer_returns_a_clamped_score_with_its_version(monkeypatch):
+    import json
+
+    import httpx
+    import respx
+
+    from fxf import http as fxf_http
+
+    monkeypatch.setattr(fxf_http, "sleep", lambda _s: None)
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent"
+    with respx.mock:
+        route = respx.post(url).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "score": 1.7,
+                                                "reason": "Signals further hikes to fight inflation.",
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+        )
+        result = sc.GeminiScorer("gemini-test", "g-key").score(
+            "FED", "The Committee decided to raise...", None
+        )
+    assert result.score == 1.0  # clamped
+    assert result.reason == "Signals further hikes to fight inflation."
+    body = json.loads(route.calls.last.request.content)
+    assert body["systemInstruction"]["parts"][0]["text"] == sc.SYSTEM_PROMPT
+    assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}

@@ -351,3 +351,17 @@ def test_ai_view_records_the_thinking_level(session):
     respx.post(URL).mock(return_value=gemini_reply(answer()))
     rows = ai_view_for_pair(session, EURAMD, RUN, api_key="k", model="gemini-test", thinking="high")
     assert {r["features_json"]["llm"]["thinking"] for r in rows} == {"high"}
+
+
+@respx.mock
+def test_gemini_calls_are_spaced_and_retried_for_the_free_tier(monkeypatch):
+    waits: list[float] = []
+    monkeypatch.setattr(http, "sleep", waits.append)
+    monkeypatch.setattr(gemini, "_last_call", 0.0)
+    respx.post(URL).mock(
+        side_effect=[httpx.Response(503), gemini_reply(answer()), gemini_reply(answer())]
+    )
+    gemini.generate_json("ctx", {}, model="gemini-test", api_key="k")
+    gemini.generate_json("ctx", {}, model="gemini-test", api_key="k")
+    assert waits[0] == gemini.BACKOFF_BASE_S  # the 503 waits 5s before retrying
+    assert 0 < waits[1] <= gemini.MIN_INTERVAL_S  # the second call is spaced from the first

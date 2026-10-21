@@ -56,12 +56,19 @@ def fetch(
     ext: str = "txt",
     method: str = "GET",
     json: Any = None,
+    retries: int | None = None,
+    backoff_base_s: float | None = None,
 ) -> httpx.Response:
     """Request with retries (GET unless a POST body is given). Retries transport errors,
-    429 and 5xx. Stores the raw response body; put credentials in headers, never the URL."""
+    429 and 5xx, waiting backoff_base_s * 2**i, or the server's Retry-After when it is longer
+    (capped at MAX_RETRY_AFTER_S). Stores the raw response body; put credentials in headers,
+    never the URL. `retries` and `backoff_base_s` override the settings for slow, rate-limited
+    APIs such as Gemini's free tier."""
     s = get_settings()
-    attempts = 1 + s.http_retries
+    attempts = 1 + (s.http_retries if retries is None else retries)
+    base = s.http_backoff_base_s if backoff_base_s is None else backoff_base_s
     last_exc: Exception | None = None
+    retry_after = 0.0
     with _client() as client:
         for i in range(attempts):
             try:
@@ -78,10 +85,12 @@ def fetch(
                 code = exc.response.status_code
                 if code != 429 and code < 500:
                     raise SourceError(f"{source}: HTTP {code} for {url}") from exc
+                retry_after = _retry_after(exc.response)
             except httpx.TransportError as exc:
                 last_exc = exc
+                retry_after = 0.0
             if i < attempts - 1:
-                delay = s.http_backoff_base_s * (2**i)
+                delay = max(base * (2**i), retry_after)
                 log.warning(
                     "retrying request",
                     extra={"source": source, "url": url, "attempt": i + 1, "delay_s": delay},
@@ -97,9 +106,31 @@ def post_json[T](
     schema: type[BaseModel] | TypeAdapter[T],
     *,
     headers: dict[str, str] | None = None,
+    retries: int | None = None,
+    backoff_base_s: float | None = None,
 ) -> Any:
     """POST a JSON body and validate the JSON response (SchemaError on an unknown shape)."""
-    return fetch_json(source, url, schema, method="POST", json=body, headers=headers)
+    return fetch_json(
+        source,
+        url,
+        schema,
+        method="POST",
+        json=body,
+        headers=headers,
+        retries=retries,
+        backoff_base_s=backoff_base_s,
+    )
+
+
+MAX_RETRY_AFTER_S = 120.0
+
+
+def _retry_after(resp: httpx.Response) -> float:
+    """Seconds from a Retry-After header (numeric form), capped; 0 when absent."""
+    try:
+        return min(max(float(resp.headers.get("retry-after", 0)), 0.0), MAX_RETRY_AFTER_S)
+    except ValueError:
+        return 0.0
 
 
 def fetch_text(source: str, url: str, **kw: Any) -> str:
