@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import type { AiView, ConversionSignal, HorizonForecast, LatestForecastResponse, SignalAction } from "../api/types";
 import { MODEL_LABELS, type PairMeta } from "../lib/constants";
 import { fmtDateTime, fmtInt, fmtNum, fmtPct, fmtRate, fmtShortDate } from "../lib/format";
+import { verdictText } from "../lib/verdict";
 import { Disclaimer } from "./Disclaimer";
 import { SellNowIcon, UnclearIcon, WaitIcon } from "./Icons";
 
@@ -31,8 +32,9 @@ export function verdictSentence(ai: AiView | null, h: HorizonForecast): string {
   if (!ai) return "No model has proven an edge for this horizon.";
   const by = `by ${fmtShortDate(h.target_date)}`;
   const p = ai.prob_better_if_wait;
-  if (ai.lean === "sell_now") return `${pct0(1 - p)} chance the rate is lower ${by}.`;
-  if (ai.lean === "wait") return `${pct0(p)} chance the rate is higher ${by}.`;
+  const slight = ai.strength === "slight" ? ", a slight lean" : "";
+  if (ai.lean === "sell_now") return `${pct0(1 - p)} chance the rate is lower ${by}${slight}.`;
+  if (ai.lean === "wait") return `${pct0(p)} chance the rate is higher ${by}${slight}.`;
   return p >= 0.5
     ? `Close to even: ${pct0(p)} chance the rate is higher ${by}.`
     : `Close to even: ${pct0(1 - p)} chance the rate is lower ${by}.`;
@@ -126,7 +128,7 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
           <Icon size={26} />
         </span>
         <p className="verdict-text" data-testid="verdict">
-          {VERDICT[lean]}
+          {verdictText(lean, ai?.strength)}
         </p>
       </div>
       <p className="verdict-sentence" data-testid="verdict-sentence">

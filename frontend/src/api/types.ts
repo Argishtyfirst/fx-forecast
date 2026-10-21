@@ -146,6 +146,8 @@ export interface AiView {
   band80: [number, number];
   /** Its own call for someone selling the base, by the same 5-point threshold as the verdict. */
   lean: SignalAction;
+  /** "clear": at least a 5-point lean; "slight": 2 to 5 points; "none": under 2 (no_edge). */
+  strength?: AiStrength;
   confidence: AiConfidence;
   reasoning: string;
   track_record: AiTrackRecord;
@@ -337,3 +339,5 @@ export interface HealthResponse {
   sources: SourceStatus[];
   jobs: JobStatus[];
 }
+
+export type AiStrength = "clear" | "slight" | "none";

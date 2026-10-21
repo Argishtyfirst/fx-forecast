@@ -135,9 +135,10 @@ class AiView(BaseModel):
     expected_change_pct: float
     center: float  # the AI's expected rate at the target date
     band80: tuple[float, float]  # the statistical 80% range re-centred on the AI's expectation
-    # Its own call for someone selling the base currency, by the same threshold as the
-    # statistical verdict (fxf.api.signal.MIN_EDGE).
+    # Its own call for someone selling the base currency. strength "clear" is a lean of at least
+    # 5 points (fxf.api.signal.MIN_EDGE), "slight" 2 to 5 points, "none" under 2 (no_edge).
     lean: Literal["sell_now", "wait", "no_edge"]
+    strength: Literal["clear", "slight", "none"]
     confidence: Literal["low", "medium", "high"]
     reasoning: str
     track_record: AiTrackRecord

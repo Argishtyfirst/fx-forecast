@@ -31,6 +31,20 @@ from fxf.models import BacktestMetric, Forecast
 
 # |P(better rate) - 0.5| below this is no edge, even from a model with evidence.
 MIN_EDGE = 0.05
+# The AI view's own call: a lean of SLIGHT_EDGE to MIN_EDGE shows as "leaning".
+SLIGHT_EDGE = 0.02
+
+
+def ai_lean(prob_better_if_wait: float) -> tuple[str, str]:
+    """(lean, strength) for the AI view's probability. Rounded so a stated 0.45 is a full
+    5-point edge (0.45 - 0.5 is -0.04999... in floating point)."""
+    edge = round(prob_better_if_wait - 0.5, 6)
+    size = abs(edge)
+    if size < SLIGHT_EDGE:
+        return "no_edge", "none"
+    return ("wait" if edge > 0 else "sell_now"), ("clear" if size >= MIN_EDGE else "slight")
+
+
 # (minimum directional hit rate, minimum edge, label), strongest first.
 CONFIDENCE_LEVELS: tuple[tuple[float, float, Literal["high", "medium"]], ...] = (
     (0.58, 0.10, "high"),

@@ -4,7 +4,7 @@ import { Group } from "@visx/group";
 import { scaleLinear } from "@visx/scale";
 import { LinePath } from "@visx/shape";
 import { useId, useMemo, useState } from "react";
-import type { AiView, BandKey, HorizonForecast, LatestForecastResponse, RatePoint, SignalAction } from "../api/types";
+import type { AiStrength, AiView, BandKey, HorizonForecast, LatestForecastResponse, RatePoint, SignalAction } from "../api/types";
 import { BAND_KEYS, BANK_LABELS, DISCLAIMER } from "../lib/constants";
 import {
   assignLanes,
@@ -16,6 +16,7 @@ import {
 } from "../lib/fan";
 import { fmtDate, fmtMonth, fmtRange, fmtRate, fmtShortDate } from "../lib/format";
 import { useWidth } from "../lib/useWidth";
+import { verdictText } from "../lib/verdict";
 
 export interface FanChartProps {
   pairLabel: string;
@@ -29,7 +30,6 @@ export interface FanChartProps {
   width?: number;
 }
 
-const LEAN_WORD: Record<SignalAction, string> = { sell_now: "Sell now", wait: "Wait", no_edge: "No clear answer" };
 
 interface AiPoint {
   t: number;
@@ -38,6 +38,7 @@ interface AiPoint {
   center: number;
   band80: [number, number];
   lean: SignalAction;
+  strength?: AiStrength;
 }
 
 const MARGIN = { left: 4, right: 58, bottom: 26 };
@@ -80,6 +81,7 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
               center: h.ai_view.center,
               band80: h.ai_view.band80,
               lean: h.ai_view.lean,
+              strength: h.ai_view.strength,
             }))
         : [],
     [forecast],
@@ -397,7 +399,7 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
                         x={x(a.t)}
                         y={y(a.band80[1])}
                         innerW={innerW}
-                        text={`AI: ${fmtRate(a.center, decimals)} by ${fmtShortDate(a.date)} (${LEAN_WORD[a.lean]})`}
+                        text={`AI: ${fmtRate(a.center, decimals)} by ${fmtShortDate(a.date)} (${verdictText(a.lean, a.strength)})`}
                       />
                     ))}
                 </g>
@@ -597,11 +599,11 @@ function buildSummary(
     if (aiPoints.length) {
       parts.push(
         `AI expected path: ${aiPoints
-          .map((a) => `${a.label} ${fmtRate(a.center, decimals)} (${LEAN_WORD[a.lean]})`)
+          .map((a) => `${a.label} ${fmtRate(a.center, decimals)} (${verdictText(a.lean, a.strength)})`)
           .join("; ")}.`,
       );
       const sel = aiPoints.find((a) => a.label === selected);
-      if (sel) parts.push(`Selected: AI expects ${fmtRate(sel.center, decimals)} by ${fmtDate(sel.date)}, ${LEAN_WORD[sel.lean]}.`);
+      if (sel) parts.push(`Selected: AI expects ${fmtRate(sel.center, decimals)} by ${fmtDate(sel.date)}, ${verdictText(sel.lean, sel.strength).toLowerCase()}.`);
     }
     parts.push(forecast.disclaimer || DISCLAIMER);
   } else {

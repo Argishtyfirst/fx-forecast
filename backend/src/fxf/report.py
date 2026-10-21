@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from fxf.ai.track import track_record
 from fxf.api.forecasts import served_models
 from fxf.api.health import PIPELINE_JOBS, load_snapshots
+from fxf.api.signal import ai_lean
 from fxf.calendars import CET
 from fxf.constants import (
     DISCLAIMER,
@@ -33,7 +34,6 @@ from fxf.data_access import load_rates
 from fxf.models import BacktestMetric, Forecast
 
 LEAN_WORD = {"sell_now": "Sell now", "wait": "Wait", "no_edge": "No clear answer"}
-MIN_EDGE = 0.05
 
 
 def _f(x: float | None, nd: int = 3) -> str:
@@ -118,11 +118,12 @@ def _ai_section(session: Session) -> list[str]:
             any_row = True
             llm = (row.features_json or {}).get("llm") or {}
             p = float(llm.get("prob_higher", 0.5))
-            edge = round(p - 0.5, 6)
-            lean = "wait" if edge >= MIN_EDGE else "sell_now" if edge <= -MIN_EDGE else "no_edge"
+            lean, strength = ai_lean(p)
             tr = track_record(session, pair, h, rates, row.model_version)
             out.append(
-                f"| {_pair_name(pair)} | {HORIZON_LABELS[h]} | {LEAN_WORD[lean]} ({row.run_date.isoformat()}) | "
+                f"| {_pair_name(pair)} | {HORIZON_LABELS[h]} | "
+                f"{('Leaning ' + LEAN_WORD[lean].lower()) if strength == 'slight' else LEAN_WORD[lean]} "
+                f"({row.run_date.isoformat()}) | "
                 f"{p:.0%} | {llm.get('confidence', 'n/a')} | {tr.n_scored} of {tr.required} | "
                 f"{_pct(tr.hit_rate)} | {_f(tr.brier)} | {_f(tr.mae_ratio_rw)} | "
                 f"{'yes' if tr.promoted else 'no'} |"

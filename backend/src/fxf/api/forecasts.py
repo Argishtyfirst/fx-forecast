@@ -25,7 +25,7 @@ from fxf.api.schemas import (
     HorizonForecast,
     LatestForecastResponse,
 )
-from fxf.api.signal import MIN_EDGE, AiBasis, build_signal, latest_evidence
+from fxf.api.signal import AiBasis, ai_lean, build_signal, latest_evidence
 from fxf.constants import BANDS, DISCLAIMER, HORIZON_LABELS, MODEL_LLM, MODELS, PairSpec
 from fxf.data_access import load_rates
 from fxf.models import Forecast, Rate
@@ -98,10 +98,7 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
     for row in rows:
         llm = (row.features_json or {}).get("llm") or {}
         try:
-            # Rounded so a stated 0.45 counts as the full 5-point edge (0.45 - 0.5 is
-            # -0.04999... in floating point).
-            edge = round(float(llm["prob_higher"]) - 0.5, 6)
-            lean = "wait" if edge >= MIN_EDGE else "sell_now" if edge <= -MIN_EDGE else "no_edge"
+            lean, strength = ai_lean(float(llm["prob_higher"]))
             out[row.horizon_days] = AiView(
                 provider=llm["provider"],
                 model=llm["model"],
@@ -112,6 +109,7 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
                 center=float(row.center),
                 band80=(float(row.q10), float(row.q90)),
                 lean=lean,
+                strength=strength,
                 confidence=llm["confidence"],
                 reasoning=llm["reasoning"],
                 track_record=track_record(
