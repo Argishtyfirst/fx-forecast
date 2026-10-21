@@ -268,6 +268,7 @@ def _ai_backtest_parts(
             prompt_version=row.prompt_version,
             generated_at=c.get("generated_at") or row.created_at,
             headline=c.get("headline", ""),
+            for_you=c.get("for_you", ""),
             points=list(c.get("points") or []),
             watch_next=c.get("watch_next", ""),
         )

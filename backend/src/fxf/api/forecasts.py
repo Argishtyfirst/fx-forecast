@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from fxf.ai.track import track_record
 from fxf.api import convert
 from fxf.api.health import stale_sources_for_pair
+from fxf.api.meeting_risk import meeting_risks
 from fxf.api.schemas import (
     AiView,
     Drivers,
@@ -165,6 +166,7 @@ def build_latest(
     first = by_horizon[min(by_horizon)]
     evidence = latest_evidence(session, pair.id)
     ai = ai_views(session, pair, run_date)
+    risks = meeting_risks(session, pair, by_horizon)
     return LatestForecastResponse(
         pair=pair.id,
         as_of=run_date,
@@ -184,6 +186,7 @@ def build_latest(
                 drivers=drivers_from_features(row.features_json, pair.banks),
                 signal=build_signal(pair, row, evidence.get((h, row.model)), _ai_basis(ai.get(h))),
                 ai_view=ai.get(h),
+                meeting_risks=risks.get(h, []),
             )
             for h, row in sorted(by_horizon.items())
         ],

@@ -40,36 +40,43 @@ from fxf.models import AiAnalysis, BacktestMetric, CbMeeting, Forecast, upsert, 
 log = get_logger(__name__)
 
 KIND: Final = "event_study"
-PROMPT_VERSION: Final = "an-p1"
+PROMPT_VERSION: Final = "an-p2"
 
 SYSTEM: Final = """You are a foreign-exchange analyst writing a short weekly note for one \
 person who converts {base} into {quote} and wants to understand central bank meetings. The \
 JSON context holds: how this pair moved around each bank's meetings over the last year (the \
-run-up, the reaction from the last fix before the decision to the first fix after, and the \
-follow-through, against a normal day, and how often the reaction followed the surprise or the \
-statement's tone); how the statistical forecast's 80% bands did on weeks with a meeting \
-against other weeks (target: 75 to 85% of outcomes inside); the meetings coming up; and the \
-AI view's own live record.
+reaction from the last fix before the decision to the first fix after, against a normal day, \
+and how often it followed the surprise or the statement's tone); how the statistical \
+forecast's 80% ranges did on weeks with a meeting against other weeks (target: 75 to 85% of \
+outcomes inside); the meetings coming up; and the AI view's own live record.
 
-Write plain, specific English with the numbers that matter. Say when a sample is small (a year \
-holds about 8 meetings per bank). Separate what the data shows from what you infer. Never tell \
-anyone what to do, and never promise a direction. Use commas and periods, not dashes. Headline: \
-at most 15 words. Points: 2 to 4, each at most 35 words. watch_next: at most 35 words about \
-the next meetings inside the coming month."""
+Write for a busy reader who must get the point in 5 seconds.
+- headline: THE takeaway as one plain sentence of at most 22 words, with the key number. Not a \
+title. Example: "Fed weeks are where the ranges fail: EUR/USD moved 2.1x a normal day and the 1-week \
+range held 57% of outcomes."
+- for_you: what this means for someone converting {base} into {quote}, at most 28 words, in \
+practical terms (how wide to expect the swing around the next meeting). Never tell anyone to \
+buy, sell or wait.
+- points: 2 or 3 facts, each at most 22 words, each with a number from the context.
+- watch_next: the next meetings inside the coming month with their dates, at most 22 words.
+Always write numbers as digits with % or x (57%, 2.1x), never in words. Say when a sample is \
+small (a year holds about 8 meetings per bank). Use commas and periods, never dashes."""
 
 RESPONSE_SCHEMA: Final[dict[str, Any]] = {
     "type": "OBJECT",
     "properties": {
         "headline": {"type": "STRING"},
+        "for_you": {"type": "STRING"},
         "points": {"type": "ARRAY", "items": {"type": "STRING"}},
         "watch_next": {"type": "STRING"},
     },
-    "required": ["headline", "points", "watch_next"],
+    "required": ["headline", "for_you", "points", "watch_next"],
 }
 
 
 class Note(BaseModel):
     headline: str = Field(min_length=3, max_length=300)
+    for_you: str = Field(min_length=3, max_length=400)
     points: list[str] = Field(min_length=1, max_length=6)
     watch_next: str = Field(min_length=3, max_length=600)
 
@@ -202,7 +209,8 @@ def analyse_pair(
         "prompt_version": PROMPT_VERSION,
         "content": {
             "headline": _clean(note.headline),
-            "points": [_clean(p) for p in note.points[:4]],
+            "for_you": _clean(note.for_you),
+            "points": [_clean(p) for p in note.points[:3]],
             "watch_next": _clean(note.watch_next),
             "generated_at": utcnow().isoformat(),
             "provider": "gemini",

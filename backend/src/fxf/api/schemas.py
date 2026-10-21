@@ -80,6 +80,21 @@ class Drivers(BaseModel):
     served_reason: str | None = None
 
 
+class MeetingRiskOut(BaseModel):
+    """A meeting inside the horizon, with what last year's data says about it (fxf.events.study
+    and the around-meetings backtest). Deterministic numbers, not AI text."""
+
+    bank: str
+    date: dt.date
+    reaction_vs_normal: float | None  # mean |reaction| / mean |normal day| over the last year
+    meetings_last_year: int
+    band80_meeting_weeks: float | None  # share of outcomes inside the 80% range, that bank's weeks
+    band80_other_weeks: float | None  # same, weeks without a meeting
+    n_meeting_weeks: int | None
+    level: Literal["higher", "normal", "lower"]  # expected swing around this meeting
+    summary: str
+
+
 class ConversionSignal(BaseModel):
     """FR-17: "Should I sell my <base> now?" for someone converting base into quote
     (e.g. selling EUR for AMD). A statistical summary of the served forecast and its
@@ -157,6 +172,7 @@ class HorizonForecast(BaseModel):
     drivers: Drivers
     signal: ConversionSignal | None = None
     ai_view: AiView | None = None
+    meeting_risks: list[MeetingRiskOut] = Field(default_factory=list)
 
 
 class LatestForecastResponse(BaseModel):
@@ -259,7 +275,8 @@ class AiAnalysisOut(BaseModel):
     model: str
     prompt_version: str
     generated_at: dt.datetime
-    headline: str
+    headline: str  # the takeaway, one sentence
+    for_you: str = ""  # what it means for someone converting the base currency
     points: list[str]
     watch_next: str
 
