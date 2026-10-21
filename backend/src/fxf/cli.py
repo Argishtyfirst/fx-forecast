@@ -16,6 +16,7 @@ from typing import Annotated
 import typer
 
 from fxf.calendars import CET, is_working_day
+from fxf.constants import SOURCE_FRANKFURTER_CBA, SOURCE_FRANKFURTER_ECB
 from fxf.logging_setup import configure_logging, get_logger
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="FX Forecast Tool")
@@ -137,8 +138,15 @@ def daily(
     from fxf.forecast.engine import run_forecast_job
     from fxf.ingest.pipeline import run_ingest
 
-    ingest_ok = _report("ingest", run_ingest())
-    events_ok = _report("events", run_events())
+    ingest_results = run_ingest()
+    _report("ingest", ingest_results)
+    _report("events", run_events())
+    # Only the exchange rates and the forecast fail the run (and so email the owner). A macro
+    # or news source that is down (FRED maintenance, a slow press page) shows as stale on the
+    # dashboard instead, and the forecast keeps its last known value or its fallback.
+    rates_ok = all(
+        ingest_results.get(s, False) for s in (SOURCE_FRANKFURTER_ECB, SOURCE_FRANKFURTER_CBA)
+    )
     # Forecast even when a source failed: it uses the last good data, and the API flags
     # the stale source (FR-16). A failed forecast keeps the previous one visible (NFR-04).
     forecast_ok = run_forecast_job(run_date=now.date())
@@ -150,7 +158,7 @@ def daily(
         # pipeline, because the served forecast does not depend on it.
         ai_ok = run_ai_view_job(run_date=now.date())
         typer.echo(f"  {'ok  ' if ai_ok else 'FAIL'} ai view")
-    raise typer.Exit(0 if (ingest_ok and events_ok and forecast_ok) else 1)
+    raise typer.Exit(0 if (rates_ok and forecast_ok) else 1)
 
 
 @app.command()
