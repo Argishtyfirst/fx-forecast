@@ -23,6 +23,7 @@ from sqlalchemy import Engine
 from fxf.constants import SOURCE_ECB, SOURCE_FRANKFURTER_CBA, SOURCE_FRANKFURTER_ECB, SOURCE_FRED
 from fxf.http import prune_raw
 from fxf.ingest import ecb, frankfurter, fred
+from fxf.ingest.quality import repair_rates
 from fxf.jobs import RunContext, run_job
 from fxf.logging_setup import configure_logging, get_logger
 from fxf.models import utcnow
@@ -84,6 +85,12 @@ def _run(
             runner(ctx, engine=engine, now=now, full=full)
 
         results[source] = run_job(source, job, engine=engine, meta={"mode": mode})
+    try:
+        bad = repair_rates(engine)
+    except Exception as exc:  # a failed check must not fail the ingest
+        log.warning("rate check failed", extra={"error": str(exc)})
+    else:
+        log.info("rate check finished", extra={"bad_rows_removed": len(bad)})
     try:
         removed = prune_raw()
     except OSError as exc:

@@ -97,7 +97,12 @@ def fetch(
                 delay = max(base * (2**i), retry_after)
                 log.warning(
                     "retrying request",
-                    extra={"source": source, "url": url.split("?")[0], "attempt": i + 1, "delay_s": delay},
+                    extra={
+                        "source": source,
+                        "url": url.split("?")[0],
+                        "attempt": i + 1,
+                        "delay_s": delay,
+                    },
                 )
                 sleep(delay)
     detail = ""
