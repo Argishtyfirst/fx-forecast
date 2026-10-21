@@ -1105,3 +1105,86 @@ console.log(
     console.log("meetings", pair, summaries.map((b) => `${b.bank} n${b.n} |r|${b.mean_abs_reaction_pct} x${b.reaction_ratio} ${b.n_signed ? Math.round(b.consistency * b.n_signed) + "/" + b.n_signed : "unsigned"}`).join(" | "));
   }
 }
+
+// --- backtest: around meetings, AI live record, AI weekly analysis --------------------------------
+{
+  const PAIR_BANKS = { EURUSD: ["FED", "ECB"], USDAMD: ["FED", "CBA"], EURAMD: ["FED", "ECB", "CBA"] };
+  // 80% coverage on meeting horizons vs none, per pair and bank (meeting windows run a little wide or narrow).
+  const COV80 = {
+    EURUSD: { FED: 0.752, ECB: 0.774, none: 0.812 },
+    USDAMD: { FED: 0.781, CBA: 0.736, none: 0.826 },
+    EURAMD: { FED: 0.768, ECB: 0.79, CBA: 0.722, none: 0.818 },
+  };
+  const ANALYSIS = {
+    EURUSD: {
+      headline: "Fed weeks are where the bands are tested; ECB weeks behave much like normal weeks.",
+      points: [
+        "EUR/USD moved about 2.7 times a normal day around Fed decisions and followed the surprise or tone in 5 of 8 meetings.",
+        "With a Fed meeting inside the week, the 80% band held 75% of the time, at the low edge of the 75 to 85% target.",
+        "Around ECB meetings the reaction was smaller, about 1.6 times a normal day, and coverage stayed within target.",
+      ],
+      watch_next: "The Fed on 28 Oct falls on the 1W target date; a less dovish message than priced would test the lower band.",
+    },
+    USDAMD: {
+      headline: "CBA decisions move USD/AMD more than its bands expect; Fed weeks are handled well.",
+      points: [
+        "USD/AMD moved about 1.8 times a normal day around CBA decisions, and the 80% band held only 74% of the time in those weeks.",
+        "Around Fed meetings the reaction was larger, about 2.3 times a normal day, but the event widening kept coverage near 78%.",
+        "The dram's managed float makes most days quiet, so a few meeting days account for much of the error.",
+      ],
+      watch_next: "The CBA meets on 8 Dec; its easing bias after the October cut is the main risk to the 1M band.",
+    },
+    EURAMD: {
+      headline: "Fed meetings move EUR/AMD the most, even though the dollar is in neither leg.",
+      points: [
+        "EUR/AMD moved about 3 times a normal day around Fed decisions, with no consistent direction.",
+        "With a CBA meeting inside the horizon, the 80% band held 72% of the time, below the 75 to 85% target.",
+        "ECB weeks were close to normal: about 1.9 times a normal day, and coverage stayed within target.",
+      ],
+      watch_next: "Fed and ECB decide on 28 and 29 Oct, inside the 1W and 1M horizons; watch whether the widened bands hold.",
+    },
+  };
+  for (const [pair, bt] of [["EURUSD", btEUR], ["USDAMD", btAMD], ["EURAMD", btEURAMD]]) {
+    const banks = PAIR_BANKS[pair];
+    const rand = mulberry32(pair.charCodeAt(3) * 101);
+    const event_metrics = [];
+    for (const m of bt.metrics.filter((r) => r.window === "250d")) {
+      const h = m.horizon_days;
+      // Origins whose horizon contains a meeting of the bank: about 8 meetings x h origins each.
+      const nBank = Object.fromEntries(banks.map((b) => [b, Math.min(250, Math.round(8 * h * (0.95 + rand() * 0.1)))]));
+      const nAny = Math.min(240, Math.round(banks.length * 8 * h * 0.85));
+      const nNone = Math.max(10, 250 - nAny);
+      for (const bank of [...banks, "none"]) {
+        const base = COV80[pair][bank];
+        const shift = h === 1 ? 0.01 : h === 21 ? -0.006 : 0;
+        const cov80 = round(Math.min(0.97, base + shift + (rand() - 0.5) * 0.01), 3);
+        event_metrics.push({
+          horizon_days: h,
+          model: m.model,
+          bank,
+          n_obs: bank === "none" ? nNone : nBank[bank],
+          mae_ratio_rw: m.model === "random_walk" ? 1.0 : round(m.mae_ratio_rw + (bank === "none" ? -0.01 : 0.02) + (rand() - 0.5) * 0.01, 3),
+          hit_rate: m.hit_rate === null ? null : round(m.hit_rate + (rand() - 0.5) * 0.04, 3),
+          cov50: round(cov80 - 0.3 + (rand() - 0.5) * 0.02, 3),
+          cov80,
+          cov95: round(Math.min(0.99, cov80 + 0.14 + (rand() - 0.5) * 0.01), 3),
+        });
+      }
+    }
+    bt.event_metrics = event_metrics;
+    bt.ai_track = [1, 5, 21].map((h) => ({
+      horizon_days: h,
+      model_version: "gemini-3.5-flash-lite@ai-p2",
+      track_record: { n_scored: 0, required: 250, hit_rate: null, mae_ratio_rw: null, dm_pvalue: null, brier: null, promoted: false },
+    }));
+    bt.ai_analysis = {
+      run_date: "2026-10-18",
+      provider: "gemini",
+      model: "gemini-3.5-flash-lite",
+      prompt_version: "analysis-p1",
+      generated_at: "2026-10-18T06:21:37Z",
+      ...ANALYSIS[pair],
+    };
+    writeFileSync(join(OUT, `backtests.${pair}.json`), JSON.stringify(bt, null, 2) + "\n");
+  }
+}

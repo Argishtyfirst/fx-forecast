@@ -106,10 +106,18 @@ export function mockApi(url: string): MockResult {
       const data = fixtures.backtests[pair ?? ""];
       if (!data) return notFound("No backtest yet");
       const horizon = q.get("horizon");
-      const metrics = horizon
-        ? data.metrics.filter((m) => m.horizon_days === Number(horizon))
-        : data.metrics;
-      return { status: 200, body: { ...data, metrics } };
+      const h = horizon ? Number(horizon) : null;
+      const pick = <T extends { horizon_days: number }>(rows: T[] | undefined) =>
+        (rows ?? []).filter((r) => h === null || r.horizon_days === h);
+      return {
+        status: 200,
+        body: {
+          ...data,
+          metrics: pick(data.metrics),
+          event_metrics: pick(data.event_metrics),
+          ai_track: pick(data.ai_track),
+        },
+      };
     }
     case "meetings": {
       const data = fixtures.meetings[pair ?? ""];

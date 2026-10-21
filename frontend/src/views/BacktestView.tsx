@@ -1,6 +1,8 @@
 import { api } from "../api/client";
 import type { BacktestMetricOut, BacktestTargets, PairId } from "../api/types";
+import { AiAnalysis, AiRecord, AroundMeetings } from "../components/BacktestExtras";
 import { CoverageChart } from "../components/CoverageChart";
+import { Disclaimer } from "../components/Disclaimer";
 import { DataStatus } from "../components/DataStatus";
 import { CheckIcon, CrossIcon } from "../components/Icons";
 import { EmptyState, ErrorState, Loading } from "../components/States";
@@ -32,6 +34,11 @@ export function BacktestView({ pair, window: win, onWindow }: BacktestViewProps)
   const targets = responses[0]?.targets ?? DEFAULT_TARGETS;
   const runDate = responses.find((r) => r.run_date)?.run_date ?? null;
   const metrics = responses.flatMap((r) => r.metrics).filter((m) => m.window === selected);
+  const allMetrics = responses.flatMap((r) => r.metrics);
+  const eventMetrics = responses.flatMap((r) => r.event_metrics ?? []);
+  const aiTrack = responses.flatMap((r) => r.ai_track ?? []);
+  const analysis = responses.find((r) => r.ai_analysis)?.ai_analysis ?? null;
+  const study = useApi(`meetings:${pair}`, () => api.meetings(pair, 365));
 
   return (
     <div className="view">
@@ -107,6 +114,21 @@ export function BacktestView({ pair, window: win, onWindow }: BacktestViewProps)
             />
           );
         })
+      )}
+
+      {!bt.loading && !bt.error && responses.length > 0 && (
+        <>
+          <AroundMeetings
+            pairLabel={meta.label}
+            metrics={allMetrics}
+            eventMetrics={eventMetrics}
+            targets={targets}
+            study={study.data ?? null}
+          />
+          <AiRecord rows={aiTrack} />
+          <AiAnalysis analysis={analysis} />
+          <Disclaimer />
+        </>
       )}
     </div>
   );

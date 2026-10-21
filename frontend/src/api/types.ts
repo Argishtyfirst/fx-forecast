@@ -235,11 +235,48 @@ export interface BacktestMetricOut {
   served: boolean; // served in the latest forecast run
 }
 
+/**
+ * Metrics over the last 250 origins, split by whether a meeting of `bank` fell inside the horizon
+ * ("none": no meeting of any of the pair's banks).
+ */
+export interface EventWindowMetricOut {
+  horizon_days: number;
+  model: string;
+  bank: string; // "FED" | "ECB" | "CBA" | "none"
+  n_obs: number;
+  mae_ratio_rw: number;
+  hit_rate: number | null;
+  cov50: number;
+  cov80: number;
+  cov95: number;
+}
+
+export interface AiTrackRow {
+  horizon_days: number;
+  model_version: string | null; // the AI view's latest "<model>@<prompt>", null if it never ran
+  track_record: AiTrackRecord;
+}
+
+/** Experimental: the AI's weekly written reading of the meeting study and the around-meetings backtest. */
+export interface AiAnalysisOut {
+  run_date: IsoDate;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  generated_at: IsoDateTime;
+  headline: string;
+  points: string[];
+  watch_next: string;
+}
+
 export interface BacktestResponse {
   pair: string;
   run_date: IsoDate | null;
   targets: BacktestTargets;
-  metrics: BacktestMetricOut[];
+  metrics: BacktestMetricOut[]; // windows "250d" and "full"
+  event_metrics?: EventWindowMetricOut[];
+  ai_track?: AiTrackRow[];
+  ai_analysis?: AiAnalysisOut | null;
 }
 
 // --- /api/events ---------------------------------------------------------------------------

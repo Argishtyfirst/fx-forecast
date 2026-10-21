@@ -19,7 +19,7 @@ const pctS = (x: number | null | undefined, digits = 2) => {
   return `${r > 0 ? "+" : "−"}${Math.abs(r).toFixed(digits)}%`;
 };
 
-function ratioWord(r: number): string {
+export function ratioWord(r: number): string {
   return r >= 2 ? `about ${Math.round(r)}×` : `about ${r.toFixed(1)}×`;
 }
 

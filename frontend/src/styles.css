@@ -2027,3 +2027,176 @@ dd {
   background: var(--surface);
   padding-top: 8px;
 }
+
+/* --- backtest: around meetings, AI record, AI analysis ------------------------------ */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.toggle input {
+  accent-color: var(--accent);
+}
+.around-study {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.around-grid {
+  display: grid;
+  gap: 14px;
+}
+.around-horizon {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.around-h {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.around-label {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+  margin-right: 6px;
+}
+.around-modelname {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin: 6px 0 2px;
+}
+.around-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 120px;
+  gap: 6px 16px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13.5px;
+}
+@media (max-width: 640px) {
+  .around-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .around-row .around-text {
+    grid-column: 1 / -1;
+  }
+}
+.around-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.covdots {
+  position: relative;
+  display: block;
+  height: 12px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.covdots-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--band-80);
+  border-radius: 2px;
+}
+.covdots-other,
+.covdots-meeting {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+}
+.covdots-other {
+  background: var(--surface);
+  border: 1.5px solid var(--muted);
+}
+.covdots-meeting {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.mark-pass {
+  color: var(--text-2);
+}
+.mark-pass svg {
+  color: var(--good-icon);
+}
+.mark-miss {
+  color: var(--bad-text);
+}
+.around-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.covdots-key {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.covdots-key-meeting {
+  background: var(--accent);
+}
+.covdots-key-other {
+  border: 1.5px solid var(--muted);
+}
+.covdots-key-zone {
+  width: 16px;
+  border-radius: 2px;
+  background: var(--band-80);
+}
+.ai-record-note {
+  font-size: 14px;
+  color: var(--text-2);
+  max-width: 72ch;
+}
+.ai-byline {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.ai-headline-text {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  max-width: 72ch;
+}
+.ai-points {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  font-size: 14px;
+  color: var(--text);
+  max-width: 72ch;
+}
+.ai-watch {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-2);
+  max-width: 72ch;
+}
+.ai-watch-label {
+  font-weight: 600;
+  color: var(--ink);
+}
