@@ -369,3 +369,42 @@ def test_fr09_bands_are_calibrated_walk_forward(seeded: Session):
         )
         lo, hi = params.CAL_CLAMP
         assert all(lo <= c <= hi for c in bc["factors"].values())
+
+
+def test_a_forecast_rerun_keeps_the_ai_view_rows(seeded: Session):
+    """The AI view ("llm") is written by its own job; rerunning the forecast must not delete it."""
+    run_forecasts(seeded, RUN)
+    seeded.commit()
+    served = seeded.scalars(
+        select(Forecast).where(Forecast.run_date == RUN, Forecast.served.is_(True))
+    ).first()
+    ai = Forecast(
+        **{
+            c: getattr(served, c)
+            for c in (
+                "run_date",
+                "pair",
+                "horizon_days",
+                "target_date",
+                "spot",
+                "center",
+                "q025",
+                "q10",
+                "q25",
+                "q75",
+                "q90",
+                "q975",
+                "meetings_in_horizon",
+            )
+        },
+        model="llm",
+        model_version="gemini-test@ai-p3",
+        served=False,
+        git_sha="t",
+        features_json={"llm": {"prob_higher": 0.45}},
+    )
+    seeded.add(ai)
+    seeded.commit()
+    run_forecasts(seeded, RUN)
+    seeded.commit()
+    assert seeded.scalars(select(Forecast).where(Forecast.model == "llm")).all()

@@ -30,6 +30,7 @@ from fxf.constants import (
     JOB_FORECAST,
     MODEL_FORWARD,
     MODEL_LGBM,
+    MODEL_LLM,
     MODEL_RW,
     PAIRS,
 )
@@ -227,13 +228,15 @@ def write_forecasts(session: Session, forecasts: list[ModelForecast]) -> int:
             .values(served=False)
         )
         for h in HORIZONS:
+            # The AI view's rows ("llm") belong to their own job (fxf.ai.view); a forecast
+            # rerun must not delete them.
             models = {f.model for f in forecasts if f.pair == pair and f.horizon_days == h}
             session.execute(
                 delete(Forecast).where(
                     Forecast.run_date == run_date,
                     Forecast.pair == pair,
                     Forecast.horizon_days == h,
-                    Forecast.model.not_in(models),
+                    Forecast.model.not_in(models | {MODEL_LLM}),
                 )
             )
     n = upsert(session, Forecast, [to_row(f, sha) for f in forecasts], CONFLICT_COLS, UPDATE_COLS)
