@@ -322,9 +322,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.448,
-      "cov80": 0.757,
-      "cov95": 0.892
+      "cov50": 0.236,
+      "cov80": 0.545,
+      "cov95": 0.68
     },
     {
       "horizon_days": 1,
@@ -333,9 +333,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.479,
-      "cov80": 0.783,
-      "cov95": 0.924
+      "cov50": 0.465,
+      "cov80": 0.769,
+      "cov95": 0.91
     },
     {
       "horizon_days": 1,
@@ -344,9 +344,9 @@
       "n_obs": 236,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.534,
-      "cov80": 0.826,
-      "cov95": 0.965
+      "cov50": 0.524,
+      "cov80": 0.816,
+      "cov95": 0.955
     },
     {
       "horizon_days": 1,
@@ -355,9 +355,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1.028,
       "hit_rate": 0.512,
-      "cov50": 0.467,
-      "cov80": 0.759,
-      "cov95": 0.898
+      "cov50": 0.255,
+      "cov80": 0.547,
+      "cov95": 0.686
     },
     {
       "horizon_days": 1,
@@ -366,9 +366,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1.028,
       "hit_rate": 0.495,
-      "cov50": 0.48,
-      "cov80": 0.787,
-      "cov95": 0.929
+      "cov50": 0.466,
+      "cov80": 0.773,
+      "cov95": 0.915
     },
     {
       "horizon_days": 1,
@@ -377,9 +377,9 @@
       "n_obs": 236,
       "mae_ratio_rw": 0.999,
       "hit_rate": 0.507,
-      "cov50": 0.525,
-      "cov80": 0.817,
-      "cov95": 0.952
+      "cov50": 0.515,
+      "cov80": 0.807,
+      "cov95": 0.942
     },
     {
       "horizon_days": 5,
@@ -388,9 +388,9 @@
       "n_obs": 40,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.459,
-      "cov80": 0.751,
-      "cov95": 0.889
+      "cov50": 0.269,
+      "cov80": 0.57,
+      "cov95": 0.714
     },
     {
       "horizon_days": 5,
@@ -399,9 +399,9 @@
       "n_obs": 38,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.478,
-      "cov80": 0.773,
-      "cov95": 0.909
+      "cov50": 0.486,
+      "cov80": 0.79,
+      "cov95": 0.929
     },
     {
       "horizon_days": 5,
@@ -410,174 +410,174 @@
       "n_obs": 182,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.5,
-      "cov80": 0.808,
+      "cov50": 0.517,
+      "cov80": 0.812,
       "cov95": 0.948
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "FED",
-      "n_obs": 40,
+      "n_obs": 39,
       "mae_ratio_rw": 1.017,
-      "hit_rate": 0.504,
-      "cov50": 0.448,
-      "cov80": 0.748,
-      "cov95": 0.889
+      "hit_rate": 0.507,
+      "cov50": 0.264,
+      "cov80": 0.57,
+      "cov95": 0.706
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "ECB",
-      "n_obs": 39,
-      "mae_ratio_rw": 1.02,
-      "hit_rate": 0.498,
-      "cov50": 0.469,
-      "cov80": 0.774,
-      "cov95": 0.918
+      "n_obs": 38,
+      "mae_ratio_rw": 1.017,
+      "hit_rate": 0.504,
+      "cov50": 0.49,
+      "cov80": 0.79,
+      "cov95": 0.931
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "none",
       "n_obs": 182,
-      "mae_ratio_rw": 0.988,
-      "hit_rate": 0.492,
-      "cov50": 0.503,
-      "cov80": 0.807,
-      "cov95": 0.951
+      "mae_ratio_rw": 0.987,
+      "hit_rate": 0.524,
+      "cov50": 0.505,
+      "cov80": 0.812,
+      "cov95": 0.949
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "FED",
-      "n_obs": 39,
-      "mae_ratio_rw": 1.011,
-      "hit_rate": 0.548,
-      "cov50": 0.456,
-      "cov80": 0.748,
-      "cov95": 0.884
+      "n_obs": 42,
+      "mae_ratio_rw": 1.01,
+      "hit_rate": 0.516,
+      "cov50": 0.266,
+      "cov80": 0.57,
+      "cov95": 0.714
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "ECB",
       "n_obs": 38,
-      "mae_ratio_rw": 1.008,
-      "hit_rate": 0.542,
-      "cov50": 0.474,
-      "cov80": 0.77,
-      "cov95": 0.911
+      "mae_ratio_rw": 1.005,
+      "hit_rate": 0.519,
+      "cov50": 0.482,
+      "cov80": 0.79,
+      "cov95": 0.932
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "none",
       "n_obs": 182,
-      "mae_ratio_rw": 0.978,
-      "hit_rate": 0.52,
-      "cov50": 0.502,
-      "cov80": 0.81,
-      "cov95": 0.951
+      "mae_ratio_rw": 0.982,
+      "hit_rate": 0.551,
+      "cov50": 0.503,
+      "cov80": 0.812,
+      "cov95": 0.948
     },
     {
       "horizon_days": 21,
       "model": "random_walk",
       "bank": "FED",
-      "n_obs": 167,
+      "n_obs": 166,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.437,
-      "cov80": 0.744,
-      "cov95": 0.882
+      "cov50": 0.377,
+      "cov80": 0.675,
+      "cov95": 0.813
     },
     {
       "horizon_days": 21,
       "model": "random_walk",
+      "bank": "ECB",
+      "n_obs": 170,
+      "mae_ratio_rw": 1,
+      "hit_rate": null,
+      "cov50": 0.486,
+      "cov80": 0.794,
+      "cov95": 0.93
+    },
+    {
+      "horizon_days": 21,
+      "model": "random_walk",
+      "bank": "none",
+      "n_obs": 10,
+      "mae_ratio_rw": 1,
+      "hit_rate": null,
+      "cov50": 0.512,
+      "cov80": 0.813,
+      "cov95": 0.949
+    },
+    {
+      "horizon_days": 21,
+      "model": "forward",
+      "bank": "FED",
+      "n_obs": 165,
+      "mae_ratio_rw": 1.017,
+      "hit_rate": 0.51,
+      "cov50": 0.37,
+      "cov80": 0.672,
+      "cov95": 0.815
+    },
+    {
+      "horizon_days": 21,
+      "model": "forward",
       "bank": "ECB",
       "n_obs": 162,
-      "mae_ratio_rw": 1,
-      "hit_rate": null,
-      "cov50": 0.464,
-      "cov80": 0.771,
-      "cov95": 0.91
+      "mae_ratio_rw": 1.016,
+      "hit_rate": 0.534,
+      "cov50": 0.496,
+      "cov80": 0.792,
+      "cov95": 0.929
     },
     {
       "horizon_days": 21,
-      "model": "random_walk",
+      "model": "forward",
       "bank": "none",
       "n_obs": 10,
-      "mae_ratio_rw": 1,
-      "hit_rate": null,
-      "cov50": 0.504,
+      "mae_ratio_rw": 0.987,
+      "hit_rate": 0.543,
+      "cov50": 0.51,
       "cov80": 0.809,
-      "cov95": 0.951
-    },
-    {
-      "horizon_days": 21,
-      "model": "forward",
-      "bank": "FED",
-      "n_obs": 172,
-      "mae_ratio_rw": 1.011,
-      "hit_rate": 0.535,
-      "cov50": 0.453,
-      "cov80": 0.743,
-      "cov95": 0.884
-    },
-    {
-      "horizon_days": 21,
-      "model": "forward",
-      "bank": "ECB",
-      "n_obs": 171,
-      "mae_ratio_rw": 1.013,
-      "hit_rate": 0.529,
-      "cov50": 0.476,
-      "cov80": 0.766,
-      "cov95": 0.903
-    },
-    {
-      "horizon_days": 21,
-      "model": "forward",
-      "bank": "none",
-      "n_obs": 10,
-      "mae_ratio_rw": 0.98,
-      "hit_rate": 0.542,
-      "cov50": 0.508,
-      "cov80": 0.806,
-      "cov95": 0.951
+      "cov95": 0.947
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "FED",
-      "n_obs": 171,
-      "mae_ratio_rw": 0.983,
-      "hit_rate": 0.561,
-      "cov50": 0.435,
-      "cov80": 0.742,
-      "cov95": 0.886
+      "n_obs": 166,
+      "mae_ratio_rw": 0.979,
+      "hit_rate": 0.563,
+      "cov50": 0.371,
+      "cov80": 0.678,
+      "cov95": 0.823
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "ECB",
-      "n_obs": 171,
-      "mae_ratio_rw": 0.98,
-      "hit_rate": 0.572,
-      "cov50": 0.467,
-      "cov80": 0.767,
-      "cov95": 0.903
+      "n_obs": 170,
+      "mae_ratio_rw": 0.987,
+      "hit_rate": 0.571,
+      "cov50": 0.498,
+      "cov80": 0.795,
+      "cov95": 0.931
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "none",
       "n_obs": 10,
-      "mae_ratio_rw": 0.949,
-      "hit_rate": 0.547,
-      "cov50": 0.497,
-      "cov80": 0.803,
-      "cov95": 0.94
+      "mae_ratio_rw": 0.951,
+      "hit_rate": 0.551,
+      "cov50": 0.521,
+      "cov80": 0.813,
+      "cov95": 0.952
     }
   ],
   "ai_track": [
@@ -625,14 +625,15 @@
     "run_date": "2026-10-18",
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
-    "prompt_version": "analysis-p1",
+    "prompt_version": "an-p2",
     "generated_at": "2026-10-18T06:21:37Z",
-    "headline": "Fed weeks are where the bands are tested; ECB weeks behave much like normal weeks.",
+    "headline": "On Fed weeks EUR/USD swings about 2.7 times as much as a normal day, and the 1-week range held only 57% of outcomes.",
     "points": [
       "EUR/USD moved about 2.7 times a normal day around Fed decisions and followed the surprise or tone in 5 of 8 meetings.",
-      "With a Fed meeting inside the week, the 80% band held 75% of the time, at the low edge of the 75 to 85% target.",
+      "With a Fed meeting inside the week, the 80% band held 57% of the time, well below the 75 to 85% target.",
       "Around ECB meetings the reaction was smaller, about 1.6 times a normal day, and coverage stayed within target."
     ],
-    "watch_next": "The Fed on 28 Oct falls on the 1W target date; a less dovish message than priced would test the lower band."
+    "watch_next": "The Fed on 28 Oct falls on the 1W target date; a less dovish message than priced would test the lower band.",
+    "for_you": "If you convert EUR in a week with a Fed decision, plan for a wider swing than the range shows; converting before 28 Oct avoids that risk."
   }
 }

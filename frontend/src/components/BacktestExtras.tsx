@@ -36,6 +36,29 @@ function CoverageDots({ meeting, other }: { meeting: number; other: number | nul
   );
 }
 
+const RANGE_NAME: Record<number, string> = { 1: "1-day", 5: "1-week", 21: "1-month" };
+const PERIOD_SINGULAR: Record<number, string> = { 1: "days", 5: "weeks", 21: "months" };
+
+/** One plain sentence: the bank whose meeting windows strain the served model's 80% range the most. */
+function leadSentence(
+  rows: EventWindowMetricOut[],
+  served: (h: number) => string,
+  lo: number,
+  hi: number,
+): string | null {
+  const horizon = [5, 21, 1].find((h) => rows.some((r) => r.horizon_days === h && r.bank !== "none"));
+  if (horizon === undefined) return null;
+  const candidates = rows.filter((r) => r.horizon_days === horizon && r.bank !== "none" && r.model === served(horizon));
+  if (!candidates.length) return null;
+  const worst = [...candidates].sort((a, b) => Math.abs(b.cov80 - 0.8) - Math.abs(a.cov80 - 0.8))[0];
+  const name = BANK_LABELS[worst.bank] ?? worst.bank;
+  const pct = Math.round(worst.cov80 * 100);
+  const target = `the ${Math.round(lo * 100)}% to ${Math.round(hi * 100)}% target`;
+  const verdict =
+    worst.cov80 < lo - 1e-9 ? `below ${target}` : worst.cov80 > hi + 1e-9 ? `above ${target}` : `within ${target}`;
+  return `${name} ${PERIOD_SINGULAR[horizon]}: the ${RANGE_NAME[horizon]} range held ${pct}% of outcomes, ${verdict}.`;
+}
+
 /** "Around meetings, last 12 months": 80% band coverage and error with a meeting inside vs without. */
 export function AroundMeetings({
   pairLabel,
@@ -55,6 +78,7 @@ export function AroundMeetings({
   const lo = 0.8 - tol;
   const hi = 0.8 + tol;
   const served = (h: number) => metrics.find((m) => m.horizon_days === h && m.window === "250d" && m.served)?.model ?? "random_walk";
+  const lead = leadSentence(eventMetrics, served, lo, hi);
 
   return (
     <section className="card" aria-labelledby="around-title" data-testid="around-meetings">
@@ -67,6 +91,12 @@ export function AroundMeetings({
           Show all models
         </label>
       </div>
+
+      {lead && (
+        <p className="around-lead" data-testid="around-lead">
+          {lead}
+        </p>
+      )}
 
       {study && study.banks.length > 0 && (
         <ul className="around-study">
@@ -215,10 +245,46 @@ export function AiRecord({ rows }: { rows: AiTrackRow[] }) {
   );
 }
 
-/** "AI analysis": Gemini's weekly written reading. Text, not a forecast. */
+/** Bold the numbers in a sentence (tabular figures), so a scan picks them up first. */
+function withNumbers(text: string) {
+  // Bold figures, not the digits inside words such as "1-week" or "1W".
+  const parts = text.split(/(?<![\w.-])(\d+(?:\.\d+)?(?:%| times|x)?)(?![\w-])/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="num">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
+const MONTHS: Record<string, string> = {
+  jan: "Jan", feb: "Feb", mar: "Mar", apr: "Apr", may: "May", jun: "Jun",
+  jul: "Jul", aug: "Aug", sep: "Sep", oct: "Oct", nov: "Nov", dec: "Dec",
+};
+
+/** Meeting chips from text like "The Fed on 28 Oct" or "Fed and ECB decide on 28 and 29 October". */
+export function meetingChips(text: string): string[] {
+  const banks = [...text.matchAll(/\b(Fed|FOMC|ECB|CBA)\b/g)].map((m) => (m[1] === "FOMC" ? "Fed" : m[1]));
+  const dates: string[] = [];
+  for (const m of text.matchAll(/\b(\d{1,2})(?:\s+and\s+(\d{1,2}))?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/gi)) {
+    const mon = MONTHS[m[3].toLowerCase()];
+    dates.push(`${m[1]} ${mon}`);
+    if (m[2]) dates.push(`${m[2]} ${mon}`);
+  }
+  if (!dates.length) return [];
+  const uniqueBanks = [...new Set(banks)];
+  if (uniqueBanks.length === dates.length) return dates.map((d, i) => `${uniqueBanks[i]} ${d}`);
+  if (uniqueBanks.length === 1) return dates.map((d) => `${uniqueBanks[0]} ${d}`);
+  return dates;
+}
+
+/** "AI analysis": Gemini's weekly written reading, built for a five-second read. */
 export function AiAnalysis({ analysis }: { analysis: AiAnalysisOut | null }) {
   return (
-    <section className="card" aria-labelledby="ai-analysis-title" data-testid="ai-analysis">
+    <section className="card ai-analysis" aria-labelledby="ai-analysis-title" data-testid="ai-analysis">
       <h2 id="ai-analysis-title" className="card-title">
         AI analysis
       </h2>
@@ -230,15 +296,36 @@ export function AiAnalysis({ analysis }: { analysis: AiAnalysisOut | null }) {
             Written by {PROVIDER[analysis.provider] ?? analysis.provider} ({analysis.model}), experimental,{" "}
             {fmtDate(analysis.run_date)}
           </p>
-          <p className="ai-headline-text">{analysis.headline}</p>
-          <div className="ai-points">
-            {analysis.points.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
-          </div>
-          <p className="ai-watch">
-            <span className="ai-watch-label">Watch next.</span> {analysis.watch_next}
+          <p className="ai-takeaway" data-testid="ai-takeaway">
+            {withNumbers(analysis.headline)}
           </p>
+          {analysis.for_you && (
+            <p className="ai-for-you" data-testid="ai-for-you">
+              <span className="ai-for-you-label">What it means for you.</span> {analysis.for_you}
+            </p>
+          )}
+          {analysis.points.length > 0 && (
+            <ul className="ai-bullets">
+              {analysis.points.slice(0, 3).map((p) => (
+                <li key={p}>{withNumbers(p)}</li>
+              ))}
+            </ul>
+          )}
+          {analysis.watch_next && (
+            <div className="ai-watch">
+              <span className="ai-watch-label">Watch next</span>
+              {meetingChips(analysis.watch_next).length > 0 && (
+                <span className="ai-watch-chips">
+                  {meetingChips(analysis.watch_next).map((c) => (
+                    <span key={c} className="bank-chip">
+                      {c}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span className="ai-watch-text">{analysis.watch_next}</span>
+            </div>
+          )}
         </>
       )}
     </section>

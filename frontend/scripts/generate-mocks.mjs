@@ -3,7 +3,7 @@
 // The numbers are invented but internally consistent: bands come from a Student-t GARCH sigma,
 // the forward rate from covered interest parity, and meetings from the 2026 calendars.
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -1111,16 +1111,16 @@ console.log(
   const PAIR_BANKS = { EURUSD: ["FED", "ECB"], USDAMD: ["FED", "CBA"], EURAMD: ["FED", "ECB", "CBA"] };
   // 80% coverage on meeting horizons vs none, per pair and bank (meeting windows run a little wide or narrow).
   const COV80 = {
-    EURUSD: { FED: 0.752, ECB: 0.774, none: 0.812 },
-    USDAMD: { FED: 0.781, CBA: 0.736, none: 0.826 },
-    EURAMD: { FED: 0.768, ECB: 0.79, CBA: 0.722, none: 0.818 },
+    EURUSD: { FED: 0.57, ECB: 0.79, none: 0.812 },
+    USDAMD: { FED: 0.71, CBA: 0.74, none: 0.826 },
+    EURAMD: { FED: 0.66, ECB: 0.77, CBA: 0.722, none: 0.818 },
   };
   const ANALYSIS = {
     EURUSD: {
       headline: "Fed weeks are where the bands are tested; ECB weeks behave much like normal weeks.",
       points: [
         "EUR/USD moved about 2.7 times a normal day around Fed decisions and followed the surprise or tone in 5 of 8 meetings.",
-        "With a Fed meeting inside the week, the 80% band held 75% of the time, at the low edge of the 75 to 85% target.",
+        "With a Fed meeting inside the week, the 80% band held 57% of the time, well below the 75 to 85% target.",
         "Around ECB meetings the reaction was smaller, about 1.6 times a normal day, and coverage stayed within target.",
       ],
       watch_next: "The Fed on 28 Oct falls on the 1W target date; a less dovish message than priced would test the lower band.",
@@ -1128,8 +1128,8 @@ console.log(
     USDAMD: {
       headline: "CBA decisions move USD/AMD more than its bands expect; Fed weeks are handled well.",
       points: [
-        "USD/AMD moved about 1.8 times a normal day around CBA decisions, and the 80% band held only 74% of the time in those weeks.",
-        "Around Fed meetings the reaction was larger, about 2.3 times a normal day, but the event widening kept coverage near 78%.",
+        "USD/AMD moved about 1.8 times a normal day around CBA decisions, and the 80% band held 74% of the time in those weeks.",
+        "Around Fed meetings the reaction was larger, about 2.3 times a normal day, and the 80% band held 71% in Fed weeks.",
         "The dram's managed float makes most days quiet, so a few meeting days account for much of the error.",
       ],
       watch_next: "The CBA meets on 8 Dec; its easing bias after the October cut is the main risk to the 1M band.",
@@ -1138,7 +1138,7 @@ console.log(
       headline: "Fed meetings move EUR/AMD the most, even though the dollar is in neither leg.",
       points: [
         "EUR/AMD moved about 3 times a normal day around Fed decisions, with no consistent direction.",
-        "With a CBA meeting inside the horizon, the 80% band held 72% of the time, below the 75 to 85% target.",
+        "With a Fed meeting inside the week, the 80% band held 66% of the time, below the 75 to 85% target.",
         "ECB weeks were close to normal: about 1.9 times a normal day, and coverage stayed within target.",
       ],
       watch_next: "Fed and ECB decide on 28 and 29 Oct, inside the 1W and 1M horizons; watch whether the widened bands hold.",
@@ -1156,8 +1156,9 @@ console.log(
       const nNone = Math.max(10, 250 - nAny);
       for (const bank of [...banks, "none"]) {
         const base = COV80[pair][bank];
-        const shift = h === 1 ? 0.01 : h === 21 ? -0.006 : 0;
-        const cov80 = round(Math.min(0.97, base + shift + (rand() - 0.5) * 0.01), 3);
+        // Exact at 1W (the figure quoted elsewhere); meeting windows dilute over 1M, sharpen at 1D.
+        const shift = bank === "none" ? 0 : h === 1 ? -0.02 : h === 21 ? (0.8 - base) * 0.45 : 0;
+        const cov80 = round(Math.min(0.97, base + shift + (h === 5 ? 0 : (rand() - 0.5) * 0.01)), 3);
         event_metrics.push({
           horizon_days: h,
           model: m.model,
@@ -1186,5 +1187,86 @@ console.log(
       ...ANALYSIS[pair],
     };
     writeFileSync(join(OUT, `backtests.${pair}.json`), JSON.stringify(bt, null, 2) + "\n");
+  }
+}
+
+// --- meeting risks per horizon, and takeaway-style AI analysis --------------------------------------
+{
+  const PERIOD = { 1: "day", 5: "week", 21: "month" };
+  const RANGE_LABEL = { 1: "1-day", 5: "1-week", 21: "1-month" };
+  const PAIR_LABEL = { EURUSD: "EUR/USD", USDAMD: "USD/AMD", EURAMD: "EUR/AMD" };
+  const NAME = { FED: "Fed", ECB: "ECB", CBA: "CBA" };
+  const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const short = (iso) => `${Number(iso.slice(8, 10))} ${MONTH[Number(iso.slice(5, 7)) - 1]}`;
+  // pair -> bank -> [reaction vs normal, level] (from the meeting study mocks)
+  const RISK = {
+    EURUSD: { FED: [2.7, "higher"], ECB: [1.6, "lower"] },
+    USDAMD: { FED: [2.3, "higher"], CBA: [1.8, "higher"] },
+    EURAMD: { FED: [3.0, "higher"], ECB: [1.9, "normal"], CBA: [1.5, "normal"] },
+  };
+  const BAND = {
+    EURUSD: { FED: { 5: [0.57, 0.81, 40], 21: [0.68, 0.81, 167] }, ECB: { 5: [0.79, 0.81, 38], 21: [0.8, 0.81, 162] } },
+    USDAMD: { FED: { 5: [0.71, 0.83, 40], 21: [0.74, 0.82, 165] } },
+    EURAMD: { FED: { 5: [0.66, 0.82, 40], 21: [0.7, 0.81, 166] }, ECB: { 5: [0.77, 0.82, 39], 21: [0.79, 0.81, 160] } },
+  };
+  for (const pair of ["EURUSD", "USDAMD", "EURAMD"]) {
+    const file = join(OUT, `forecast-latest.${pair}.json`);
+    const latest = JSON.parse(readFileSync(file, "utf8"));
+    const btEvents = JSON.parse(readFileSync(join(OUT, `backtests.${pair}.json`), "utf8")).event_metrics;
+    const bandOf = (bank, h) => {
+      const row = btEvents.find((r) => r.horizon_days === h && r.model === "random_walk" && r.bank === bank);
+      const none = btEvents.find((r) => r.horizon_days === h && r.model === "random_walk" && r.bank === "none");
+      return row ? [row.cov80, none ? none.cov80 : null, row.n_obs] : [null, null, null];
+    };
+    for (const h of latest.horizons) {
+      h.meeting_risks = h.meetings.map((m) => {
+        const [ratio, level] = RISK[pair][m.bank] ?? [1.0, "normal"];
+        const [inMeet, inOther, n] = bandOf(m.bank, h.days);
+        const p = PERIOD[h.days];
+        let summary = `${NAME[m.bank]} meets ${short(m.date)}. ${NAME[m.bank]} days moved ${PAIR_LABEL[pair]} ${ratio.toFixed(1)}x a normal day over the last 8 meetings`;
+        if (inMeet !== null) summary += `, and on ${NAME[m.bank]} ${p}s the ${RANGE_LABEL[h.days]} 80% range held ${Math.round(inMeet * 100)}% of outcomes`;
+        summary += ". ";
+        summary +=
+          level === "higher"
+            ? "Expect a wider swing than the range shows."
+            : level === "lower"
+              ? "Usually a smaller move than other meetings."
+              : "Usually within the range.";
+        return {
+          bank: m.bank,
+          date: m.date,
+          reaction_vs_normal: ratio,
+          meetings_last_year: 8,
+          band80_meeting_weeks: inMeet,
+          band80_other_weeks: inOther,
+          n_meeting_weeks: n,
+          level,
+          summary,
+        };
+      });
+    }
+    writeFileSync(file, JSON.stringify(latest, null, 2) + "\n");
+
+    const btFile = join(OUT, `backtests.${pair}.json`);
+    const bt = JSON.parse(readFileSync(btFile, "utf8"));
+    const TAKE = {
+      EURUSD: {
+        headline: "On Fed weeks EUR/USD swings about 2.7 times as much as a normal day, and the 1-week range held only 57% of outcomes.",
+        for_you: "If you convert EUR in a week with a Fed decision, plan for a wider swing than the range shows; converting before 28 Oct avoids that risk.",
+        prompt_version: "an-p2",
+      },
+      USDAMD: {
+        headline: "Fed decisions move USD/AMD about 2.3 times a normal day, and the 1-week range held only 71% of outcomes on Fed weeks.",
+        for_you: "If you convert USD around a Fed or CBA decision, expect a wider swing than usual; the next ones are 28 Oct and 8 Dec.",
+        prompt_version: "an-p2",
+      },
+      EURAMD: {
+        headline: "Fed decisions move EUR/AMD about 3 times a normal day, and the 1-week range held only 66% of outcomes on Fed weeks.",
+        for_you: "If you convert EUR to AMD this week or next, the Fed on 28 Oct and the ECB on 29 Oct can move the rate more than the range suggests.",
+        prompt_version: "an-p2",
+      },
+    }[pair];
+    bt.ai_analysis = { ...bt.ai_analysis, ...TAKE };
+    writeFileSync(btFile, JSON.stringify(bt, null, 2) + "\n");
   }
 }

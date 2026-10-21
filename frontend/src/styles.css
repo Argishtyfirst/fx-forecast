@@ -2200,3 +2200,138 @@ dd {
   font-weight: 600;
   color: var(--ink);
 }
+
+/* --- meetings in the chosen window (decision hero) ---------------------------------- */
+.window-meetings {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.window-meetings-title {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.window-meetings ul {
+  display: grid;
+  gap: 8px;
+}
+.window-meeting-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+.bank-chip {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.window-swing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.window-stats {
+  color: var(--text-2);
+}
+.window-summary {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.level-higher .bank-chip {
+  border-color: var(--accent);
+}
+.level-lower .window-meeting-head,
+.level-lower .window-summary {
+  color: var(--muted);
+}
+.fact-wider {
+  color: var(--accent);
+}
+
+/* --- AI analysis, five-second read ---------------------------------------------------- */
+.ai-takeaway {
+  margin-top: 8px;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  max-width: 64ch;
+}
+.ai-takeaway strong,
+.ai-bullets strong {
+  font-weight: 600;
+}
+.ai-for-you {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14px;
+  color: var(--text);
+  max-width: 72ch;
+}
+.ai-for-you-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+.ai-bullets {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  list-style: disc;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--text);
+  max-width: 72ch;
+}
+.ai-bullets li::marker {
+  color: var(--muted);
+}
+.ai-analysis .ai-watch {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 13.5px;
+}
+.ai-watch-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ai-watch-text {
+  flex-basis: 100%;
+  color: var(--text-2);
+}
+.around-lead {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

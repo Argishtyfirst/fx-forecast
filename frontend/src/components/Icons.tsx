@@ -8,6 +8,7 @@ import {
   Check,
   CheckCircle,
   HourglassMedium,
+  Lightning,
   Minus,
   Moon,
   Plus,
@@ -56,3 +57,5 @@ export const RetryIcon = wrap(ArrowClockwise);
 export const SellNowIcon = wrap(CheckCircle);
 export const WaitIcon = wrap(HourglassMedium);
 export const UnclearIcon = wrap(Scales);
+/** A meeting likely to swing the rate more than the range shows. */
+export const SwingIcon = wrap(Lightning);

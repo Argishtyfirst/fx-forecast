@@ -322,9 +322,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.483,
-      "cov80": 0.791,
-      "cov95": 0.931
+      "cov50": 0.382,
+      "cov80": 0.69,
+      "cov95": 0.83
     },
     {
       "horizon_days": 1,
@@ -333,9 +333,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.447,
-      "cov80": 0.748,
-      "cov95": 0.884
+      "cov50": 0.421,
+      "cov80": 0.722,
+      "cov95": 0.858
     },
     {
       "horizon_days": 1,
@@ -344,9 +344,9 @@
       "n_obs": 236,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.527,
-      "cov80": 0.837,
-      "cov95": 0.981
+      "cov50": 0.517,
+      "cov80": 0.827,
+      "cov95": 0.971
     },
     {
       "horizon_days": 1,
@@ -355,9 +355,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1.03,
       "hit_rate": 0.51,
-      "cov50": 0.477,
-      "cov80": 0.787,
-      "cov95": 0.931
+      "cov50": 0.376,
+      "cov80": 0.686,
+      "cov95": 0.83
     },
     {
       "horizon_days": 1,
@@ -366,9 +366,9 @@
       "n_obs": 8,
       "mae_ratio_rw": 1.027,
       "hit_rate": 0.478,
-      "cov50": 0.443,
-      "cov80": 0.743,
-      "cov95": 0.879
+      "cov50": 0.417,
+      "cov80": 0.717,
+      "cov95": 0.853
     },
     {
       "horizon_days": 1,
@@ -377,9 +377,9 @@
       "n_obs": 236,
       "mae_ratio_rw": 1,
       "hit_rate": 0.514,
-      "cov50": 0.535,
-      "cov80": 0.84,
-      "cov95": 0.985
+      "cov50": 0.525,
+      "cov80": 0.83,
+      "cov95": 0.975
     },
     {
       "horizon_days": 5,
@@ -388,9 +388,9 @@
       "n_obs": 39,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.473,
-      "cov80": 0.779,
-      "cov95": 0.921
+      "cov50": 0.406,
+      "cov80": 0.71,
+      "cov95": 0.847
     },
     {
       "horizon_days": 5,
@@ -399,8 +399,8 @@
       "n_obs": 38,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.431,
-      "cov80": 0.734,
+      "cov50": 0.444,
+      "cov80": 0.74,
       "cov95": 0.878
     },
     {
@@ -410,97 +410,97 @@
       "n_obs": 182,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.522,
-      "cov80": 0.829,
-      "cov95": 0.973
+      "cov50": 0.523,
+      "cov80": 0.826,
+      "cov95": 0.97
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "FED",
-      "n_obs": 39,
-      "mae_ratio_rw": 1.011,
-      "hit_rate": 0.56,
-      "cov50": 0.482,
-      "cov80": 0.786,
-      "cov95": 0.928
+      "n_obs": 41,
+      "mae_ratio_rw": 1.017,
+      "hit_rate": 0.537,
+      "cov50": 0.402,
+      "cov80": 0.71,
+      "cov95": 0.855
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "CBA",
-      "n_obs": 38,
-      "mae_ratio_rw": 1.016,
-      "hit_rate": 0.558,
-      "cov50": 0.434,
-      "cov80": 0.734,
-      "cov95": 0.872
+      "n_obs": 39,
+      "mae_ratio_rw": 1.011,
+      "hit_rate": 0.56,
+      "cov50": 0.436,
+      "cov80": 0.74,
+      "cov95": 0.882
     },
     {
       "horizon_days": 5,
       "model": "forward",
       "bank": "none",
       "n_obs": 182,
-      "mae_ratio_rw": 0.986,
-      "hit_rate": 0.541,
-      "cov50": 0.534,
-      "cov80": 0.827,
-      "cov95": 0.969
+      "mae_ratio_rw": 0.981,
+      "hit_rate": 0.558,
+      "cov50": 0.531,
+      "cov80": 0.826,
+      "cov95": 0.966
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "FED",
       "n_obs": 39,
-      "mae_ratio_rw": 1.009,
-      "hit_rate": 0.558,
-      "cov50": 0.482,
-      "cov80": 0.778,
-      "cov95": 0.919
+      "mae_ratio_rw": 1.014,
+      "hit_rate": 0.533,
+      "cov50": 0.417,
+      "cov80": 0.71,
+      "cov95": 0.852
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "CBA",
       "n_obs": 41,
-      "mae_ratio_rw": 1.008,
-      "hit_rate": 0.549,
-      "cov50": 0.437,
-      "cov80": 0.737,
-      "cov95": 0.875
+      "mae_ratio_rw": 1.009,
+      "hit_rate": 0.55,
+      "cov50": 0.433,
+      "cov80": 0.74,
+      "cov95": 0.878
     },
     {
       "horizon_days": 5,
       "model": "lightgbm",
       "bank": "none",
       "n_obs": 182,
-      "mae_ratio_rw": 0.979,
-      "hit_rate": 0.525,
-      "cov50": 0.52,
+      "mae_ratio_rw": 0.986,
+      "hit_rate": 0.549,
+      "cov50": 0.527,
       "cov80": 0.826,
-      "cov95": 0.97
+      "cov95": 0.967
     },
     {
       "horizon_days": 21,
       "model": "random_walk",
       "bank": "FED",
-      "n_obs": 162,
-      "mae_ratio_rw": 1,
-      "hit_rate": null,
-      "cov50": 0.476,
-      "cov80": 0.776,
-      "cov95": 0.912
-    },
-    {
-      "horizon_days": 21,
-      "model": "random_walk",
-      "bank": "CBA",
       "n_obs": 163,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.423,
-      "cov80": 0.728,
-      "cov95": 0.87
+      "cov50": 0.447,
+      "cov80": 0.75,
+      "cov95": 0.89
+    },
+    {
+      "horizon_days": 21,
+      "model": "random_walk",
+      "bank": "CBA",
+      "n_obs": 172,
+      "mae_ratio_rw": 1,
+      "hit_rate": null,
+      "cov50": 0.458,
+      "cov80": 0.765,
+      "cov95": 0.902
     },
     {
       "horizon_days": 21,
@@ -509,75 +509,75 @@
       "n_obs": 10,
       "mae_ratio_rw": 1,
       "hit_rate": null,
-      "cov50": 0.515,
-      "cov80": 0.816,
-      "cov95": 0.96
+      "cov50": 0.523,
+      "cov80": 0.83,
+      "cov95": 0.967
     },
     {
       "horizon_days": 21,
       "model": "forward",
       "bank": "FED",
+      "n_obs": 170,
+      "mae_ratio_rw": 0.989,
+      "hit_rate": 0.574,
+      "cov50": 0.45,
+      "cov80": 0.747,
+      "cov95": 0.883
+    },
+    {
+      "horizon_days": 21,
+      "model": "forward",
+      "bank": "CBA",
       "n_obs": 168,
       "mae_ratio_rw": 0.995,
-      "hit_rate": 0.598,
-      "cov50": 0.47,
-      "cov80": 0.774,
-      "cov95": 0.914
-    },
-    {
-      "horizon_days": 21,
-      "model": "forward",
-      "bank": "CBA",
-      "n_obs": 175,
-      "mae_ratio_rw": 0.99,
-      "hit_rate": 0.599,
-      "cov50": 0.44,
-      "cov80": 0.732,
-      "cov95": 0.869
+      "hit_rate": 0.584,
+      "cov50": 0.475,
+      "cov80": 0.766,
+      "cov95": 0.905
     },
     {
       "horizon_days": 21,
       "model": "forward",
       "bank": "none",
       "n_obs": 10,
-      "mae_ratio_rw": 0.958,
-      "hit_rate": 0.582,
-      "cov50": 0.517,
-      "cov80": 0.823,
-      "cov95": 0.958
+      "mae_ratio_rw": 0.965,
+      "hit_rate": 0.575,
+      "cov50": 0.531,
+      "cov80": 0.83,
+      "cov95": 0.972
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "FED",
-      "n_obs": 171,
-      "mae_ratio_rw": 1.001,
-      "hit_rate": 0.553,
-      "cov50": 0.471,
-      "cov80": 0.779,
-      "cov95": 0.921
+      "n_obs": 167,
+      "mae_ratio_rw": 1.002,
+      "hit_rate": 0.569,
+      "cov50": 0.449,
+      "cov80": 0.755,
+      "cov95": 0.895
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "CBA",
-      "n_obs": 172,
+      "n_obs": 174,
       "mae_ratio_rw": 1,
-      "hit_rate": 0.568,
-      "cov50": 0.435,
-      "cov80": 0.731,
-      "cov95": 0.87
+      "hit_rate": 0.563,
+      "cov50": 0.469,
+      "cov80": 0.764,
+      "cov95": 0.908
     },
     {
       "horizon_days": 21,
       "model": "lightgbm",
       "bank": "none",
       "n_obs": 10,
-      "mae_ratio_rw": 0.973,
-      "hit_rate": 0.56,
-      "cov50": 0.511,
-      "cov80": 0.818,
-      "cov95": 0.96
+      "mae_ratio_rw": 0.974,
+      "hit_rate": 0.539,
+      "cov50": 0.525,
+      "cov80": 0.822,
+      "cov95": 0.963
     }
   ],
   "ai_track": [
@@ -625,14 +625,15 @@
     "run_date": "2026-10-18",
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
-    "prompt_version": "analysis-p1",
+    "prompt_version": "an-p2",
     "generated_at": "2026-10-18T06:21:37Z",
-    "headline": "CBA decisions move USD/AMD more than its bands expect; Fed weeks are handled well.",
+    "headline": "Fed decisions move USD/AMD about 2.3 times a normal day, and the 1-week range held only 71% of outcomes on Fed weeks.",
     "points": [
-      "USD/AMD moved about 1.8 times a normal day around CBA decisions, and the 80% band held only 74% of the time in those weeks.",
-      "Around Fed meetings the reaction was larger, about 2.3 times a normal day, but the event widening kept coverage near 78%.",
+      "USD/AMD moved about 1.8 times a normal day around CBA decisions, and the 80% band held 74% of the time in those weeks.",
+      "Around Fed meetings the reaction was larger, about 2.3 times a normal day, and the 80% band held 71% in Fed weeks.",
       "The dram's managed float makes most days quiet, so a few meeting days account for much of the error."
     ],
-    "watch_next": "The CBA meets on 8 Dec; its easing bias after the October cut is the main risk to the 1M band."
+    "watch_next": "The CBA meets on 8 Dec; its easing bias after the October cut is the main risk to the 1M band.",
+    "for_you": "If you convert USD around a Fed or CBA decision, expect a wider swing than usual; the next ones are 28 Oct and 8 Dec."
   }
 }

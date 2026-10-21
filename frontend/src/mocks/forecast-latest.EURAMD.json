@@ -102,7 +102,8 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": []
     },
     {
       "days": 5,
@@ -206,7 +207,20 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28",
+          "reaction_vs_normal": 3,
+          "meetings_last_year": 8,
+          "band80_meeting_weeks": 0.66,
+          "band80_other_weeks": 0.818,
+          "n_meeting_weeks": 41,
+          "level": "higher",
+          "summary": "Fed meets 28 Oct. Fed days moved EUR/AMD 3.0x a normal day over the last 8 meetings, and on Fed weeks the 1-week 80% range held 66% of outcomes. Expect a wider swing than the range shows."
+        }
+      ]
     },
     {
       "days": 21,
@@ -314,7 +328,31 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28",
+          "reaction_vs_normal": 3,
+          "meetings_last_year": 8,
+          "band80_meeting_weeks": 0.723,
+          "band80_other_weeks": 0.815,
+          "n_meeting_weeks": 174,
+          "level": "higher",
+          "summary": "Fed meets 28 Oct. Fed days moved EUR/AMD 3.0x a normal day over the last 8 meetings, and on Fed months the 1-month 80% range held 72% of outcomes. Expect a wider swing than the range shows."
+        },
+        {
+          "bank": "ECB",
+          "date": "2026-10-29",
+          "reaction_vs_normal": 1.9,
+          "meetings_last_year": 8,
+          "band80_meeting_weeks": 0.787,
+          "band80_other_weeks": 0.815,
+          "n_meeting_weeks": 174,
+          "level": "normal",
+          "summary": "ECB meets 29 Oct. ECB days moved EUR/AMD 1.9x a normal day over the last 8 meetings, and on ECB months the 1-month 80% range held 79% of outcomes. Usually within the range."
+        }
+      ]
     }
   ],
   "stale_sources": [

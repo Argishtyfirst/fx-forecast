@@ -1,10 +1,17 @@
 import { useId, useState } from "react";
-import type { AiView, ConversionSignal, HorizonForecast, LatestForecastResponse, SignalAction } from "../api/types";
-import { MODEL_LABELS, type PairMeta } from "../lib/constants";
+import type {
+  AiView,
+  ConversionSignal,
+  HorizonForecast,
+  LatestForecastResponse,
+  MeetingRiskOut,
+  SignalAction,
+} from "../api/types";
+import { BANK_LABELS, MODEL_LABELS, type PairMeta } from "../lib/constants";
 import { fmtDateTime, fmtInt, fmtNum, fmtPct, fmtRate, fmtShortDate } from "../lib/format";
 import { verdictText } from "../lib/verdict";
 import { Disclaimer } from "./Disclaimer";
-import { SellNowIcon, UnclearIcon, WaitIcon } from "./Icons";
+import { SellNowIcon, SwingIcon, UnclearIcon, WaitIcon } from "./Icons";
 
 /** Plain-word verdicts. Wording carries the answer; the accent and the icon only reinforce it. */
 export const VERDICT: Record<SignalAction, string> = {
@@ -96,6 +103,8 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
   const lo = s?.downside_p10_rate ?? h.bands["80"]?.[0];
   const hi = s?.upside_p90_rate ?? h.bands["80"]?.[1];
   const interest = interestLine(s);
+  const risks = h.meeting_risks ?? [];
+  const wider = risks.filter((r) => r.level === "higher").map((r) => BANK_LABELS[r.bank] ?? r.bank);
   const Icon = lean === "sell_now" ? SellNowIcon : lean === "wait" ? WaitIcon : UnclearIcon;
 
   return (
@@ -190,6 +199,8 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
         </dl>
       )}
 
+      {risks.length > 0 && <MeetingsInWindow risks={risks} days={h.days} />}
+
       <dl className="facts" data-testid="facts">
         {lo !== undefined && hi !== undefined && (
           <div data-testid="fact-wait">
@@ -199,6 +210,11 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
                 {fmtRate(lo, pair.decimals)} to {fmtRate(hi, pair.decimals)}
               </span>{" "}
               {per}, 80% range
+              {wider.length > 0 && (
+                <span className="fact-wider">
+                  , likely wider around the {wider.join(" and ")} meeting{wider.length > 1 ? "s" : ""}
+                </span>
+              )}
             </dd>
           </div>
         )}
@@ -214,6 +230,52 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
         </div>
       </dl>
       <Disclaimer text={forecast.disclaimer} />
+    </section>
+  );
+}
+
+const PERIOD: Record<number, string> = { 1: "days", 5: "weeks", 21: "months" };
+
+function lastSentence(text: string): string {
+  const parts = text.split(/(?<=\.)\s+/).filter(Boolean);
+  return parts[parts.length - 1] ?? text;
+}
+
+/** Meetings inside the chosen window: what last year's data says about each one. */
+function MeetingsInWindow({ risks, days }: { risks: MeetingRiskOut[]; days: number }) {
+  return (
+    <section className="window-meetings" aria-label="Meetings in this window" data-testid="window-meetings">
+      <p className="window-meetings-title">Meetings in this window</p>
+      <ul>
+        {risks.map((r) => {
+          const name = BANK_LABELS[r.bank] ?? r.bank;
+          const stats: string[] = [];
+          if (r.reaction_vs_normal !== null) stats.push(`${fmtNum(r.reaction_vs_normal, 1)}x normal day`);
+          if (r.band80_meeting_weeks !== null)
+            stats.push(`range held ${Math.round(r.band80_meeting_weeks * 100)}% on ${name} ${PERIOD[days] ?? "weeks"} (target 80%)`);
+          return (
+            <li key={`${r.bank}-${r.date}`} className={`window-meeting level-${r.level}`} data-level={r.level}>
+              <p className="window-meeting-head">
+                <span className="bank-chip">
+                  {name} {fmtShortDate(r.date)}
+                </span>
+                {r.level === "higher" && (
+                  <strong className="window-swing">
+                    <SwingIcon size={14} /> Bigger swing likely
+                  </strong>
+                )}
+                {stats.length > 0 && <span className="window-stats num">{stats.join(", ")}</span>}
+              </p>
+              {/* The chip and the stats already carry the first sentences; show the takeaway, keep the
+                  full sentence for screen readers and on hover. */}
+              <p className="window-summary" title={r.summary}>
+                <span aria-hidden="true">{lastSentence(r.summary)}</span>
+                <span className="sr-only">{r.summary}</span>
+              </p>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

@@ -90,6 +90,19 @@ export type SignalConfidence = "none" | "low" | "medium" | "high";
 
 export type VerdictSource = "statistical" | "ai";
 
+/** A meeting inside the horizon, with what last year's data says about it. Not AI text. */
+export interface MeetingRiskOut {
+  bank: string;
+  date: IsoDate;
+  reaction_vs_normal: number | null; // mean |reaction| / mean |normal day| over the last year
+  meetings_last_year: number;
+  band80_meeting_weeks: number | null; // share of outcomes inside the 80% range, that bank's weeks
+  band80_other_weeks: number | null; // same, weeks without a meeting
+  n_meeting_weeks: number | null;
+  level: "higher" | "normal" | "lower"; // expected swing around this meeting
+  summary: string;
+}
+
 export interface ConversionSignal {
   action: SignalAction;
   /** Who decided the verdict: the backtested models, or the AI view once promoted. */
@@ -166,6 +179,7 @@ export interface HorizonForecast {
   drivers: Drivers;
   signal?: ConversionSignal | null;
   ai_view?: AiView | null;
+  meeting_risks?: MeetingRiskOut[];
 }
 
 export interface LatestForecastResponse {
@@ -264,9 +278,10 @@ export interface AiAnalysisOut {
   model: string;
   prompt_version: string;
   generated_at: IsoDateTime;
-  headline: string;
+  headline: string; // the takeaway sentence
   points: string[];
   watch_next: string;
+  for_you?: string; // what it means for someone converting the base currency
 }
 
 export interface BacktestResponse {

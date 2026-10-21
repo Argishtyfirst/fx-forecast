@@ -98,7 +98,8 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": []
     },
     {
       "days": 5,
@@ -198,7 +199,20 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28",
+          "reaction_vs_normal": 2.3,
+          "meetings_last_year": 8,
+          "band80_meeting_weeks": 0.71,
+          "band80_other_weeks": 0.826,
+          "n_meeting_weeks": 39,
+          "level": "higher",
+          "summary": "Fed meets 28 Oct. Fed days moved USD/AMD 2.3x a normal day over the last 8 meetings, and on Fed weeks the 1-week 80% range held 71% of outcomes. Expect a wider swing than the range shows."
+        }
+      ]
     },
     {
       "days": 21,
@@ -298,7 +312,20 @@
           "brier": null,
           "promoted": false
         }
-      }
+      },
+      "meeting_risks": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28",
+          "reaction_vs_normal": 2.3,
+          "meetings_last_year": 8,
+          "band80_meeting_weeks": 0.75,
+          "band80_other_weeks": 0.83,
+          "n_meeting_weeks": 163,
+          "level": "higher",
+          "summary": "Fed meets 28 Oct. Fed days moved USD/AMD 2.3x a normal day over the last 8 meetings, and on Fed months the 1-month 80% range held 75% of outcomes. Expect a wider swing than the range shows."
+        }
+      ]
     }
   ],
   "stale_sources": [
