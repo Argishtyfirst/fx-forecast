@@ -21,7 +21,9 @@ panel. Spec: [docs/SPEC.md](docs/SPEC.md).
 | Served model | The lowest-error model that beats the random walk (MAE ratio < 0.98 and Diebold-Mariano p < 0.10 over 250 days); otherwise the random walk with GARCH bands |
 | Central banks | Fed, ECB and CBA: meeting calendars, decisions, surprises, statement diffs and hawkish scores |
 | Sell indicator (FR-17) | Sell now / Wait / No clear edge, with the chance of a better rate, the risk of waiting and the interest difference. It leans only when a model has proven an edge. |
-| AI view | Experimental. Gemini reads the same context daily. It is scored live only and decides the verdict only after 250 scored forecasts meet the promotion rule. |
+| AI view | Experimental. Gemini reads the same context daily. It is scored live only and decides the verdict only after 250 scored forecasts meet the promotion rule. One call per pair and day: a rerun with the same inputs keeps the answer, and the page shows yesterday's call next to today's. |
+| My euros in AMD | Calculator for an amount: AMD now, the likely range by the horizon, and the interest difference earned by converting now |
+| Where to convert | Indicative rates for an amount from 17 Armenian banks (via rate.am), the Inecobank app, Wise and Paysend, best first, with the gap to the CBA rate. Revolut publishes no dram rate a script may read, so it is listed with a note. |
 
 ## Architecture
 
@@ -41,6 +43,7 @@ No job calls another job directly; every job reads and writes Postgres and recor
 | `backend/src/fxf/events` | Calendars, decisions, statements, diff, hawkish scorer |
 | `backend/src/fxf/forecast`, `backtest` | Models, bands, calibration, selection, walk-forward backtest |
 | `backend/src/fxf/ai` | Experimental Gemini AI view and its live track record |
+| `backend/src/fxf/quotes` | Bank and transfer service rates for "where to convert" |
 | `backend/src/fxf/api` | FastAPI app, health and stale rules, sell indicator |
 | `frontend/` | React, TypeScript, Vite and visx dashboard |
 
@@ -73,6 +76,7 @@ Open http://localhost:8000. For frontend work, use `npm run dev` in `frontend/` 
 |---|---|
 | `fxf daily` | Ingest, events, forecast, then the AI view. Runs only on working days after 17:00 CET; `--force` overrides. |
 | `fxf hourly` | Central bank RSS and news poll, and statement scoring (FR-05) |
+| `fxf quotes` | Provider rates: banks hourly from 09:00 to 21:00 Yerevan, Wise and Paysend every 3 hours. `--force` reads every source now. |
 | `fxf weekly` | Walk-forward backtest, then today's forecast with the new served models |
 | `fxf backfill` | Full history for every source |
 | `fxf ai` | The AI view only (needs `GEMINI_API_KEY`) |
@@ -128,8 +132,8 @@ requirement, for example `test_fr03_ingest_is_idempotent`.
 - **Served model:** the random walk everywhere. No model met the promotion rule; the
   closest was LightGBM at 1M with MAE ratio 0.97 and DM p 0.29. This is the usual finding
   for FX at these horizons.
-- **80% band coverage:** 0.78–0.84 for every pair and horizon (target 75–85%), and about
-  0.80 over 2010–2026.
+- **80% band coverage:** 0.78 to 0.84 for every pair and horizon (target 75 to 85%), and about
+  0.80 over 2010 to 2026.
 - **Runtime:** the forecast takes about 2 s and the backtest about 50 s, well inside the
   18:00 CET deadline.
 
@@ -160,6 +164,13 @@ requirement, for example `test_fr03_ingest_is_idempotent`.
   within 3 points over the full history.
 - GitHub cron can start late at busy times, so four daily attempts are scheduled.
 - Vercel Hobby is for personal, non-commercial use.
+- Provider rates are read from public pages without a login, at low frequency and with an
+  honest user agent. rate.am and Paysend embed them in page data that can change on any
+  redeploy. A source that fails is skipped and retried next run; after a day without
+  rates it alerts on every failed run, and the card shows its last rates as stale. Every rate more than 5% from the CBA rate is dropped as a data error.
+- Each ingest checks the rates for pairs that contradict each other. On 26 May 2026 the
+  CBA feed showed USD/AMD's 367.74 for EUR/AMD and RUB/AMD too; those rows are removed
+  (`fxf.ingest.quality`).
 
 ## Data sources
 
@@ -167,4 +178,6 @@ European Central Bank (reference rates, key rates, €STR, HICP via the ECB Data
 Central Bank of Armenia (AMD rates, policy rates, Board decisions) · FRED, Federal Reserve
 Bank of St. Louis (Fed target range, yields, dollar index, Brent) · Federal Reserve press
 releases · Federal Reserve Bank of Atlanta Market Probability Tracker · Frankfurter (open
-API for the ECB and CBA daily rates).
+API for the ECB and CBA daily rates). Where to convert: rate.am (Armenian bank rates),
+Inecobank, Wise (public quote API), Paysend (public corridor pages for euros from Germany
+and dollars from the US). Indicative only.

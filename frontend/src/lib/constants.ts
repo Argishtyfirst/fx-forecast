@@ -53,7 +53,7 @@ export const PAIRS: Record<PairId, PairMeta> = {
     diffLabel: "CBA minus ECB",
   },
 };
-export const PAIR_IDS: PairId[] = ["EURUSD", "USDAMD", "EURAMD"];
+export const PAIR_IDS: PairId[] = ["EURAMD", "EURUSD", "USDAMD"];
 
 export function isPairId(v: string | undefined): v is PairId {
   return v !== undefined && (PAIR_IDS as string[]).includes(v);

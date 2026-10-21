@@ -9,7 +9,7 @@ export interface Route {
   detail?: string;
 }
 
-export const DEFAULT_ROUTE: Route = { view: "pair", pair: "EURUSD" };
+export const DEFAULT_ROUTE: Route = { view: "pair", pair: "EURAMD" };
 
 export function parseHash(hash: string): Route {
   const [view, pair, detail] = hash.replace(/^#\/?/, "").split("/").filter(Boolean);

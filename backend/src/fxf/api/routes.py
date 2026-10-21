@@ -36,6 +36,7 @@ from fxf.api.schemas import (
     PairOut,
     PairsResponse,
     PathPoint,
+    QuotesResponse,
     RatePoint,
     RatesResponse,
     StatementDiff,
@@ -397,6 +398,21 @@ def meeting_study(
             for r in reversed(reactions)
         ],
     )
+
+
+@router.get("/quotes/{pair}", response_model=QuotesResponse)
+def provider_quotes(
+    pair: PairDep,
+    session: SessionDep,
+    now: NowDep,
+    amount: Annotated[float, Query(gt=0, le=10_000_000)] = 1000,
+) -> QuotesResponse:
+    """Where to convert today: bank and transfer service rates for an amount of the base."""
+    from fxf.quotes.service import QUOTE_PAIRS, build_quotes
+
+    if pair.id not in QUOTE_PAIRS:
+        raise HTTPException(status_code=404, detail="provider quotes exist for dram pairs only")
+    return build_quotes(session, pair.id, amount, now)
 
 
 @router.get("/health", response_model=HealthResponse)

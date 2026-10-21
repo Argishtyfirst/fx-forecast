@@ -91,6 +91,7 @@
           406.929
         ],
         "lean": "sell_now",
+        "strength": "clear",
         "confidence": "low",
         "reasoning": "The dram firmed over the last week and nothing is scheduled before tomorrow's fixing, so the AI expects a little more of the same, which argues for converting now.",
         "track_record": {
@@ -101,6 +102,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.53,
+          "lean": "wait",
+          "strength": "slight",
+          "confidence": "low"
         }
       },
       "meeting_risks": []
@@ -195,7 +205,8 @@
           400.046,
           410.564
         ],
-        "lean": "no_edge",
+        "lean": "wait",
+        "strength": "slight",
         "confidence": "low",
         "reasoning": "The Fed and ECB meetings on 28 and 29 Oct add risk both ways. The AI sees no clear lean over one week.",
         "track_record": {
@@ -206,6 +217,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.46,
+          "lean": "sell_now",
+          "strength": "slight",
+          "confidence": "low"
         }
       },
       "meeting_risks": [
@@ -317,6 +337,7 @@
           417.507
         ],
         "lean": "wait",
+        "strength": "clear",
         "confidence": "medium",
         "reasoning": "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better EUR/AMD rate is more likely than not. The dram has been resilient, so the edge is small.",
         "track_record": {
@@ -327,6 +348,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.57,
+          "lean": "wait",
+          "strength": "clear",
+          "confidence": "medium"
         }
       },
       "meeting_risks": [

@@ -87,6 +87,7 @@
           1.12625
         ],
         "lean": "no_edge",
+        "strength": "none",
         "confidence": "low",
         "reasoning": "One trading day is mostly noise, and no Fed or ECB decision lands before the target date. Close to even odds.",
         "track_record": {
@@ -97,6 +98,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.51,
+          "lean": "no_edge",
+          "strength": "none",
+          "confidence": "low"
         }
       },
       "meeting_risks": []
@@ -188,6 +198,7 @@
           1.13297
         ],
         "lean": "sell_now",
+        "strength": "clear",
         "confidence": "low",
         "reasoning": "The Fed decides on 28 Oct, the 1W target date. A cut is largely priced in, so the bigger risk is a less dovish message that supports the dollar, which argues against waiting.",
         "track_record": {
@@ -198,6 +209,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.47,
+          "lean": "sell_now",
+          "strength": "slight",
+          "confidence": "low"
         }
       },
       "meeting_risks": [
@@ -305,6 +325,7 @@
           1.15115
         ],
         "lean": "wait",
+        "strength": "clear",
         "confidence": "low",
         "reasoning": "The ECB holds at 2% while the Fed eases, which narrows the rate gap in the euro's favour over a month. The euro already sits near the top of its 90-day range, which limits the upside.",
         "track_record": {
@@ -315,6 +336,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.56,
+          "lean": "wait",
+          "strength": "clear",
+          "confidence": "low"
         }
       },
       "meeting_risks": [

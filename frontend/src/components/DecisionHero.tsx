@@ -8,7 +8,7 @@ import type {
   SignalAction,
 } from "../api/types";
 import { BANK_LABELS, MODEL_LABELS, type PairMeta } from "../lib/constants";
-import { fmtDateTime, fmtInt, fmtNum, fmtPct, fmtRate, fmtShortDate } from "../lib/format";
+import { addDays, fmtDateTime, fmtDayShort, fmtInt, fmtNum, fmtPct, fmtRate, fmtShortDate } from "../lib/format";
 import { verdictText } from "../lib/verdict";
 import { Disclaimer } from "./Disclaimer";
 import { SellNowIcon, SwingIcon, UnclearIcon, WaitIcon } from "./Icons";
@@ -45,6 +45,31 @@ export function verdictSentence(ai: AiView | null, h: HorizonForecast): string {
   return p >= 0.5
     ? `Close to even: ${pct0(p)} chance the rate is higher ${by}.`
     : `Close to even: ${pct0(1 - p)} chance the rate is lower ${by}.`;
+}
+
+/** The favoured side of a call, e.g. "Wait, 58%" or "Sell now, 54%". */
+function callWords(lean: SignalAction, strength: AiView["strength"], p: number): string {
+  const side = lean === "sell_now" ? 1 - p : lean === "wait" ? p : Math.max(p, 1 - p);
+  return `${verdictText(lean, strength)}, ${pct0(side)}`;
+}
+
+/** "Same call as yesterday (Wait, 58%)." or "Changed since yesterday: was Sell now, 54%." */
+export function previousLine(ai: AiView): string | null {
+  const prev = ai.previous;
+  if (!prev) return null;
+  const same = prev.lean === ai.lean && (prev.strength ?? "clear") === (ai.strength ?? "clear");
+  const call = callWords(prev.lean, prev.strength, prev.prob_better_if_wait);
+  // "Yesterday" only when the previous call is the calendar day before this call; weekends and
+  // holidays name the day instead.
+  const yesterday = ai.run_date !== undefined && prev.run_date === addDays(ai.run_date, -1);
+  const when = yesterday ? "yesterday" : fmtDayShort(prev.run_date);
+  if (same) return yesterday ? `Same call as yesterday (${call}).` : `Same call as on ${when} (${call}).`;
+  return `Changed since ${when}: was ${call}.`;
+}
+
+/** "AI call from Fri 17 Oct" when the call predates the forecast (a weekend carry-over). */
+function carriedOver(ai: AiView, asOf: string): string | null {
+  return ai.run_date && ai.run_date < asOf ? `AI call from ${fmtDayShort(ai.run_date)}` : null;
 }
 
 export function aiTag(ai: AiView): string {
@@ -143,6 +168,11 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
       <p className="verdict-sentence" data-testid="verdict-sentence">
         {verdictSentence(ai, h)}
       </p>
+      {ai?.previous && (
+        <p className="verdict-previous" data-testid="verdict-previous">
+          {previousLine(ai)}
+        </p>
+      )}
       {ai && <p className="verdict-reasoning">{ai.reasoning}</p>}
 
       {ai && (
@@ -154,7 +184,9 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
             data-testid="ai-tag"
             aria-expanded={evidenceOpen}
             aria-controls={evidenceId}
-            title={`${ai.model}, generated ${fmtDateTime(ai.generated_at)}`}
+            title={`${ai.model}, generated ${fmtDateTime(ai.generated_at)}, updated once a day${
+              carriedOver(ai, forecast.as_of) ? `. ${carriedOver(ai, forecast.as_of)}` : ""
+            }`}
             onClick={() => setEvidenceOpen((o) => !o)}
           >
             {aiTag(ai)}
@@ -173,7 +205,12 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
           <div>
             <dt>Generated</dt>
             <dd>
-              <time dateTime={ai.generated_at}>{fmtDateTime(ai.generated_at)}</time>
+              <time dateTime={ai.generated_at}>{fmtDateTime(ai.generated_at)}</time>, updated once a day
+              {carriedOver(ai, forecast.as_of) && `. ${carriedOver(ai, forecast.as_of)}`}
+              {(ai.revisions ?? 0) > 0 &&
+                `. Revised ${ai.revisions} time${ai.revisions === 1 ? "" : "s"}${
+                  ai.run_date ? ` on ${fmtShortDate(ai.run_date)}` : ""
+                } as new data arrived`}
             </dd>
           </div>
           <div>

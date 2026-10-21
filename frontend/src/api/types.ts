@@ -164,6 +164,61 @@ export interface AiView {
   confidence: AiConfidence;
   reasoning: string;
   track_record: AiTrackRecord;
+  /** The day of the AI call; on a weekend it is Friday's call, carried over. */
+  run_date?: IsoDate;
+  /** One call a day: earlier answers of run_date that new inputs replaced (0 almost always). */
+  revisions?: number;
+  /** The AI's call on the previous run day, for "yesterday vs today". */
+  previous?: AiPrevious | null;
+}
+
+export interface AiPrevious {
+  run_date: IsoDate;
+  prob_better_if_wait: number;
+  lean: SignalAction;
+  strength: AiStrength;
+  confidence: AiConfidence;
+}
+
+// --- /api/quotes/{pair}?amount= (provider rates, AMD pairs only) --------------------------------
+
+export type QuoteChannel = "cash" | "non_cash" | "card" | "online" | "transfer";
+
+export interface ProviderQuote {
+  provider: string; // "ameriabank", "wise", "paysend"
+  name: string; // "Ameriabank"
+  kind: "bank" | "app" | "transfer";
+  channel: QuoteChannel; // "online": the bank's app rate
+  rate: number; // quote currency per 1 base when you sell the base (e.g. AMD per EUR)
+  fee: number; // estimated fee for this amount, in the quote currency (0 if none known)
+  net: number; // quote currency received for `amount` after the fee
+  vs_reference_pct: number | null; // net vs amount x the CBA rate, in percent
+  fetched_at: IsoDateTime;
+  quoted_at?: IsoDateTime | null;
+  stale: boolean; // older than about 26h
+  url: string | null;
+  note: string | null;
+  /** Estimated arrival for transfers: an ISO date (Wise) or free text (Paysend). */
+  delivery?: string | null;
+}
+
+/** A provider that publishes no rate we may read, shown as a quiet line. */
+export interface UnavailableProvider {
+  provider: string;
+  name: string;
+  reason: string;
+  url: string | null;
+}
+
+export interface QuotesResponse {
+  pair: string;
+  amount: number;
+  reference: { source: string; rate: number; date: IsoDate } | null; // CBA official rate
+  as_of: IsoDateTime | null; // newest fetched_at
+  quotes: ProviderQuote[]; // best first; stale quotes last
+  unavailable?: UnavailableProvider[];
+  indicative: boolean;
+  disclaimer: string;
 }
 
 export interface HorizonForecast {

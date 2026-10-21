@@ -139,9 +139,20 @@ class AiTrackRecord(BaseModel):
     promoted: bool  # meets the promotion rule, so it decides the verdict
 
 
+class AiPrevious(BaseModel):
+    """The AI's call on the previous run day, for "yesterday vs today"."""
+
+    run_date: dt.date
+    prob_better_if_wait: float
+    lean: Literal["sell_now", "wait", "no_edge"]
+    strength: Literal["clear", "slight", "none"]
+    confidence: Literal["low", "medium", "high"]
+
+
 class AiView(BaseModel):
     """Experimental: an LLM's read of the same context the dashboard shows (fxf.ai)."""
 
+    run_date: dt.date  # the day of the call; on a weekend, Friday's (fxf.api.forecasts)
     provider: str  # "gemini"
     model: str  # e.g. "gemini-3.5-flash-lite"
     prompt_version: str
@@ -157,6 +168,10 @@ class AiView(BaseModel):
     confidence: Literal["low", "medium", "high"]
     reasoning: str
     track_record: AiTrackRecord
+    # One call a day: a rerun with the same inputs keeps this answer. revisions counts the
+    # earlier answers of run_date that new inputs replaced (0 almost always).
+    revisions: int = 0
+    previous: AiPrevious | None = None
 
 
 class HorizonForecast(BaseModel):
@@ -405,3 +420,46 @@ class HealthResponse(BaseModel):
     checked_at: dt.datetime
     sources: list[SourceStatus]
     jobs: list[JobStatus]
+
+
+class ProviderQuoteOut(BaseModel):
+    """One place to convert, priced for the requested amount (fxf.quotes.service)."""
+
+    provider: str
+    name: str
+    kind: Literal["bank", "app", "transfer"]
+    channel: Literal["cash", "non_cash", "card", "online", "transfer"]
+    rate: float  # quote currency per 1 base when you sell the base
+    fee: float  # estimated fee for this amount, in the quote currency
+    net: float  # quote currency received for the amount, after the fee
+    vs_reference_pct: float | None  # net vs amount x the CBA rate, in percent
+    fetched_at: dt.datetime
+    quoted_at: dt.datetime | None
+    stale: bool
+    url: str | None
+    note: str | None
+    delivery: str | None = None  # estimated arrival, for transfers
+
+
+class QuoteReference(BaseModel):
+    source: str
+    rate: float
+    date: dt.date
+
+
+class UnavailableProvider(BaseModel):
+    provider: str
+    name: str
+    reason: str
+    url: str | None
+
+
+class QuotesResponse(BaseModel):
+    pair: str
+    amount: float
+    reference: QuoteReference | None
+    as_of: dt.datetime | None
+    quotes: list[ProviderQuoteOut]  # best first; stale quotes last
+    unavailable: list[UnavailableProvider]
+    indicative: bool
+    disclaimer: str

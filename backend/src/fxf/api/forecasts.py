@@ -19,6 +19,7 @@ from fxf.api import convert
 from fxf.api.health import stale_sources_for_pair
 from fxf.api.meeting_risk import meeting_risks
 from fxf.api.schemas import (
+    AiPrevious,
     AiView,
     Drivers,
     ForecastRow,
@@ -32,6 +33,7 @@ from fxf.data_access import load_rates
 from fxf.models import Forecast, Rate
 
 MAX_RUN_DATES = 60
+AI_CARRY_DAYS = 4
 
 
 def latest_served_run_date(session: Session, pair: str) -> dt.date | None:
@@ -85,22 +87,72 @@ def _bands(row: Forecast) -> dict[str, tuple[float, float]]:
     }
 
 
+def _previous_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, AiPrevious]:
+    """The AI's answers on the last run day before this one."""
+    day = session.scalar(
+        select(func.max(Forecast.run_date)).where(
+            Forecast.pair == pair.id, Forecast.model == MODEL_LLM, Forecast.run_date < run_date
+        )
+    )
+    if day is None:
+        return {}
+    out: dict[int, AiPrevious] = {}
+    for row in session.scalars(
+        select(Forecast).where(
+            Forecast.pair == pair.id, Forecast.run_date == day, Forecast.model == MODEL_LLM
+        )
+    ):
+        llm = (row.features_json or {}).get("llm") or {}
+        try:
+            lean, strength = ai_lean(float(llm["prob_higher"]))
+            out[row.horizon_days] = AiPrevious(
+                run_date=day,
+                prob_better_if_wait=llm["prob_higher"],
+                lean=lean,
+                strength=strength,
+                confidence=llm["confidence"],
+            )
+        except (KeyError, ValueError):
+            continue
+    return out
+
+
+def ai_run_date(session: Session, pair: PairSpec, run_date: dt.date) -> dt.date | None:
+    """The day of the AI view to show with a run: the run's own day, else the latest earlier
+    one within AI_CARRY_DAYS. The Saturday weekly job writes a served forecast of its own
+    while the AI view runs on working days only, so the weekend shows Friday's call."""
+    return session.scalar(
+        select(func.max(Forecast.run_date)).where(
+            Forecast.pair == pair.id,
+            Forecast.model == MODEL_LLM,
+            Forecast.run_date <= run_date,
+            Forecast.run_date >= run_date - dt.timedelta(days=AI_CARRY_DAYS),
+        )
+    )
+
+
 def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, AiView]:
     """The AI view of the run (model "llm"), with its live track record, by horizon."""
+    ai_day = ai_run_date(session, pair, run_date)
+    if ai_day is None:
+        return {}
     rows = session.scalars(
         select(Forecast).where(
-            Forecast.pair == pair.id, Forecast.run_date == run_date, Forecast.model == MODEL_LLM
+            Forecast.pair == pair.id, Forecast.run_date == ai_day, Forecast.model == MODEL_LLM
         )
     ).all()
     if not rows:
         return {}
     rates = load_rates(session, pair.id)
+    previous = _previous_views(session, pair, ai_day)
     out: dict[int, AiView] = {}
     for row in rows:
         llm = (row.features_json or {}).get("llm") or {}
         try:
             lean, strength = ai_lean(float(llm["prob_higher"]))
+            digest = llm.get("context_sha256")
             out[row.horizon_days] = AiView(
+                run_date=ai_day,
                 provider=llm["provider"],
                 model=llm["model"],
                 prompt_version=llm["prompt_version"],
@@ -116,6 +168,10 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
                 track_record=track_record(
                     session, pair.id, row.horizon_days, rates, row.model_version
                 ),
+                revisions=sum(
+                    1 for r in llm.get("revisions") or [] if r.get("context_sha256") != digest
+                ),
+                previous=previous.get(row.horizon_days),
             )
         except (KeyError, ValueError):
             continue  # a malformed row is skipped rather than breaking the response

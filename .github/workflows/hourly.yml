@@ -40,6 +40,10 @@ jobs:
         if: env.DATABASE_URL != ''
       - run: uv run fxf hourly
         if: env.DATABASE_URL != ''
+      # Bank, Wise and Paysend rates for "where to convert" (fxf.quotes). Runs even when the
+      # bank poll fails; each source keeps its own schedule inside the job.
+      - run: uv run fxf init-db && uv run fxf quotes
+        if: always() && env.DATABASE_URL != ''
       - uses: actions/upload-artifact@v4
         if: always() && env.DATABASE_URL != ''
         with:

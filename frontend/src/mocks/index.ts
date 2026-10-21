@@ -27,6 +27,7 @@ import health from "./health.json" with { type: "json" };
 import meetingsEURAMD from "./meetings.EURAMD.json" with { type: "json" };
 import meetingsEURUSD from "./meetings.EURUSD.json" with { type: "json" };
 import meetingsUSDAMD from "./meetings.USDAMD.json" with { type: "json" };
+import { mockQuotes } from "./quotes";
 import pairs from "./pairs.json" with { type: "json" };
 import ratesEURAMD from "./rates.EURAMD.json" with { type: "json" };
 import ratesEURUSD from "./rates.EURUSD.json" with { type: "json" };
@@ -118,6 +119,12 @@ export function mockApi(url: string): MockResult {
           ai_track: pick(data.ai_track),
         },
       };
+    }
+    case "quotes": {
+      const latest = fixtures.latest[pair ?? ""];
+      if (!latest || !pair?.endsWith("AMD")) return notFound("No provider quotes for this pair");
+      const amount = Number(q.get("amount") ?? 1000) || 1000;
+      return { status: 200, body: mockQuotes(pair, amount, latest.spot, latest.spot_date) };
     }
     case "meetings": {
       const data = fixtures.meetings[pair ?? ""];

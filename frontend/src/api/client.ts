@@ -6,6 +6,7 @@ import type {
   LatestForecastResponse,
   MeetingStudyResponse,
   PairsResponse,
+  QuotesResponse,
   RatesResponse,
 } from "./types";
 
@@ -126,6 +127,10 @@ export const api = {
 
   backtests: (pair: string, horizon?: number) =>
     getOrNull<BacktestResponse>(buildUrl(`/api/backtests/${pair}`, { horizon })),
+
+  /** Provider rates for converting `amount` of the base; null (404) means none for this pair. */
+  quotes: (pair: string, amount: number) =>
+    getOrNull<QuotesResponse>(buildUrl(`/api/quotes/${pair}`, { amount })),
 
   meetings: (pair: string, lookbackDays = 365) =>
     getOrNull<MeetingStudyResponse>(buildUrl(`/api/meetings/${pair}`, { lookback_days: lookbackDays })),

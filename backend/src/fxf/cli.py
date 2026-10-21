@@ -111,11 +111,12 @@ def backtest(
 @app.command()
 def ai(
     date: Annotated[str | None, typer.Option(help="Run date (YYYY-MM-DD), default latest")] = None,
+    force: Annotated[bool, typer.Option(help="Ask again even if the context is unchanged")] = False,
 ) -> None:
     """Experimental AI view (Gemini). Off unless GEMINI_API_KEY is set."""
     from fxf.ai.view import run_ai_view_job
 
-    raise typer.Exit(0 if run_ai_view_job(run_date=_date(date)) else 1)
+    raise typer.Exit(0 if run_ai_view_job(run_date=_date(date), force=force) else 1)
 
 
 @app.command("ai-analysis")
@@ -167,6 +168,20 @@ def daily(
         ai_ok = run_ai_view_job(run_date=now.date())
         typer.echo(f"  {'ok  ' if ai_ok else 'FAIL'} ai view")
     raise typer.Exit(0 if (rates_ok and forecast_ok) else 1)
+
+
+@app.command()
+def quotes(
+    force: Annotated[
+        bool, typer.Option(help="Read every source now, ignoring the schedule")
+    ] = False,
+) -> None:
+    """Bank and transfer service rates for "where to convert" (fxf.quotes)."""
+    from fxf.quotes.pipeline import run_quotes_job
+
+    raise typer.Exit(
+        0 if _report("quotes", {"provider_quotes": run_quotes_job(force=force)}) else 1
+    )
 
 
 @app.command()

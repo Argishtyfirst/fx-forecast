@@ -34,6 +34,7 @@ log = get_logger(__name__)
 PROVIDER: Final = "gemini"
 PROMPT_VERSION: Final = "ai-p4"
 PROB_BOUNDS: Final = (0.05, 0.95)
+MAX_REVISIONS: Final = 10
 
 # ai-p2: an independent read. ai-p1 showed the model the statistical verdict and told it to
 # stay near 0.5, and it simply echoed the random walk. ai-p3: thinking on (settings
@@ -121,6 +122,48 @@ def _served_rows(session: Session, pair: str, run_date: dt.date) -> list[Forecas
     )
 
 
+def _stored_views(session: Session, pair: str, run_date: dt.date) -> dict[int, Forecast]:
+    return {
+        r.horizon_days: r
+        for r in session.scalars(
+            select(Forecast).where(
+                Forecast.pair == pair, Forecast.run_date == run_date, Forecast.model == MODEL_LLM
+            )
+        )
+    }
+
+
+def _unchanged(
+    stored: dict[int, Forecast], served: list[Forecast], digest: str, model: str
+) -> bool:
+    """True when today's answer was made from exactly this context by this model and prompt."""
+    for r in served:
+        row = stored.get(r.horizon_days)
+        llm = ((row.features_json or {}).get("llm") or {}) if row is not None else {}
+        if row is None or row.model_version != model_version(model):
+            return False
+        if llm.get("context_sha256") != digest:
+            return False
+    return True
+
+
+def _revisions(prior: Forecast | None) -> list[dict[str, Any]]:
+    """The answers this one replaces on the same day, oldest first, so a changed call is
+    visible. The API counts only those made from other inputs (a --force rerun or a model
+    change on the same inputs is kept here but is not a revision for new data)."""
+    if prior is None:
+        return []
+    llm = (prior.features_json or {}).get("llm") or {}
+    earlier = list(llm.get("revisions") or [])
+    earlier.append(
+        {
+            k: llm.get(k)
+            for k in ("generated_at", "model", "prob_higher", "confidence", "context_sha256")
+        }
+    )
+    return earlier[-MAX_REVISIONS:]
+
+
 def _consistent(h: HorizonAnswer, row: Forecast) -> tuple[float, float, bool]:
     """Clamp the probability, force the expected change to agree with it in sign, and keep
     the implied center inside the served 80% band. Returns (prob, change_pct, adjusted)."""
@@ -186,7 +229,12 @@ def ai_view_for_pair(
     model: str,
     thinking: str | None = None,
     fallback_model: str | None = None,
+    force: bool = False,
 ) -> list[dict[str, Any]]:
+    """One call per pair and day. A rerun with the same context keeps the stored answer (no
+    call), so the verdict cannot flip within a day just because the model is sampled again.
+    When the context did change (a late rate, a new statement), the new answer replaces the
+    old one and the old one is kept under llm.revisions."""
     served = _served_rows(session, pair.id, run_date)
     if not served:
         raise RuntimeError(
@@ -195,6 +243,10 @@ def ai_view_for_pair(
     ctx = build_context(session, pair, run_date, served)
     text = json.dumps(ctx, default=str, separators=(",", ":"))
     digest = hashlib.sha256(text.encode()).hexdigest()
+    stored = _stored_views(session, pair.id, run_date)
+    if not force and _unchanged(stored, served, digest, {model, fallback_model or ""}):
+        log.info("ai view unchanged, kept", extra={"pair": pair.id, "run_date": str(run_date)})
+        return []
     # End the read transaction before the slow model call (a minute or more with high thinking):
     # an open connection left idle that long is dropped by the database, and the later write
     # then fails. The loaded rows stay readable (expire_on_commit=False).
@@ -220,6 +272,9 @@ def ai_view_for_pair(
         llm["thinking"] = thinking or "default"
         if used != model:
             llm["fallback_from"] = model
+        revisions = _revisions(stored.get(row["horizon_days"]))
+        if revisions:
+            llm["revisions"] = revisions
     return rows
 
 
@@ -231,6 +286,7 @@ def run_ai_view(
     model: str,
     thinking: str | None = None,
     fallback_model: str | None = None,
+    force: bool = False,
 ) -> int:
     """Write the AI view for every pair. Tries every pair, then raises if any failed."""
     rows: list[dict[str, Any]] = []
@@ -246,6 +302,7 @@ def run_ai_view(
                     model=model,
                     thinking=thinking,
                     fallback_model=fallback_model,
+                    force=force,
                 )
             )
         except Exception as exc:  # one pair failing must not lose the others
@@ -267,7 +324,9 @@ def latest_served_run_date(session: Session) -> dt.date | None:
     return session.scalar(select(func.max(Forecast.run_date)).where(Forecast.served.is_(True)))
 
 
-def run_ai_view_job(engine: Engine | None = None, *, run_date: dt.date | None = None) -> bool:
+def run_ai_view_job(
+    engine: Engine | None = None, *, run_date: dt.date | None = None, force: bool = False
+) -> bool:
     """Job `ai_view`. Without GEMINI_API_KEY the AI view is off: nothing runs or is recorded."""
     s = get_settings()
     if not s.gemini_api_key:
@@ -288,6 +347,7 @@ def run_ai_view_job(engine: Engine | None = None, *, run_date: dt.date | None = 
                     model=s.fxf_ai_model,
                     thinking=s.fxf_ai_thinking or None,
                     fallback_model=s.fxf_ai_fallback_model or None,
+                    force=force,
                 )
         return True
     except Exception:

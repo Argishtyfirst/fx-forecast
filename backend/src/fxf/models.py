@@ -249,3 +249,41 @@ class AiAnalysis(Base):
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow, server_default=func.now()
     )
+
+
+class ProviderQuote(Base):
+    """Indicative retail rates from Armenian banks and money apps (fxf.quotes), for "the best
+    place to convert today". A ninth table beside the spec's seven; kept 30 days.
+
+    buy is what the provider pays you per 1 base unit when you sell the base (AMD per EUR when
+    you sell euros); sell is what you pay per 1 base unit when you buy it. Fees, where the
+    provider has a published formula, are fee_fixed (in the base currency) plus fee_pct of
+    the amount, taken before conversion. Banks quote a spread and no fee.
+    """
+
+    __tablename__ = "provider_quotes"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider", "pair", "channel", "fetched_at", name="uq_provider_quotes_p_pair_ch_at"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fetched_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # bank | app | transfer
+    pair: Mapped[str] = mapped_column(String(12), nullable=False)
+    channel: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # cash | non_cash | card | transfer
+    buy: Mapped[Decimal | None] = mapped_column(NUM, nullable=True)
+    sell: Mapped[Decimal | None] = mapped_column(NUM, nullable=True)
+    fee_fixed: Mapped[Decimal | None] = mapped_column(NUM, nullable=True)
+    fee_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    quoted_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source: Mapped[str] = mapped_column(String(40), nullable=False)
+    url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    meta: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

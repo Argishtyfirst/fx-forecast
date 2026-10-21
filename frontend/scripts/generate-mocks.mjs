@@ -735,7 +735,15 @@ function probit(p) {
   const r = q * q;
   return ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
-const leanOf = (p) => (Math.abs(p - 0.5) < 0.05 - 1e-9 ? "no_edge" : p > 0.5 ? "wait" : "sell_now");
+// The lean needs at least 2 points; 2 to 5 points is a "slight" lean, 5 or more is "clear".
+const leanOf = (p) => (Math.abs(p - 0.5) < 0.02 - 1e-9 ? "no_edge" : p > 0.5 ? "wait" : "sell_now");
+const strengthOf = (p) => (Math.abs(p - 0.5) >= 0.05 - 1e-9 ? "clear" : Math.abs(p - 0.5) >= 0.02 - 1e-9 ? "slight" : "none");
+// Yesterday's call per pair and horizon: [prob_better_if_wait, confidence]; same day before the spot.
+const PREVIOUS_AI = {
+  EURUSD: { 1: [0.51, "low"], 5: [0.47, "low"], 21: [0.56, "low"] },
+  USDAMD: { 1: [0.5, "low"], 5: [0.45, "low"], 21: [0.55, "medium"] },
+  EURAMD: { 1: [0.53, "low"], 5: [0.46, "low"], 21: [0.57, "medium"] },
+};
 
 function attachSignals(latest, bt) {
   const meta = PAIR_RATES[latest.pair];
@@ -791,6 +799,7 @@ function attachSignals(latest, bt) {
       center: aiCenter,
       band80: [round(lo * shift, dp + 1), round(hi * shift, dp + 1)],
       lean: leanOf(p),
+      strength: strengthOf(p),
       confidence,
       reasoning,
       track_record: {
@@ -802,6 +811,14 @@ function attachSignals(latest, bt) {
         brier: null,
         promoted: false,
       },
+      run_date: SPOT_DATE,
+      revisions: 0,
+      previous: (() => {
+        const [pp, pc] = PREVIOUS_AI[latest.pair][h.days];
+        // USD/AMD's previous call is last Friday (no call on Monday or Tuesday in this mock).
+        const prevDate = latest.pair === "USDAMD" ? "2026-10-16" : "2026-10-20";
+        return { run_date: prevDate, prob_better_if_wait: pp, lean: leanOf(pp), strength: strengthOf(pp), confidence: pc };
+      })(),
     };
   }
   return latest;

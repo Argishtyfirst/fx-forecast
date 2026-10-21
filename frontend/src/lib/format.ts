@@ -155,3 +155,63 @@ export function fmtDaysUntil(n: number | null | undefined): string {
 export function titleCase(s: string): string {
   return s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
+
+const THIN = " "; // narrow no-break space for digit grouping
+
+/** Money with thin digit grouping: AMD without decimals ("425 300 AMD"), others with 2. */
+export function fmtMoney(value: number | null | undefined, currency: string): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return NA;
+  const digits = currency === "AMD" ? 0 : 2;
+  const fixed = Math.abs(value).toFixed(digits);
+  const [int, dec] = fixed.split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, THIN);
+  return `${value < 0 ? "−" : ""}${grouped}${dec ? `.${dec}` : ""} ${currency}`;
+}
+
+/** The largest amount the API accepts. */
+export const MAX_AMOUNT = 10_000_000;
+
+/**
+ * Parse a typed amount. Accepts digits, spaces (also thin and no-break) and separators:
+ * "1 000", "1,000" and "1.000" are 1000; "1,000.50" and "1.000,50" are 1000.5; a leading 0
+ * group is never a thousands group ("0.250" is 0.25). Anything else, such as "1e3", "0x10",
+ * mixed or misplaced separators, returns null.
+ */
+export function parseAmount(text: string): number | null {
+  const t = text.replace(/[\s\u00a0\u202f]/g, "");
+  if (!t || !/^[\d.,]+$/.test(t)) return null;
+  const commas = (t.match(/,/g) ?? []).length;
+  const dots = (t.match(/\./g) ?? []).length;
+  const grouped = (s: string, sep: string) =>
+    new RegExp(`^[1-9]\\d{0,2}(\\${sep}\\d{3})+$`).test(s) ? s.split(sep).join("") : null;
+  let normal: string | null;
+  if (commas === 0 && dots === 0) normal = t;
+  else if (commas > 0 && dots > 0) {
+    // Both kinds: the last one is the decimal separator, the other must group thousands.
+    const dec = t.lastIndexOf(",") > t.lastIndexOf(".") ? "," : ".";
+    const group = dec === "," ? "." : ",";
+    const [intPart, frac, extra] = t.split(dec);
+    if (extra !== undefined || !frac || !/^\d+$/.test(frac)) return null;
+    const int = grouped(intPart, group);
+    normal = int === null ? null : `${int}.${frac}`;
+  } else {
+    const sep = commas > 0 ? "," : ".";
+    const count = commas + dots;
+    if (count > 1) normal = grouped(t, sep);
+    else {
+      const [intPart, frac] = t.split(sep);
+      if (!intPart || !frac) return null;
+      // One separator followed by exactly 3 digits after a 1 to 3 digit group not starting with 0
+      // reads as thousands ("1,000"); otherwise it is the decimal separator ("0.250", "12,5").
+      normal = /^[1-9]\d{0,2}$/.test(intPart) && /^\d{3}$/.test(frac) ? `${intPart}${frac}` : `${intPart}.${frac}`;
+    }
+  }
+  if (normal === null || !/^\d+(\.\d+)?$/.test(normal)) return null;
+  const n = Number(normal);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** "Fri 17 Oct" */
+export function fmtDayShort(iso: string): string {
+  return fmtWeekdayDate(iso).replace(",", "").replace(/ \d{4}$/, "");
+}

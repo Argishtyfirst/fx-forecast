@@ -1,6 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { api } from "../api/client";
-import type { HorizonForecast, PairId } from "../api/types";
+import type { HorizonForecast, PairId, QuotesResponse } from "../api/types";
+import { ConvertCalculator } from "../components/ConvertCalculator";
+import { ProviderQuotes, rankQuotes } from "../components/ProviderQuotes";
 import { DataStatus } from "../components/DataStatus";
 import { DecisionHero, NEED } from "../components/DecisionHero";
 import { Disclaimer } from "../components/Disclaimer";
@@ -10,6 +12,7 @@ import { BANK_LABELS, MODEL_LABELS, PAIR_SOURCES, PAIRS } from "../lib/constants
 import { historyWindow } from "../lib/fan";
 import { addDays, fmtDate, fmtRange, fmtRate, fmtShortDate, isoDate } from "../lib/format";
 import { useApi } from "../lib/useApi";
+import { useAmount, useDebounced, useQuoteGroup } from "../lib/useAmount";
 
 const HORIZON_KEY = "fxf-horizon";
 const HORIZON_LABELS = ["1D", "1W", "1M"];
@@ -51,6 +54,21 @@ export function PairView({ pair }: { pair: PairId }) {
   const horizons = forecast ? [...forecast.horizons].sort((a, b) => a.days - b.days) : [];
   const lastRate = history[history.length - 1];
 
+  // The amount to convert, shared by the calculator and the provider rates (AMD pairs only).
+  const [amount, setAmount] = useAmount(meta.base);
+  const debounced = useDebounced(amount, 400);
+  const hasQuotes = meta.quote === "AMD";
+  const quotes = useApi(hasQuotes ? `quotes:${pair}:${debounced}` : null, () => api.quotes(pair, debounced));
+  // Keep the last rates on screen while a new amount loads, so the card does not flash.
+  const lastQuotes = useRef<{ pair: string; data: QuotesResponse | null } | null>(null);
+  if (quotes.data !== undefined) lastQuotes.current = { pair, data: quotes.data };
+  const quotesData = quotes.data ?? (lastQuotes.current?.pair === pair ? lastQuotes.current.data : undefined);
+  const [group, setGroup] = useQuoteGroup();
+  // The best fresh quote in the chosen group; if every one is stale, the row is hidden.
+  const best =
+    quotesData && quotesData.amount === amount ? (rankQuotes(quotesData.quotes, group).find((q) => !q.stale) ?? null) : null;
+  const selectedHorizon = horizons.find((h) => h.label === selected) ?? horizons[horizons.length - 1];
+
   return (
     <div className="view">
       <DataStatus relevant={PAIR_SOURCES[pair]} extraStale={forecast?.stale_sources} />
@@ -62,7 +80,31 @@ export function PairView({ pair }: { pair: PairId }) {
       ) : (
         <div className="decision-grid">
           {forecast ? (
-            <DecisionHero pair={meta} forecast={forecast} selected={selected} onSelect={setSelected} />
+            <div className="decision-col">
+              <DecisionHero pair={meta} forecast={forecast} selected={selected} onSelect={setSelected} />
+              {selectedHorizon && (
+                <ConvertCalculator
+                  pair={meta}
+                  horizon={selectedHorizon}
+                  spot={forecast.spot}
+                  amount={amount}
+                  onAmount={setAmount}
+                  best={best}
+                />
+              )}
+              {/* A 404 (null) means no provider rates for this pair: the card stays hidden. */}
+              {hasQuotes && quotesData !== null && (quotesData !== undefined || quotes.loading || quotes.error) && (
+                <ProviderQuotes
+                  data={quotesData ?? undefined}
+                  loading={quotes.loading}
+                  error={quotes.error}
+                  amount={debounced}
+                  base={meta.base}
+                  group={group}
+                  onGroup={setGroup}
+                />
+              )}
+            </div>
           ) : (
             <section className="card hero" data-testid="decision-hero" data-lean="none">
               <h1 className="hero-question">

@@ -87,6 +87,7 @@
           362.469
         ],
         "lean": "no_edge",
+        "strength": "none",
         "confidence": "low",
         "reasoning": "One day is mostly noise for a managed rate; the CBA fixing has moved less than 0.3% on most recent days.",
         "track_record": {
@@ -97,6 +98,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.5,
+          "lean": "no_edge",
+          "strength": "none",
+          "confidence": "low"
         }
       },
       "meeting_risks": []
@@ -188,6 +198,7 @@
           363.678
         ],
         "lean": "sell_now",
+        "strength": "clear",
         "confidence": "low",
         "reasoning": "The Fed meets on 28 Oct with a further cut expected, which tends to weigh on the dollar against the dram in the days around the decision.",
         "track_record": {
@@ -198,6 +209,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.45,
+          "lean": "sell_now",
+          "strength": "clear",
+          "confidence": "low"
         }
       },
       "meeting_risks": [
@@ -301,6 +321,7 @@
           367.335
         ],
         "lean": "wait",
+        "strength": "clear",
         "confidence": "medium",
         "reasoning": "The CBA's easing bias and the narrower CBA-Fed rate gap point to a slightly weaker dram over a month, though the CBA has leaned against sharp moves before.",
         "track_record": {
@@ -311,6 +332,15 @@
           "dm_pvalue": null,
           "brier": null,
           "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.55,
+          "lean": "wait",
+          "strength": "clear",
+          "confidence": "medium"
         }
       },
       "meeting_risks": [
