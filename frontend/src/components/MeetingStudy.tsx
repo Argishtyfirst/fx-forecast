@@ -1,7 +1,7 @@
 import { curveMonotoneX } from "@visx/curve";
 import { scaleLinear } from "@visx/scale";
 import { LinePath } from "@visx/shape";
-import { useId, useMemo, useState } from "react";
+import { useId, useState } from "react";
 import type { BankReactionSummaryOut, MeetingReactionOut, MeetingStudyResponse, PathPoint } from "../api/types";
 import { BANK_LABELS, BANKS, DISCLAIMER } from "../lib/constants";
 import { fmtDate, fmtNum, fmtShortDate } from "../lib/format";
@@ -63,6 +63,31 @@ const READ_AT = [-5, 1, 5, 10];
 
 const pctAt = (m: MeetingReactionOut, k: number) => m.path?.find((p) => p.offset === k)?.pct ?? null;
 
+type DecisionFilter = "all" | "hike" | "hold" | "cut";
+type SurpriseFilter = "all" | "hawkish" | "expected" | "dovish";
+const DECISION_OPTS: [DecisionFilter, string][] = [["all", "All"], ["hike", "Hike"], ["hold", "Hold"], ["cut", "Cut"]];
+const SURPRISE_OPTS: [SurpriseFilter, string][] = [["all", "All"], ["hawkish", "Hawkish"], ["expected", "As expected"], ["dovish", "Dovish"]];
+const DECISION_WORD: Record<DecisionFilter, string> = { all: "", hike: "hikes", hold: "holds", cut: "cuts" };
+const SURPRISE_WORD: Record<SurpriseFilter, string> = { all: "", hawkish: "hawkish surprise", expected: "as expected", dovish: "dovish surprise" };
+
+function decisionOf(m: MeetingReactionOut): DecisionFilter | null {
+  if (m.rate_change_bps === null) return null;
+  return m.rate_change_bps > 0 ? "hike" : m.rate_change_bps < 0 ? "cut" : "hold";
+}
+function surpriseOf(m: MeetingReactionOut): SurpriseFilter {
+  const s = m.surprise_bps;
+  if (s !== null && s >= 1) return "hawkish";
+  if (s !== null && s <= -1) return "dovish";
+  return m.signal > 0 ? "hawkish" : m.signal < 0 ? "dovish" : "expected";
+}
+
+/** Mean of |pct| (or signed pct) per offset over a set of meetings. */
+function perOffset(ms: MeetingReactionOut[], signed: boolean): { offset: number; v: number }[] {
+  const by = new Map<number, number[]>();
+  for (const m of ms) for (const p of m.path ?? []) by.set(p.offset, [...(by.get(p.offset) ?? []), signed ? p.pct : Math.abs(p.pct)]);
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([offset, vs]) => ({ offset, v: vs.reduce((a, b) => a + b, 0) / vs.length }));
+}
+
 /**
  * Meeting reaction study as an event-study chart: every meeting's path from 10 trading days
  * before the decision to 10 after, measured against the last fix before the decision. The
@@ -74,16 +99,34 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
   const [picked, setPicked] = useState<string | null>(null);
   const highlight = focusBank && banks.includes(focusBank as (typeof banks)[number]) ? focusBank : (picked ?? banks[0]);
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [decision, setDecision] = useState<DecisionFilter>("all");
+  const [surprise, setSurprise] = useState<SurpriseFilter>("all");
+  const filtered = decision !== "all" || surprise !== "all";
+  const passes = (m: MeetingReactionOut) =>
+    (decision === "all" || decisionOf(m) === decision) && (surprise === "all" || surpriseOf(m) === surprise);
   const readoutId = useId();
   const days = study.path_days ?? 10;
 
-  const withPath = useMemo(() => study.meetings.filter((m) => (m.path?.length ?? 0) > 1), [study.meetings]);
+  const matching = study.meetings.filter(passes);
+  const withPath = matching.filter((m) => (m.path?.length ?? 0) > 1);
   const visible = withPath.filter((m) => !focusBank || m.bank === focusBank);
   const ordered = [...visible].sort((a, b) => (a.bank === highlight ? 1 : 0) - (b.bank === highlight ? 1 : 0) || a.date.localeCompare(b.date));
   const keyOf = (m: MeetingReactionOut) => `${m.bank}|${m.date}`;
   const active = withPath.find((m) => keyOf(m) === activeKey) ?? null;
   const hlMeetings = withPath.filter((m) => m.bank === highlight).sort((a, b) => b.date.localeCompare(a.date));
-  const envelope = study.banks.find((b) => b.bank === highlight)?.typical_path ?? [];
+  const hlFiltered = withPath.filter((m) => m.bank === highlight);
+  const envelope = filtered
+    ? perOffset(hlFiltered, false).map((p) => ({ offset: p.offset, mean_abs_pct: p.v, meetings: hlFiltered.length }))
+    : (study.banks.find((b) => b.bank === highlight)?.typical_path ?? []);
+  const average = filtered && hlFiltered.length > 0 ? perOffset(hlFiltered, true) : [];
+  const filterLabel = [DECISION_WORD[decision], SURPRISE_WORD[surprise]].filter(Boolean).join(", ");
+  const filteredSentence = (bank: string) => {
+    const ms = matching.filter((m) => m.bank === bank);
+    const name = BANK_LABELS[bank] ?? bank;
+    if (!ms.length) return `${name} (${filterLabel}): no meetings match these filters.`;
+    const mean = ms.reduce((a, m) => a + Math.abs(m.reaction_pct), 0) / ms.length;
+    return `${name} (${filterLabel}): ${ms.length} meeting${ms.length > 1 ? "s" : ""}, ${pairLabel} moved ${fmtNum(mean, 2)}% on average on the decision${ms.length <= 2 ? " (very small sample)" : ""}.`;
+  };
 
   const narrow = width < 480;
   const height = narrow ? 240 : 280;
@@ -143,11 +186,41 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
           const b = study.banks.find((s) => s.bank === bank)!;
           return (
             <li key={bank} data-bank={bank} className={focusBank && focusBank !== bank ? "is-muted" : undefined}>
-              <span data-testid={`study-takeaway-${bank}`}>{bankTakeaway(b, pairLabel, study.meetings)}</span>
+              <span data-testid={`study-takeaway-${bank}`}>
+                {filtered ? filteredSentence(bank) : bankTakeaway(b, pairLabel, study.meetings)}
+              </span>
             </li>
           );
         })}
       </ul>
+
+      <div className="study-filters">
+        <div className="study-filter">
+          <span className="study-filter-label" id="f-decision">
+            Decision
+          </span>
+          <div className="segmented" role="group" aria-labelledby="f-decision">
+            {DECISION_OPTS.map(([v, l]) => (
+              <button key={v} type="button" className={decision === v ? "seg seg-active" : "seg"} aria-pressed={decision === v} onClick={() => { setDecision(v); setActiveKey(null); }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="study-filter">
+          <span className="study-filter-label" id="f-surprise">
+            Surprise
+          </span>
+          <div className="segmented" role="group" aria-labelledby="f-surprise">
+            {SURPRISE_OPTS.map(([v, l]) => (
+              <button key={v} type="button" className={surprise === v ? "seg seg-active" : "seg"} aria-pressed={surprise === v} onClick={() => { setSurprise(v); setActiveKey(null); }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="study-filter-hint">Markets price expected decisions, so the surprise often matters more than the decision.</p>
+      </div>
 
       {!focusBank && banks.length > 1 && (
         <div className="segmented study-pick" role="group" aria-label="Highlight a bank">
@@ -222,6 +295,22 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
                 {bankName(highlight)} decision
               </text>
 
+              {average.length > 1 && (
+                <g data-testid="study-average">
+                  <path
+                    className="study-average"
+                    d={average.map((p, i) => `${i ? "L" : "M"}${x(p.offset).toFixed(1)},${y(p.v).toFixed(1)}`).join("")}
+                  />
+                  <text className="study-average-label" x={x(average[average.length - 1].offset) - 4} y={y(average[average.length - 1].v) - 6} textAnchor="end">
+                    average path
+                  </text>
+                </g>
+              )}
+              {visible.length === 0 && (
+                <text className="study-empty" x={innerW / 2} y={innerH / 2} textAnchor="middle">
+                  No meetings match these filters
+                </text>
+              )}
               {ordered.map((m) => {
                 const isHl = m.bank === highlight;
                 const isActive = active !== null && keyOf(active) === keyOf(m);
@@ -302,8 +391,8 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
         </div>
       )}
 
-      <details className="study-table-wrap" open={study.meetings.length <= 8}>
-        <summary>All meetings ({study.meetings.length})</summary>
+      <details className="study-table-wrap" open={matching.length <= 8}>
+        <summary>{filtered ? "Matching" : "All"} meetings ({matching.length})</summary>
         <div className="table-scroll">
           <table className="table study-table" data-testid="study-table">
             <thead>
@@ -327,7 +416,7 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
               </tr>
             </thead>
             <tbody>
-              {study.meetings.map((m) => (
+              {matching.map((m) => (
                 <tr key={keyOf(m)} data-bank={m.bank}>
                   <td>{fmtDate(m.date)}</td>
                   <td>{bankName(m.bank)}</td>

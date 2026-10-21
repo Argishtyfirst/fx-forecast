@@ -2513,3 +2513,41 @@ dd {
   font-size: 13.5px;
   color: var(--text);
 }
+
+.study-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+}
+.study-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.study-filter-label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.study-filter-hint {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.study-average {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.study-svg .study-average-label {
+  fill: var(--text-2);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+.study-svg .study-empty {
+  fill: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
