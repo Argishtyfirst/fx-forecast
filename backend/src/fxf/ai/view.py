@@ -302,33 +302,36 @@ def run_ai_view(
     fallback_model: str | None = None,
     force: bool = False,
 ) -> int:
-    """Write the AI view for every pair. Tries every pair, then raises if any failed."""
-    rows: list[dict[str, Any]] = []
+    """Write the AI view for every pair. Tries every pair, then raises if any failed. Each
+    pair is stored as soon as it is answered, so a slow or failing pair (or a job timeout)
+    never loses the answers already given."""
+    written = 0
     errors: list[str] = []
     for pair in PAIRS.values():
         try:
-            rows.extend(
-                ai_view_for_pair(
-                    session,
-                    pair,
-                    run_date,
-                    api_key=api_key,
-                    model=model,
-                    thinking=thinking,
-                    fallback_model=fallback_model,
-                    force=force,
-                )
+            rows = ai_view_for_pair(
+                session,
+                pair,
+                run_date,
+                api_key=api_key,
+                model=model,
+                thinking=thinking,
+                fallback_model=fallback_model,
+                force=force,
             )
+            if rows:
+                cols = [
+                    c for c in rows[0] if c not in {"run_date", "pair", "horizon_days", "model"}
+                ]
+                written += upsert(
+                    session, Forecast, rows, ["run_date", "pair", "horizon_days", "model"], cols
+                )
+            session.commit()
+            log.info("ai view stored", extra={"pair": pair.id, "rows": len(rows)})
         except Exception as exc:  # one pair failing must not lose the others
+            session.rollback()
             log.warning("ai view failed", extra={"pair": pair.id, "error": str(exc)})
             errors.append(f"{pair.id}: {exc}")
-    cols = (
-        [c for c in rows[0] if c not in {"run_date", "pair", "horizon_days", "model"}]
-        if rows
-        else []
-    )
-    written = upsert(session, Forecast, rows, ["run_date", "pair", "horizon_days", "model"], cols)
-    session.commit()
     if errors:
         raise RuntimeError("; ".join(errors))
     return written
