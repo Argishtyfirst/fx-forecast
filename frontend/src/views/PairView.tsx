@@ -83,28 +83,6 @@ export function PairView({ pair }: { pair: PairId }) {
           {forecast ? (
             <div className="decision-col">
               <DecisionHero pair={meta} forecast={forecast} selected={selected} onSelect={setSelected} />
-              {selectedHorizon && (
-                <ConvertCalculator
-                  pair={meta}
-                  horizon={selectedHorizon}
-                  spot={forecast.spot}
-                  amount={amount}
-                  onAmount={setAmount}
-                  best={best}
-                />
-              )}
-              {/* A 404 (null) means no provider rates for this pair: the card stays hidden. */}
-              {hasQuotes && quotesData !== null && (quotesData !== undefined || quotes.loading || quotes.error) && (
-                <ProviderQuotes
-                  data={quotesData ?? undefined}
-                  loading={quotes.loading}
-                  error={quotes.error}
-                  amount={debounced}
-                  base={meta.base}
-                  group={group}
-                  onGroup={setGroup}
-                />
-              )}
             </div>
           ) : (
             <section className="card hero" data-testid="decision-hero" data-lean="none">
@@ -115,42 +93,67 @@ export function PairView({ pair }: { pair: PairId }) {
             </section>
           )}
 
-          <section className="card chart-card" aria-labelledby="fan-title">
-            <div className="card-head">
-              <h2 id="fan-title" className="card-title">
-                {meta.label}
-                {(forecast || lastRate) && (
-                  <span className="card-title-sub">
-                    {t("pair.spotOn", {
-                      rate: fmtRate(forecast?.spot ?? lastRate?.rate, meta.decimals),
-                      date: fmtShortDate(forecast?.spot_date ?? lastRate?.date ?? ""),
-                    })}
-                  </span>
-                )}
-              </h2>
-              <FanLegend ai={horizons.some((h) => h.ai_view)} />
-            </div>
-            {rates.error ? (
-              <ErrorState title={t("pair.errHistory")} error={rates.error} onRetry={rates.reload} />
-            ) : rates.loading ? (
-              <Loading label={t("pair.loadingChart")} height={300} />
-            ) : (
-              <>
-                <FanChart
-                  pairLabel={meta.label}
-                  decimals={meta.decimals}
-                  history={history}
-                  forecast={forecast}
-                  selected={forecast ? selected : undefined}
-                />
-                <p className="chart-note">
-                  {t("pair.chartNote", { source: meta.sourceLabel })}
-                </p>
-                {forecast && <Disclaimer text={forecast.disclaimer} />}
-              </>
+          <div className="decision-col">
+            <section className="card chart-card" aria-labelledby="fan-title">
+              <div className="card-head">
+                <h2 id="fan-title" className="card-title">
+                  {meta.label}
+                  {(forecast || lastRate) && (
+                    <span className="card-title-sub">
+                      {t("pair.spotOn", {
+                        rate: fmtRate(forecast?.spot ?? lastRate?.rate, meta.decimals),
+                        date: fmtShortDate(forecast?.spot_date ?? lastRate?.date ?? ""),
+                      })}
+                    </span>
+                  )}
+                </h2>
+                <FanLegend ai={horizons.some((h) => h.ai_view)} />
+              </div>
+              {rates.error ? (
+                <ErrorState title={t("pair.errHistory")} error={rates.error} onRetry={rates.reload} />
+              ) : rates.loading ? (
+                <Loading label={t("pair.loadingChart")} height={300} />
+              ) : (
+                <>
+                  <FanChart
+                    pairLabel={meta.label}
+                    decimals={meta.decimals}
+                    history={history}
+                    forecast={forecast}
+                    selected={forecast ? selected : undefined}
+                  />
+                  <p className="chart-note">
+                    {t("pair.chartNote", { source: meta.sourceLabel })}
+                  </p>
+                  {forecast && <Disclaimer text={forecast.disclaimer} />}
+                </>
+              )}
+            </section>
+            {forecast && selectedHorizon && (
+              <ConvertCalculator
+                pair={meta}
+                horizon={selectedHorizon}
+                spot={forecast.spot}
+                amount={amount}
+                onAmount={setAmount}
+                best={best}
+              />
             )}
-          </section>
+          </div>
         </div>
+      )}
+
+      {/* A 404 (null) means no provider rates for this pair: the card stays hidden. */}
+      {forecast && hasQuotes && quotesData !== null && (quotesData !== undefined || quotes.loading || quotes.error) && (
+        <ProviderQuotes
+          data={quotesData ?? undefined}
+          loading={quotes.loading}
+          error={quotes.error}
+          amount={debounced}
+          base={meta.base}
+          group={group}
+          onGroup={setGroup}
+        />
       )}
 
       {forecast && horizons.length > 0 && (
