@@ -1,0 +1,194 @@
+{
+  "pair": "GBPUSD",
+  "run_date": "2026-10-21",
+  "available_run_dates": [
+    "2026-10-21",
+    "2026-10-20",
+    "2026-10-19",
+    "2026-10-16",
+    "2026-10-15",
+    "2026-10-14",
+    "2026-10-13",
+    "2026-10-12",
+    "2026-10-09",
+    "2026-10-08",
+    "2026-10-07",
+    "2026-10-06",
+    "2026-10-05",
+    "2026-10-02",
+    "2026-10-01",
+    "2026-09-30",
+    "2026-09-29",
+    "2026-09-28",
+    "2026-09-25",
+    "2026-09-24"
+  ],
+  "rows": [
+    {
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "horizon_days": 1,
+      "target_date": "2026-10-22",
+      "spot": 1.3412,
+      "center": 1.3412,
+      "q025": 1.32976,
+      "q10": 1.33445,
+      "q25": 1.33784,
+      "q75": 1.34457,
+      "q90": 1.34799,
+      "q975": 1.35275,
+      "served": true,
+      "meetings": [],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "lightgbm",
+      "model_version": "lgbm-2026.10.18",
+      "horizon_days": 1,
+      "target_date": "2026-10-22",
+      "spot": 1.3412,
+      "center": 1.34161,
+      "q025": 1.33015,
+      "q10": 1.33486,
+      "q25": 1.33823,
+      "q75": 1.34498,
+      "q90": 1.34838,
+      "q975": 1.35316,
+      "served": false,
+      "meetings": [],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "horizon_days": 5,
+      "target_date": "2026-10-28",
+      "spot": 1.3412,
+      "center": 1.3412,
+      "q025": 1.31369,
+      "q10": 1.32494,
+      "q25": 1.33307,
+      "q75": 1.34937,
+      "q90": 1.35766,
+      "q975": 1.36929,
+      "served": true,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "forward",
+      "model_version": "cip-1",
+      "horizon_days": 5,
+      "target_date": "2026-10-28",
+      "spot": 1.3412,
+      "center": 1.34157,
+      "q025": 1.31405,
+      "q10": 1.32531,
+      "q25": 1.33345,
+      "q75": 1.34976,
+      "q90": 1.35804,
+      "q975": 1.36967,
+      "served": false,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "lightgbm",
+      "model_version": "lgbm-2026.10.18",
+      "horizon_days": 5,
+      "target_date": "2026-10-28",
+      "spot": 1.3412,
+      "center": 1.34012,
+      "q025": 1.31263,
+      "q10": 1.32388,
+      "q25": 1.33201,
+      "q75": 1.3483,
+      "q90": 1.35658,
+      "q975": 1.3682,
+      "served": false,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "horizon_days": 21,
+      "target_date": "2026-11-19",
+      "spot": 1.3412,
+      "center": 1.3412,
+      "q025": 1.28709,
+      "q10": 1.30909,
+      "q25": 1.3251,
+      "q75": 1.35749,
+      "q90": 1.37409,
+      "q975": 1.39758,
+      "served": true,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "forward",
+      "model_version": "cip-1",
+      "horizon_days": 21,
+      "target_date": "2026-11-19",
+      "spot": 1.3412,
+      "center": 1.34273,
+      "q025": 1.28857,
+      "q10": 1.31059,
+      "q25": 1.32661,
+      "q75": 1.35904,
+      "q90": 1.37567,
+      "q975": 1.39917,
+      "served": false,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    },
+    {
+      "model": "lightgbm",
+      "model_version": "lgbm-2026.10.18",
+      "horizon_days": 21,
+      "target_date": "2026-11-19",
+      "spot": 1.3412,
+      "center": 1.33839,
+      "q025": 1.2844,
+      "q10": 1.30635,
+      "q25": 1.32233,
+      "q75": 1.35465,
+      "q90": 1.3712,
+      "q975": 1.39465,
+      "served": false,
+      "meetings": [
+        {
+          "bank": "FED",
+          "date": "2026-10-28"
+        }
+      ],
+      "git_sha": "3f9c2e1"
+    }
+  ]
+}

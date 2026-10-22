@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { api, USE_MOCKS } from "./api/client";
 import { Footer } from "./components/Footer";
 import { MoonIcon, SunIcon } from "./components/Icons";
-import { PAIR_IDS, PAIRS, VIEWS } from "./lib/constants";
+import { LANGS, t, useLang, type Lang } from "./i18n";
+import { BASES, PAIRS, QUOTES_FOR, VIEWS, pairOf } from "./lib/constants";
 import { HealthContext } from "./lib/health";
 import { routeHref, useRoute } from "./lib/route";
 import { useTheme } from "./lib/theme";
@@ -16,6 +17,7 @@ const HEALTH_REFRESH_MS = 5 * 60_000;
 
 export function App() {
   const [route, navigate] = useRoute();
+  const [lang, changeLang] = useLang();
   const { theme, manual, toggle, reset } = useTheme();
   const health = useApi("health", api.health);
   const { reload: reloadHealth } = health;
@@ -28,13 +30,21 @@ export function App() {
   useEffect(() => {
     const view = VIEWS.find((v) => v.id === route.view)?.label ?? "";
     document.title = `${PAIRS[route.pair].label} ${view} · FX Forecast`;
-  }, [route.pair, route.view]);
+  }, [route.pair, route.view, lang]);
+
+  const current = PAIRS[route.pair];
+  const choose = (base: string, quote: string) => {
+    const valid = QUOTES_FOR[base] ?? [];
+    const id = pairOf(base, valid.includes(quote) ? quote : valid[0]);
+    if (id) navigate({ pair: id });
+  };
 
   return (
     <HealthContext.Provider value={health}>
+      <div className="app" key={lang}>
       {USE_MOCKS && (
         <div className="mock-banner" role="note" data-testid="mock-banner">
-          Mock mode. Every number on this page comes from fixture files in src/mocks, not from the API.
+          {t("app.mockBanner")}
         </div>
       )}
       <header className="header">
@@ -49,37 +59,52 @@ export function App() {
             <span className="brand-name">FX Forecast</span>
           </a>
           <div className="header-actions">
-            {USE_MOCKS && <span className="tag tag-warn">Mock data</span>}
+            {USE_MOCKS && <span className="tag tag-warn">{t("app.mockTag")}</span>}
+            <LangSwitch lang={lang} onChange={changeLang} />
             <button
               type="button"
               className="icon-button"
               onClick={toggle}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
+              aria-label={theme === "dark" ? t("app.toLight") : t("app.toDark")}
+              title={theme === "dark" ? t("app.light") : t("app.dark")}
               data-testid="theme-toggle"
             >
               {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
           </div>
         </div>
-        <nav className="container header-nav" aria-label="Pair and view">
-          <div className="segmented" role="group" aria-label="Currency pair">
-            {PAIR_IDS.map((id) => (
-              <a
-                key={id}
-                href={routeHref({ ...route, pair: id })}
-                className={route.pair === id ? "seg seg-active" : "seg"}
-                aria-current={route.pair === id ? "page" : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate({ pair: id });
-                }}
+        <nav className="container header-nav" aria-label={t("app.navAria")}>
+          <div className="pair-picker" role="group" aria-label={t("picker.aria")} data-testid="pair-picker">
+            <label className="picker-field">
+              <span className="picker-word">{t("picker.have")}</span>
+              <select
+                value={current.base}
+                onChange={(e) => choose(e.target.value, current.quote)}
+                aria-label={t("picker.haveAria")}
               >
-                {PAIRS[id].label}
-              </a>
-            ))}
+                {BASES.map((b) => (
+                  <option key={b} value={b}>
+                    {b} · {t(`cur.${b}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="picker-field">
+              <span className="picker-word">{t("picker.need")}</span>
+              <select
+                value={current.quote}
+                onChange={(e) => choose(current.base, e.target.value)}
+                aria-label={t("picker.needAria")}
+              >
+                {(QUOTES_FOR[current.base] ?? []).map((q) => (
+                  <option key={q} value={q}>
+                    {q} · {t(`cur.${q as "AMD" | "USD"}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-          <div className="tabs" role="group" aria-label="View">
+          <div className="tabs" role="group" aria-label={t("app.viewAria")}>
             {VIEWS.map((v) => (
               <a
                 key={v.id}
@@ -123,6 +148,31 @@ export function App() {
         )}
       </main>
       <Footer onResetTheme={reset} manualTheme={manual} />
+      </div>
     </HealthContext.Provider>
+  );
+}
+
+const LANG_LABEL: Record<Lang, string> = { en: "EN", hy: "ՀԱՅ", ru: "РУ" };
+const LANG_NAME: Record<Lang, string> = { en: "English", hy: "Հայերեն", ru: "Русский" };
+
+/** EN / ՀԱՅ / РУ: a compact switch, each language named in itself for screen readers. */
+function LangSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
+  return (
+    <div className="segmented lang-switch" role="group" aria-label={t("app.langAria")} data-testid="lang-switch">
+      {LANGS.map((l) => (
+        <button
+          key={l}
+          type="button"
+          lang={l}
+          className={l === lang ? "seg seg-active" : "seg"}
+          aria-pressed={l === lang}
+          aria-label={LANG_NAME[l]}
+          onClick={() => onChange(l)}
+        >
+          {LANG_LABEL[l]}
+        </button>
+      ))}
+    </div>
   );
 }

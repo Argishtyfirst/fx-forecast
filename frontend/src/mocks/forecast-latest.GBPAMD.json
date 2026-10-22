@@ -1,0 +1,326 @@
+{
+  "pair": "GBPAMD",
+  "as_of": "2026-10-21",
+  "spot": 484.27,
+  "spot_date": "2026-10-21",
+  "disclaimer": "Statistical estimate. Not financial advice.",
+  "horizons": [
+    {
+      "days": 1,
+      "label": "1D",
+      "target_date": "2026-10-22",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 484.27,
+      "bands": {
+        "50": [
+          482.992,
+          485.55
+        ],
+        "80": [
+          481.679,
+          486.875
+        ],
+        "95": [
+          479.766,
+          488.817
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": 250,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 484.318,
+        "garch_vol_annual": 0.0745,
+        "horizon_sigma": 0.004693,
+        "event_extra_variance": 0,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "No candidate beats the random walk over the last 250 trading days, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "GBP",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 481.679,
+        "upside_p90_rate": 486.875,
+        "risk_half_width_pct": 0.5365,
+        "carry_pct_per_year": 2.5,
+        "carry_over_horizon_pct": 0.0099,
+        "carry_amount": 0.0479,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 481.68 to 486.88 AMD per EUR. Holding AMD pays about 4.50%/yr more than GBP at policy rates (about 0.07 AMD per GBP over 1D)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.44,
+        "expected_change_pct": -0.071,
+        "center": 483.926,
+        "band80": [
+          481.337,
+          486.529
+        ],
+        "lean": "sell_now",
+        "strength": "clear",
+        "confidence": "low",
+        "reasoning": "The dram firmed over the last week and nothing is scheduled before tomorrow's fixing, so the AI expects a little more of the same, which argues for converting now.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.53,
+          "lean": "wait",
+          "strength": "slight",
+          "confidence": "low"
+        }
+      },
+      "meeting_risks": []
+    },
+    {
+      "days": 5,
+      "label": "1W",
+      "target_date": "2026-10-28",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 484.27,
+      "bands": {
+        "50": [
+          481.185,
+          487.374
+        ],
+        "80": [
+          478.027,
+          490.595
+        ],
+        "95": [
+          473.447,
+          495.34
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": 250,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 484.51,
+        "garch_vol_annual": 0.0745,
+        "horizon_sigma": 0.011351,
+        "event_extra_variance": 0.00001872,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "No candidate beats the random walk over the last 250 trading days, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "GBP",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 478.027,
+        "upside_p90_rate": 490.595,
+        "risk_half_width_pct": 1.2976,
+        "carry_pct_per_year": 2.5,
+        "carry_over_horizon_pct": 0.0496,
+        "carry_amount": 0.2402,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 478.03 to 490.60 AMD per EUR. Holding AMD pays about 4.50%/yr more than GBP at policy rates (about 0.36 AMD per GBP over 1W)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.52,
+        "expected_change_pct": 0.057,
+        "center": 484.546,
+        "band80": [
+          478.299,
+          490.875
+        ],
+        "lean": "wait",
+        "strength": "slight",
+        "confidence": "low",
+        "reasoning": "The Fed and ECB meetings on 28 and 29 Oct add risk both ways. The AI sees no clear lean over one week.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.46,
+          "lean": "sell_now",
+          "strength": "slight",
+          "confidence": "low"
+        }
+      },
+      "meeting_risks": []
+    },
+    {
+      "days": 21,
+      "label": "1M",
+      "target_date": "2026-11-19",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 484.27,
+      "bands": {
+        "50": [
+          478.163,
+          490.455
+        ],
+        "80": [
+          471.947,
+          496.915
+        ],
+        "95": [
+          463.01,
+          506.506
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": 250,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 485.276,
+        "garch_vol_annual": 0.0745,
+        "horizon_sigma": 0.022546,
+        "event_extra_variance": 0.00003194,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "No candidate beats the random walk over the last 250 trading days, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "GBP",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 471.947,
+        "upside_p90_rate": 496.915,
+        "risk_half_width_pct": 2.5779,
+        "carry_pct_per_year": 2.5,
+        "carry_over_horizon_pct": 0.2083,
+        "carry_amount": 1.0087,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 471.95 to 496.92 AMD per EUR. Holding AMD pays about 4.50%/yr more than GBP at policy rates (about 1.52 AMD per GBP over 1M)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.58,
+        "expected_change_pct": 0.455,
+        "center": 486.474,
+        "band80": [
+          474.094,
+          499.176
+        ],
+        "lean": "wait",
+        "strength": "clear",
+        "confidence": "medium",
+        "reasoning": "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better GBP/AMD rate is more likely than not. The dram has been resilient, so the edge is small.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-20",
+          "prob_better_if_wait": 0.57,
+          "lean": "wait",
+          "strength": "clear",
+          "confidence": "medium"
+        }
+      },
+      "meeting_risks": []
+    }
+  ],
+  "stale_sources": [
+    {
+      "source": "cba_news",
+      "label": "CBA decisions (cba.am, ARKA, Interfax)",
+      "last_success": null,
+      "last_run": "2026-10-21T15:00:20Z",
+      "last_status": "failed",
+      "stale": true,
+      "error": "HTTP 403 from arka.am after 3 retries"
+    }
+  ]
+}

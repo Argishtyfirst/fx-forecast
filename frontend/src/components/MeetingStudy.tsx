@@ -3,8 +3,9 @@ import { scaleLinear } from "@visx/scale";
 import { LinePath } from "@visx/shape";
 import { useId, useState } from "react";
 import type { BankReactionSummaryOut, MeetingReactionOut, MeetingStudyResponse, PathPoint } from "../api/types";
-import { BANK_LABELS, BANKS, DISCLAIMER } from "../lib/constants";
-import { fmtDate, fmtNum, fmtShortDate } from "../lib/format";
+import { t } from "../i18n";
+import { BANK_LABELS, BANKS } from "../lib/constants";
+import { fmtBps, fmtDate, fmtNum, fmtShortDate, fmtSignedPct } from "../lib/format";
 import { useWidth } from "../lib/useWidth";
 
 interface MeetingStudyProps {
@@ -14,15 +15,10 @@ interface MeetingStudyProps {
   focusBank?: string;
 }
 
-export const pctS = (x: number | null | undefined, digits = 2) => {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "n/a";
-  const r = Number(x.toFixed(digits));
-  if (r === 0) return `${(0).toFixed(digits)}%`;
-  return `${r > 0 ? "+" : "−"}${Math.abs(r).toFixed(digits)}%`;
-};
+export const pctS = (x: number | null | undefined, digits = 2) => fmtSignedPct(x, digits);
 
 export function ratioWord(r: number): string {
-  return r >= 2 ? `about ${Math.round(r)}×` : `about ${r.toFixed(1)}×`;
+  return t("study.about", { ratio: r >= 2 ? fmtNum(Math.round(r), 0) : fmtNum(r, 1) });
 }
 
 /** The plain-language takeaway for one bank. */
@@ -31,31 +27,36 @@ export function bankTakeaway(b: BankReactionSummaryOut, pairLabel: string, meeti
   const parts: string[] = [];
   if (b.mean_abs_reaction_pct !== null && b.reaction_ratio !== null) {
     parts.push(
-      `${name} meetings: ${pairLabel} moved ${fmtNum(b.mean_abs_reaction_pct, 2)}% on average, ${ratioWord(b.reaction_ratio)} a normal day`,
+      t("study.moved", {
+        bank: name,
+        pair: pairLabel,
+        pct: fmtNum(b.mean_abs_reaction_pct, 2),
+        ratio: ratioWord(b.reaction_ratio),
+      }),
     );
   } else {
-    parts.push(`${name} meetings: not enough fixes to measure the move`);
+    parts.push(t("study.notEnough", { bank: name }));
   }
   const noView = meetings.filter((m) => m.bank === b.bank).every((m) => m.expected_sign === 0);
-  if (noView) parts.push("no expected direction");
+  if (noView) parts.push(t("study.noDirection"));
   else if (b.n_signed > 0 && b.consistency !== null)
-    parts.push(`followed the surprise or tone ${Math.round(b.consistency * b.n_signed)} of ${b.n_signed} times`);
-  else parts.push("no clear signal to follow");
+    parts.push(t("study.followed", { k: Math.round(b.consistency * b.n_signed), count: b.n_signed, n: b.n_signed }));
+  else parts.push(t("study.noSignal"));
   let text = parts.join(", ");
-  if (b.n < 10) text += ` (small sample, ${b.n} meetings)`;
-  return `${text}.`;
+  if (b.n < 10) text += ` ${t("study.small", { count: b.n, n: b.n })}`;
+  return `${text}${t("fmt.stop")}`;
 }
 
 export function toneWord(score: number | null): string {
-  if (score === null) return "not scored";
-  if (score <= -0.15) return "dovish";
-  if (score >= 0.15) return "hawkish";
-  return "neutral";
+  if (score === null) return t("tone.notScored").toLowerCase();
+  if (score <= -0.15) return t("tone.dovish").toLowerCase();
+  if (score >= 0.15) return t("tone.hawkish").toLowerCase();
+  return t("tone.neutral").toLowerCase();
 }
 
 function followedWord(m: MeetingReactionOut): string {
-  if (m.followed === null) return m.expected_sign === 0 ? "no expected direction" : "no signal";
-  return m.followed ? "yes" : "no";
+  if (m.followed === null) return m.expected_sign === 0 ? t("study.noDirection") : t("study.noSignalShort");
+  return m.followed ? t("study.yes") : t("study.no");
 }
 
 const M = { top: 22, right: 48, bottom: 30, left: 6 };
@@ -65,10 +66,10 @@ const pctAt = (m: MeetingReactionOut, k: number) => m.path?.find((p) => p.offset
 
 type DecisionFilter = "all" | "hike" | "hold" | "cut";
 type SurpriseFilter = "all" | "hawkish" | "expected" | "dovish";
-const DECISION_OPTS: [DecisionFilter, string][] = [["all", "All"], ["hike", "Hike"], ["hold", "Hold"], ["cut", "Cut"]];
-const SURPRISE_OPTS: [SurpriseFilter, string][] = [["all", "All"], ["hawkish", "Hawkish"], ["expected", "As expected"], ["dovish", "Dovish"]];
-const DECISION_WORD: Record<DecisionFilter, string> = { all: "", hike: "hikes", hold: "holds", cut: "cuts" };
-const SURPRISE_WORD: Record<SurpriseFilter, string> = { all: "", hawkish: "hawkish surprise", expected: "as expected", dovish: "dovish surprise" };
+const DECISION_OPTS: DecisionFilter[] = ["all", "hike", "hold", "cut"];
+const SURPRISE_OPTS: SurpriseFilter[] = ["all", "hawkish", "expected", "dovish"];
+const decisionWord = (d: DecisionFilter) => (d === "all" ? "" : t(`study.word.${d}`));
+const surpriseWord = (s: SurpriseFilter) => (s === "all" ? "" : t(`study.word.${s}`));
 
 function decisionOf(m: MeetingReactionOut): DecisionFilter | null {
   if (m.rate_change_bps === null) return null;
@@ -119,13 +120,20 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
     ? perOffset(hlFiltered, false).map((p) => ({ offset: p.offset, mean_abs_pct: p.v, meetings: hlFiltered.length }))
     : (study.banks.find((b) => b.bank === highlight)?.typical_path ?? []);
   const average = filtered && hlFiltered.length > 0 ? perOffset(hlFiltered, true) : [];
-  const filterLabel = [DECISION_WORD[decision], SURPRISE_WORD[surprise]].filter(Boolean).join(", ");
+  const filterLabel = [decisionWord(decision), surpriseWord(surprise)].filter(Boolean).join(", ");
   const filteredSentence = (bank: string) => {
     const ms = matching.filter((m) => m.bank === bank);
     const name = BANK_LABELS[bank] ?? bank;
-    if (!ms.length) return `${name} (${filterLabel}): no meetings match these filters.`;
+    if (!ms.length) return t("study.fNone", { bank: name, filter: filterLabel });
     const mean = ms.reduce((a, m) => a + Math.abs(m.reaction_pct), 0) / ms.length;
-    return `${name} (${filterLabel}): ${ms.length} meeting${ms.length > 1 ? "s" : ""}, ${pairLabel} moved ${fmtNum(mean, 2)}% on average on the decision${ms.length <= 2 ? " (very small sample)" : ""}.`;
+    return t(ms.length <= 2 ? "study.fSomeSmall" : "study.fSome", {
+      bank: name,
+      filter: filterLabel,
+      count: ms.length,
+      n: ms.length,
+      pair: pairLabel,
+      pct: fmtNum(mean, 2),
+    });
   };
 
   const narrow = width < 480;
@@ -171,14 +179,14 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
     setActiveKey(next === null ? null : keyOf(list[next]));
   };
 
-  const summary = `${pairLabel} day by day around ${withPath.length} central bank meetings in the last 12 months, from ${days} trading days before the decision to ${days} after, against the last fix before the decision. ${study.banks
+  const summary = `${t("study.aria", { pair: pairLabel, count: withPath.length, n: withPath.length, days })} ${study.banks
     .map((b) => bankTakeaway(b, pairLabel, study.meetings))
     .join(" ")}`;
 
   return (
     <section className="card study" aria-labelledby="study-title" data-testid="meeting-study">
       <h2 id="study-title" className="card-title">
-        How {pairLabel} moved around meetings, last 12 months
+        {t("study.title", { pair: pairLabel })}
       </h2>
 
       <ul className="study-banks" data-testid="study-banks">
@@ -197,33 +205,33 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
       <div className="study-filters">
         <div className="study-filter">
           <span className="study-filter-label" id="f-decision">
-            Decision
+            {t("study.decision")}
           </span>
           <div className="segmented" role="group" aria-labelledby="f-decision">
-            {DECISION_OPTS.map(([v, l]) => (
+            {DECISION_OPTS.map((v) => (
               <button key={v} type="button" className={decision === v ? "seg seg-active" : "seg"} aria-pressed={decision === v} onClick={() => { setDecision(v); setActiveKey(null); }}>
-                {l}
+                {t(`study.opt.${v}`)}
               </button>
             ))}
           </div>
         </div>
         <div className="study-filter">
           <span className="study-filter-label" id="f-surprise">
-            Surprise
+            {t("study.surprise")}
           </span>
           <div className="segmented" role="group" aria-labelledby="f-surprise">
-            {SURPRISE_OPTS.map(([v, l]) => (
+            {SURPRISE_OPTS.map((v) => (
               <button key={v} type="button" className={surprise === v ? "seg seg-active" : "seg"} aria-pressed={surprise === v} onClick={() => { setSurprise(v); setActiveKey(null); }}>
-                {l}
+                {t(`study.opt.${v}`)}
               </button>
             ))}
           </div>
         </div>
-        <p className="study-filter-hint">Markets price expected decisions, so the surprise often matters more than the decision.</p>
+        <p className="study-filter-hint">{t("study.hint")}</p>
       </div>
 
       {!focusBank && banks.length > 1 && (
-        <div className="segmented study-pick" role="group" aria-label="Highlight a bank">
+        <div className="segmented study-pick" role="group" aria-label={t("study.highlightAria")}>
           {banks.map((b) => (
             <button
               key={b}
@@ -248,15 +256,14 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
               {bankName(active.bank)}, {fmtDate(active.date)}
             </strong>
             <span>
-              surprise {active.surprise_bps === null ? "n/a" : `${fmtNum(active.surprise_bps, 1)} bps`}, tone{" "}
-              {toneWord(active.hawkish_score)}
+              {t("study.readSurprise", { surprise: fmtBps(active.surprise_bps), tone: toneWord(active.hawkish_score) })}
             </span>
             <span className="num">
               {READ_AT.map((k) => `${k > 0 ? `+${k}` : `\u2212${-k}`}: ${pctS(pctAt(active, k))}`).join(", ")}
             </span>
           </>
         ) : (
-          <span className="readout-hint">Hover or tap a line, or pick a meeting below, to read its path.</span>
+          <span className="readout-hint">{t("study.readHint")}</span>
         )}
       </div>
 
@@ -265,7 +272,7 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
         className="study-frame"
         tabIndex={0}
         aria-describedby={readoutId}
-        aria-label={`${pairLabel} paths around ${bankName(highlight)} meetings. Use the arrow keys to step through them.`}
+        aria-label={t("study.frameAria", { pair: pairLabel, bank: bankName(highlight) })}
         onKeyDown={onKey}
       >
         {width > 0 && (
@@ -292,7 +299,7 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
               ))}
               <line className="study-decision" x1={decisionX} x2={decisionX} y1={-8} y2={innerH} />
               <text className="study-decision-label" x={decisionX} y={-12} textAnchor="middle">
-                {bankName(highlight)} decision
+                {t("study.bankDecision", { bank: bankName(highlight) })}
               </text>
 
               {average.length > 1 && (
@@ -302,13 +309,13 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
                     d={average.map((p, i) => `${i ? "L" : "M"}${x(p.offset).toFixed(1)},${y(p.v).toFixed(1)}`).join("")}
                   />
                   <text className="study-average-label" x={x(average[average.length - 1].offset) - 4} y={y(average[average.length - 1].v) - 6} textAnchor="end">
-                    average path
+                    {t("study.average")}
                   </text>
                 </g>
               )}
               {visible.length === 0 && (
                 <text className="study-empty" x={innerW / 2} y={innerH / 2} textAnchor="middle">
-                  No meetings match these filters
+                  {t("study.noMatch")}
                 </text>
               )}
               {ordered.map((m) => {
@@ -345,13 +352,13 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
               )}
 
               <text className="study-tick" x={0} y={innerH + 18} textAnchor="start">
-                {days} days before
+                {t("study.daysBefore", { count: days, n: days })}
               </text>
               <text className="study-tick" x={decisionX} y={innerH + 18} textAnchor="middle">
-                decision
+                {t("study.decisionTick")}
               </text>
               <text className="study-tick" x={innerW} y={innerH + 18} textAnchor="end">
-                {days} days after
+                {t("study.daysAfter", { count: days, n: days })}
               </text>
               <rect
                 className="fan-overlay"
@@ -370,13 +377,13 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
         )}
       </div>
       <p className="study-legend">
-        <span className="study-legend-line" /> {bankName(highlight)} meetings{" "}
-        <span className="study-legend-other" /> other banks <span className="study-legend-band" /> typical distance from
-        the pre-decision level. % against the last fix before the decision.
+        <span className="study-legend-line" /> {t("study.legendBank", { bank: bankName(highlight) })}{" "}
+        <span className="study-legend-other" /> {t("study.legendOther")} <span className="study-legend-band" />{" "}
+        {t("study.legendBand")}
       </p>
 
       {hlMeetings.length > 0 && (
-        <div className="study-chips" role="group" aria-label={`${bankName(highlight)} meetings`}>
+        <div className="study-chips" role="group" aria-label={t("study.legendBank", { bank: bankName(highlight) })}>
           {hlMeetings.map((m) => (
             <button
               key={keyOf(m)}
@@ -392,27 +399,27 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
       )}
 
       <details className="study-table-wrap" open={matching.length <= 8}>
-        <summary>{filtered ? "Matching" : "All"} meetings ({matching.length})</summary>
+        <summary>{t(filtered ? "study.tableMatching" : "study.tableAll", { n: matching.length })}</summary>
         <div className="table-scroll">
           <table className="table study-table" data-testid="study-table">
             <thead>
               <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Bank</th>
+                <th scope="col">{t("study.col.date")}</th>
+                <th scope="col">{t("study.col.bank")}</th>
                 <th scope="col" className="num-col">
-                  Surprise
+                  {t("study.col.surprise")}
                 </th>
-                <th scope="col">Tone</th>
+                <th scope="col">{t("study.col.tone")}</th>
                 <th scope="col" className="num-col">
-                  5 days before
-                </th>
-                <th scope="col" className="num-col">
-                  Decision
+                  {t("study.daysBefore", { count: 5, n: 5 })}
                 </th>
                 <th scope="col" className="num-col">
-                  10 days after
+                  {t("study.col.decision")}
                 </th>
-                <th scope="col">Followed</th>
+                <th scope="col" className="num-col">
+                  {t("study.daysAfter", { count: 10, n: 10 })}
+                </th>
+                <th scope="col">{t("study.col.followed")}</th>
               </tr>
             </thead>
             <tbody>
@@ -420,7 +427,7 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
                 <tr key={keyOf(m)} data-bank={m.bank}>
                   <td>{fmtDate(m.date)}</td>
                   <td>{bankName(m.bank)}</td>
-                  <td className="num num-col">{m.surprise_bps === null ? "n/a" : `${fmtNum(m.surprise_bps, 1)} bps`}</td>
+                  <td className="num num-col">{fmtBps(m.surprise_bps)}</td>
                   <td>{toneWord(m.hawkish_score)}</td>
                   <td className="num num-col">{pctS(pctAt(m, -5) ?? (m.run_up_pct === null ? null : -m.run_up_pct))}</td>
                   <td className="num num-col">{pctS(m.reaction_pct)}</td>
@@ -433,7 +440,7 @@ export function MeetingStudy({ study, pairLabel, focusBank }: MeetingStudyProps)
         </div>
       </details>
       <p className="disclaimer" data-testid="disclaimer">
-        {DISCLAIMER}
+        {t("disclaimer")}
       </p>
     </section>
   );

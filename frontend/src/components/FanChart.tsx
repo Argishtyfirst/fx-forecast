@@ -5,7 +5,8 @@ import { scaleLinear } from "@visx/scale";
 import { LinePath } from "@visx/shape";
 import { useId, useMemo, useState } from "react";
 import type { AiStrength, AiView, BandKey, HorizonForecast, LatestForecastResponse, RatePoint, SignalAction } from "../api/types";
-import { BAND_KEYS, BANK_LABELS, DISCLAIMER } from "../lib/constants";
+import { t as tr } from "../i18n";
+import { BAND_KEYS, BANK_LABELS } from "../lib/constants";
 import {
   assignLanes,
   bandPolygon,
@@ -14,7 +15,7 @@ import {
   yDomain,
   type FanVertex,
 } from "../lib/fan";
-import { fmtDate, fmtMonth, fmtRange, fmtRate, fmtShortDate } from "../lib/format";
+import { fmtDate, fmtMonth, fmtNum, fmtRange, fmtRate, fmtShortDate } from "../lib/format";
 import { useWidth } from "../lib/useWidth";
 import { verdictText } from "../lib/verdict";
 
@@ -119,7 +120,10 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
     [y0, y1, innerH],
   );
   const yTicks = y.ticks(narrow ? 4 : 5);
-  const tickFormat = y.tickFormat(narrow ? 4 : 5);
+  // Tick labels in the active locale, with as many decimals as the tick step needs.
+  const tickStep = yTicks.length > 1 ? Math.abs(yTicks[1] - yTicks[0]) : 1;
+  const tickDigits = Math.max(0, Math.min(6, Math.ceil(-Math.log10(tickStep) + 1e-9)));
+  const tickFormat = (v: number) => fmtNum(v, tickDigits);
 
   // Hover and keyboard targets: every history day, then the three horizon points.
   const targets: Target[] = useMemo(() => {
@@ -227,7 +231,7 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
         className="fan-frame"
         tabIndex={0}
         aria-describedby={readoutId}
-        aria-label={`${pairLabel} fan chart. Use the arrow keys to read values.`}
+        aria-label={tr("fan.frameAria", { pair: pairLabel })}
         onKeyDown={onKey}
         onBlur={() => setActive(null)}
       >
@@ -253,11 +257,11 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
 
               {/* Region labels */}
               <text className="fan-region" x={0} y={-top + 12}>
-                {narrow ? "History" : `History · ${history.length} trading days`}
+                {narrow ? tr("fan.history") : tr("fan.historyDays", { count: history.length, n: history.length })}
               </text>
               {tMax > 0 && (
                 <text className="fan-region" x={split + 8} y={-top + 12}>
-                  {narrow ? "Forecast" : `Forecast · ${tMax} trading days`}
+                  {narrow ? tr("fan.forecast") : tr("fan.forecastDays", { count: tMax, n: tMax })}
                 </text>
               )}
 
@@ -399,7 +403,11 @@ export function FanChart({ pairLabel, decimals, history, forecast, selected, wid
                         x={x(a.t)}
                         y={y(a.band80[1])}
                         innerW={innerW}
-                        text={`AI: ${fmtRate(a.center, decimals)} by ${fmtShortDate(a.date)} (${verdictText(a.lean, a.strength)})`}
+                        text={tr("fan.aiLabel", {
+                          rate: fmtRate(a.center, decimals),
+                          date: fmtShortDate(a.date),
+                          verdict: verdictText(a.lean, a.strength),
+                        })}
                       />
                     ))}
                 </g>
@@ -534,13 +542,13 @@ function Readout({
           {v.label}, {fmtDate(v.date)}
         </span>
         <span className="readout-item">
-          <span className="readout-label">Statistical 80%</span>
+          <span className="readout-label">{tr("fan.stat80")}</span>
           <span className="readout-value num">{fmtRange(v.bands["80"][0], v.bands["80"][1], decimals)}</span>
         </span>
 
         {ai && (
           <span className="readout-item readout-ai">
-            <span className="readout-label">AI</span>
+            <span className="readout-label">{tr("fan.ai")}</span>
             <span className="num">
               {fmtRate(ai.center, decimals)} ({fmtRange(ai.band80[0], ai.band80[1], decimals)})
             </span>
@@ -552,14 +560,14 @@ function Readout({
     content = (
       <>
         <span className="readout-key">
-          {forecast ? "Spot" : "Last rate"}, {fmtDate(lastHistory.date)}
+          {forecast ? tr("fan.spot") : tr("fan.lastRate")}, {fmtDate(lastHistory.date)}
         </span>
         <span className="readout-value num">{fmtRate(lastHistory.rate, decimals)}</span>
-        <span className="readout-hint">Hover or use the arrow keys to read a day or a horizon.</span>
+        <span className="readout-hint">{tr("fan.hint")}</span>
       </>
     );
   } else {
-    content = <span className="readout-hint">No rate history yet.</span>;
+    content = <span className="readout-hint">{tr("fan.noHistory")}</span>;
   }
   return (
     <div id={id} className="fan-readout" aria-live="polite">
@@ -577,12 +585,18 @@ function buildSummary(
   aiPoints: AiPoint[] = [],
   selected?: string,
 ): string {
-  const parts: string[] = [`${pairLabel} fan chart.`];
+  const parts: string[] = [tr("fan.sumTitle", { pair: pairLabel })];
   if (history.length) {
     const first = history[0];
     const last = history[history.length - 1];
     parts.push(
-      `${history.length} trading days of history from ${fmtDate(first.date)} to ${fmtDate(last.date)}, last ${fmtRate(last.rate, decimals)}.`,
+      tr("fan.sumHistory", {
+        count: history.length,
+        n: history.length,
+        from: fmtDate(first.date),
+        to: fmtDate(last.date),
+        last: fmtRate(last.rate, decimals),
+      }),
     );
   }
   if (forecast) {
@@ -590,24 +604,33 @@ function buildSummary(
       .sort((a, b) => a.days - b.days)
       .map((h: HorizonForecast) => {
         const b = h.bands["80"];
-        return b ? `${h.label} to ${fmtDate(h.target_date)}: ${fmtRange(b[0], b[1], decimals)}` : `${h.label}: no band`;
+        return b
+          ? tr("fan.sumRange", { label: h.label, date: fmtDate(h.target_date), range: fmtRange(b[0], b[1], decimals) })
+          : tr("fan.sumNoBand", { label: h.label });
       });
-    parts.push(`80% ranges: ${ranges.join("; ")}.`);
+    parts.push(tr("fan.sumRanges", { ranges: ranges.join("; ") }));
     parts.push(
-      meetings.length ? `Central bank meetings inside the horizons: ${meetings.join(", ")}.` : "No central bank meetings inside the horizons.",
+      meetings.length ? tr("fan.sumMeetings", { list: meetings.join(", ") }) : tr("fan.sumNoMeetings"),
     );
     if (aiPoints.length) {
       parts.push(
-        `AI expected path: ${aiPoints
-          .map((a) => `${a.label} ${fmtRate(a.center, decimals)} (${verdictText(a.lean, a.strength)})`)
-          .join("; ")}.`,
+        tr("fan.sumAiPath", {
+          list: aiPoints.map((a) => `${a.label} ${fmtRate(a.center, decimals)} (${verdictText(a.lean, a.strength)})`).join("; "),
+        }),
       );
       const sel = aiPoints.find((a) => a.label === selected);
-      if (sel) parts.push(`Selected: AI expects ${fmtRate(sel.center, decimals)} by ${fmtDate(sel.date)}, ${verdictText(sel.lean, sel.strength).toLowerCase()}.`);
+      if (sel)
+        parts.push(
+          tr("fan.sumSelected", {
+            rate: fmtRate(sel.center, decimals),
+            date: fmtDate(sel.date),
+            verdict: verdictText(sel.lean, sel.strength).toLowerCase(),
+          }),
+        );
     }
-    parts.push(forecast.disclaimer || DISCLAIMER);
+    parts.push(tr("disclaimer"));
   } else {
-    parts.push("No forecast yet.");
+    parts.push(tr("pair.noForecast"));
   }
   return parts.join(" ");
 }

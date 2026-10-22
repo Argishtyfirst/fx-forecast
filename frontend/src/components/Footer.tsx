@@ -1,4 +1,4 @@
-import { DISCLAIMER } from "../lib/constants";
+import { t } from "../i18n";
 
 /** NFR-08: credit every data source. */
 export function Footer({ onResetTheme, manualTheme }: { onResetTheme: () => void; manualTheme: boolean }) {
@@ -6,43 +6,50 @@ export function Footer({ onResetTheme, manualTheme }: { onResetTheme: () => void
     <footer className="footer">
       <div className="container footer-inner">
         <div className="footer-sources">
-          <p className="footer-title">Data sources</p>
+          <p className="footer-title">{t("footer.title")}</p>
           <ul>
             <li>
               <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noreferrer">
-                European Central Bank
+                {t("footer.ecb")}
               </a>{" "}
-              &middot; euro reference rates, key ECB interest rates, &euro;STR and HICP via the{" "}
+              &middot; {t("footer.ecbWhat")}{" "}
               <a href="https://data.ecb.europa.eu/" target="_blank" rel="noreferrer">
-                ECB Data Portal
+                {t("footer.ecbPortal")}
               </a>
             </li>
             <li>
               <a href="https://www.cba.am/en" target="_blank" rel="noreferrer">
-                Central Bank of Armenia
+                {t("footer.cba")}
               </a>{" "}
-              &middot; AMD exchange rates, policy rates and Board decisions
+              &middot; {t("footer.cbaWhat")}
             </li>
             <li>
               <a href="https://fred.stlouisfed.org/" target="_blank" rel="noreferrer">
-                FRED, Federal Reserve Bank of St. Louis
+                {t("footer.fred")}
               </a>{" "}
-              &middot; Fed target range, rates, yields and the dollar index. This product uses the FRED&reg; API but
-              is not endorsed or certified by the Federal Reserve Bank of St. Louis.
+              &middot; {t("footer.fredWhat")}
             </li>
             <li>
               <a href="https://frankfurter.dev/" target="_blank" rel="noreferrer">
                 Frankfurter
               </a>{" "}
-              &middot; open API for the ECB and CBA daily rates
+              &middot; {t("footer.frankfurterWhat")}
+            </li>
+            <li>
+              <a href="https://rate.am/" target="_blank" rel="noreferrer">
+                rate.am
+              </a>{" "}
+              &middot; {t("footer.rateamWhat")}
             </li>
           </ul>
         </div>
         <div className="footer-meta">
-          <p>{DISCLAIMER} Ranges are calibrated against walk-forward backtests; the center is not a promise.</p>
+          <p>
+            {t("disclaimer")} {t("footer.calibrated")}
+          </p>
           {manualTheme && (
             <button type="button" className="link-button" onClick={onResetTheme}>
-              Follow the system theme
+              {t("footer.systemTheme")}
             </button>
           )}
         </div>

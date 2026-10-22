@@ -1,0 +1,326 @@
+{
+  "pair": "RUBAMD",
+  "as_of": "2026-10-21",
+  "spot": 4.4113,
+  "spot_date": "2026-10-21",
+  "disclaimer": "Statistical estimate. Not financial advice.",
+  "horizons": [
+    {
+      "days": 1,
+      "label": "1D",
+      "target_date": "2026-10-22",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 4.4113,
+      "bands": {
+        "50": [
+          4.40486,
+          4.41774
+        ],
+        "80": [
+          4.39823,
+          4.42441
+        ],
+        "95": [
+          4.38856,
+          4.43416
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": -1000,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 4.40955,
+        "garch_vol_annual": 0.0412,
+        "horizon_sigma": 0.002595,
+        "event_extra_variance": 0,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "No candidate beats the random walk over the last 250 trading days, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "RUB",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 4.39823,
+        "upside_p90_rate": 4.42441,
+        "risk_half_width_pct": 0.2967,
+        "carry_pct_per_year": -10,
+        "carry_over_horizon_pct": -0.0397,
+        "carry_amount": -0.001751,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1D doesn't improve your expected rate; it adds risk: 80% of the time you'd get 4.3982 to 4.4244 AMD per USD. Holding AMD pays about 3.13%/yr more than RUB at policy rates (about 0.04 AMD per RUB over 1D)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.49,
+        "expected_change_pct": -0.007,
+        "center": 4.41099,
+        "band80": [
+          4.39792,
+          4.4241
+        ],
+        "lean": "no_edge",
+        "strength": "none",
+        "confidence": "low",
+        "reasoning": "One day is mostly noise for a managed rate; the CBA fixing has moved less than 0.3% on most recent days.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.5,
+          "lean": "no_edge",
+          "strength": "none",
+          "confidence": "low"
+        }
+      },
+      "meeting_risks": []
+    },
+    {
+      "days": 5,
+      "label": "1W",
+      "target_date": "2026-10-28",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 4.4113,
+      "bands": {
+        "50": [
+          4.39574,
+          4.42691
+        ],
+        "80": [
+          4.37976,
+          4.44307
+        ],
+        "95": [
+          4.35651,
+          4.46679
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": -1000,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 4.40258,
+        "garch_vol_annual": 0.0412,
+        "horizon_sigma": 0.006277,
+        "event_extra_variance": 0.000005725,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "No candidate beats the random walk over the last 250 trading days, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "RUB",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 4.37976,
+        "upside_p90_rate": 4.44307,
+        "risk_half_width_pct": 0.7176,
+        "carry_pct_per_year": -10,
+        "carry_over_horizon_pct": -0.1984,
+        "carry_amount": -0.008752,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1W doesn't improve your expected rate; it adds risk: 80% of the time you'd get 4.3798 to 4.4431 AMD per USD. Holding AMD pays about 3.13%/yr more than RUB at policy rates (about 0.22 AMD per RUB over 1W)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.44,
+        "expected_change_pct": -0.095,
+        "center": 4.40711,
+        "band80": [
+          4.3756,
+          4.43886
+        ],
+        "lean": "sell_now",
+        "strength": "clear",
+        "confidence": "low",
+        "reasoning": "The Fed meets on 28 Oct with a further cut expected, which tends to weigh on the dollar against the dram in the days around the decision.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.45,
+          "lean": "sell_now",
+          "strength": "clear",
+          "confidence": "low"
+        }
+      },
+      "meeting_risks": []
+    },
+    {
+      "days": 21,
+      "label": "1M",
+      "target_date": "2026-11-19",
+      "model": "random_walk",
+      "model_version": "rw-1",
+      "center": 4.4113,
+      "bands": {
+        "50": [
+          4.38085,
+          4.44196
+        ],
+        "80": [
+          4.34967,
+          4.47379
+        ],
+        "95": [
+          4.30453,
+          4.52072
+        ]
+      },
+      "meetings": [],
+      "drivers": {
+        "rate_diff_bps": -1000,
+        "rate_diff_change_21d_bps": -25,
+        "policy_rates": {
+          "CBA": 6.5
+        },
+        "forward_rate": 4.37504,
+        "garch_vol_annual": 0.0412,
+        "horizon_sigma": 0.012305,
+        "event_extra_variance": 0.000005725,
+        "last_surprise_bps": {
+          "CBA": -25
+        },
+        "hawkish_score": {
+          "CBA": -0.45
+        },
+        "days_to_next_meeting": {
+          "CBA": 48
+        },
+        "served_reason": "forward has a lower MAE (ratio 0.971) but its Diebold-Mariano p = 0.16 misses the 0.10 bar, so the random walk center is served with GARCH bands."
+      },
+      "signal": {
+        "action": "no_edge",
+        "verdict_source": "statistical",
+        "sell": "RUB",
+        "receive": "AMD",
+        "prob_better_if_wait": 0.5,
+        "expected_change_pct": 0,
+        "downside_p10_rate": 4.34967,
+        "upside_p90_rate": 4.47379,
+        "risk_half_width_pct": 1.4068,
+        "carry_pct_per_year": -10,
+        "carry_over_horizon_pct": -0.8333,
+        "carry_amount": -0.036759,
+        "confidence": "none",
+        "model": "random_walk",
+        "model_beats_random_walk": false,
+        "hit_rate": null,
+        "dm_pvalue": null,
+        "mae_ratio_rw": 1,
+        "n_obs": 250,
+        "summary": "Waiting 1M doesn't improve your expected rate; it adds risk: 80% of the time you'd get 4.3497 to 4.4738 AMD per USD. Holding AMD pays about 3.13%/yr more than RUB at policy rates (about 0.94 AMD per RUB over 1M)."
+      },
+      "ai_view": {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "prompt_version": "ai-p2",
+        "generated_at": "2026-10-21T15:39:20Z",
+        "prob_better_if_wait": 0.57,
+        "expected_change_pct": 0.217,
+        "center": 4.42087,
+        "band80": [
+          4.35911,
+          4.4835
+        ],
+        "lean": "wait",
+        "strength": "clear",
+        "confidence": "medium",
+        "reasoning": "The CBA's easing bias and the narrower CBA-Fed rate gap point to a slightly weaker dram over a month, though the CBA has leaned against sharp moves before.",
+        "track_record": {
+          "n_scored": 0,
+          "required": 250,
+          "hit_rate": null,
+          "mae_ratio_rw": null,
+          "dm_pvalue": null,
+          "brier": null,
+          "promoted": false
+        },
+        "run_date": "2026-10-21",
+        "revisions": 0,
+        "previous": {
+          "run_date": "2026-10-16",
+          "prob_better_if_wait": 0.55,
+          "lean": "wait",
+          "strength": "clear",
+          "confidence": "medium"
+        }
+      },
+      "meeting_risks": []
+    }
+  ],
+  "stale_sources": [
+    {
+      "source": "cba_news",
+      "label": "CBA decisions (cba.am, ARKA, Interfax)",
+      "last_success": null,
+      "last_run": "2026-10-21T15:00:20Z",
+      "last_status": "failed",
+      "stale": true,
+      "error": "HTTP 403 from arka.am after 3 retries"
+    }
+  ]
+}

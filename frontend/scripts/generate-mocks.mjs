@@ -1361,3 +1361,179 @@ console.log(
     writeFileSync(file, JSON.stringify(study, null, 2) + "\n");
   }
 }
+
+// --- four more pairs, derived from the generated ones ---------------------------------------------
+// The shapes and percentages come from a template pair; levels are rescaled to each pair's spot.
+// Assumed banks: the CBA for the dram pairs, the Fed for the dollar pairs (no BoE or Bank of Russia
+// in this version). Policy rates for the carry: Bank of England 4.00%, Bank of Russia 16.50%.
+{
+  const NEW_PAIRS = [
+    { id: "RUBAMD", from: "USDAMD", base: "RUB", quote: "AMD", spot: 4.4113, dp: 4, banks: ["CBA"], iBase: 16.5, iQuote: CBA_REFI },
+    { id: "GBPAMD", from: "EURAMD", base: "GBP", quote: "AMD", spot: 484.27, dp: 2, banks: ["CBA"], iBase: 4.0, iQuote: CBA_REFI },
+    { id: "GBPUSD", from: "EURUSD", base: "GBP", quote: "USD", spot: 1.3412, dp: 4, banks: ["FED"], iBase: 4.0, iQuote: FED_MID },
+    { id: "RUBUSD", from: "EURUSD", base: "RUB", quote: "USD", spot: 0.012206, dp: 6, banks: ["FED"], iBase: 16.5, iQuote: FED_MID },
+  ];
+  const read = (name) => JSON.parse(readFileSync(join(OUT, name), "utf8"));
+  const write = (name, data) => writeFileSync(join(OUT, name), JSON.stringify(data, null, 2) + "\n");
+  for (const p of NEW_PAIRS) {
+    const tpl = PAIR_RATES[p.from];
+    const tplLatest = read(`forecast-latest.${p.from}.json`);
+    const k = p.spot / tplLatest.spot;
+    const sc = (v, extra = 1) => (v === null || v === undefined ? v : round(v * k, p.dp + extra));
+    const label = `${p.base}/${p.quote}`;
+    const fromLabel = `${tpl.sell}/${tpl.receive}`;
+    const words = (s) =>
+      typeof s === "string"
+        ? s.split(fromLabel).join(label).split(` ${tpl.sell} `).join(` ${p.base} `).split(`${tpl.sell} `).join(`${p.base} `)
+        : s;
+    const keepBank = (m) => p.banks.includes(m.bank);
+
+    // Rates
+    const rates = read(`rates.${p.from}.json`);
+    write(`rates.${p.id}.json`, {
+      pair: p.id,
+      source: p.quote === "AMD" || p.base === "RUB" ? "frankfurter_cba" : "frankfurter_ecb",
+      rates: rates.rates.map((r) => ({ date: r.date, rate: round(r.rate * k, p.dp) })),
+    });
+
+    // Latest forecast
+    const latest = structuredClone(tplLatest);
+    latest.pair = p.id;
+    latest.spot = round(latest.spot * k, p.dp);
+    latest.stale_sources = p.quote === "AMD" ? latest.stale_sources : [];
+    for (const h of latest.horizons) {
+      h.center = sc(h.center);
+      for (const key of Object.keys(h.bands)) h.bands[key] = h.bands[key].map((v) => sc(v));
+      h.meetings = h.meetings.filter(keepBank);
+      h.meeting_risks = (h.meeting_risks ?? []).filter(keepBank).map((r) => ({ ...r, summary: words(r.summary) }));
+      const d = h.drivers;
+      d.forward_rate = round(latest.spot * (1 + (p.iQuote / 100) * (h.days / 252)) / (1 + (p.iBase / 100) * (h.days / 252)), p.dp + 1);
+      d.rate_diff_bps = round((p.iQuote - p.iBase) * 100, 1);
+      for (const map of ["policy_rates", "last_surprise_bps", "hawkish_score", "days_to_next_meeting"]) {
+        d[map] = Object.fromEntries(Object.entries(d[map] ?? {}).filter(([b]) => p.banks.includes(b)));
+      }
+      d.served_reason = words(d.served_reason);
+      const s = h.signal;
+      if (s) {
+        s.sell = p.base;
+        s.receive = p.quote;
+        s.downside_p10_rate = h.bands["80"][0];
+        s.upside_p90_rate = h.bands["80"][1];
+        s.carry_pct_per_year = round(p.iQuote - p.iBase, 4);
+        s.carry_over_horizon_pct = round((s.carry_pct_per_year * h.days) / 252, 4);
+        s.carry_amount = round((latest.spot * s.carry_over_horizon_pct) / 100, p.dp + 2);
+        s.summary = words(s.summary).replace(/[\d.]+ to [\d.]+/, `${h.bands["80"][0].toFixed(p.dp)} to ${h.bands["80"][1].toFixed(p.dp)}`);
+      }
+      const a = h.ai_view;
+      if (a) {
+        a.center = sc(a.center);
+        a.band80 = a.band80.map((v) => sc(v));
+        a.reasoning = words(a.reasoning);
+        delete a.reasoning_i18n;
+      }
+    }
+    write(`forecast-latest.${p.id}.json`, latest);
+
+    // All candidates of the run
+    const run = read(`forecast-run.${p.from}.json`);
+    run.pair = p.id;
+    for (const r of run.rows) {
+      for (const key of ["spot", "center", "q025", "q10", "q25", "q75", "q90", "q975"]) r[key] = sc(r[key]);
+      r.meetings = r.meetings.filter(keepBank);
+    }
+    write(`forecast-run.${p.id}.json`, run);
+
+    // Backtests (absolute errors scale with the level; ratios and coverage do not)
+    const bt = read(`backtests.${p.from}.json`);
+    bt.pair = p.id;
+    for (const m of bt.metrics) {
+      m.mae = round(m.mae * k, p.dp + 2);
+      m.pinball = round(m.pinball * k, p.dp + 2);
+      if (m.pinball_ref !== null) m.pinball_ref = round(m.pinball_ref * k, p.dp + 2);
+    }
+    bt.event_metrics = (bt.event_metrics ?? []).filter((r) => r.bank === "none" || p.banks.includes(r.bank));
+    if (bt.ai_analysis) {
+      bt.ai_analysis = {
+        ...bt.ai_analysis,
+        headline: words(bt.ai_analysis.headline),
+        for_you: words(bt.ai_analysis.for_you),
+        points: bt.ai_analysis.points.map(words),
+        watch_next: words(bt.ai_analysis.watch_next),
+      };
+      for (const f of ["headline_i18n", "for_you_i18n", "points_i18n", "watch_next_i18n"]) delete bt.ai_analysis[f];
+    }
+    write(`backtests.${p.id}.json`, bt);
+
+    // Meeting study
+    const study = read(`meetings.${p.from}.json`);
+    study.pair = p.id;
+    study.meetings = study.meetings.filter(keepBank);
+    study.banks = study.banks.filter(keepBank);
+    write(`meetings.${p.id}.json`, study);
+  }
+}
+
+// --- translated AI text (the API adds reasoning_i18n and the analysis *_i18n fields) ---------------
+{
+  const R = {
+    1: {
+      hy: "Դրամը վերջին շաբաթվա ընթացքում ամրապնդվել է, և մինչև վաղվա ֆիքսինգը ոչինչ նախատեսված չէ, ուստի ԱԲ-ն սպասում է նույն միտման շարունակությանը, ինչը խոսում է հիմա փոխարկելու օգտին։",
+      ru: "За последнюю неделю драм укрепился, а до завтрашней фиксации ничего не запланировано, поэтому ИИ ждёт продолжения той же тенденции. Это довод в пользу обмена сейчас.",
+    },
+    5: {
+      hy: "ՖՌՀ-ի և ԵԿԲ-ի հոկտեմբերի 28-ի և 29-ի նիստերը ռիսկ են ավելացնում երկու ուղղությամբ էլ։ Մեկ շաբաթվա կտրվածքով ԱԲ-ն հստակ թեքում չի տեսնում։",
+      ru: "Заседания ФРС и ЕЦБ 28 и 29 октября добавляют риск в обе стороны. На горизонте недели ИИ не видит явного перевеса.",
+    },
+    21: {
+      hy: "Ամսվա կտրվածքով ԿԲ-ի մեղմացման միտումը և ԿԲ-ի ու ԵԿԲ-ի տոկոսադրույքների մեծ տարբերությունը վկայում են դրամի թեթև թուլացման մասին, ուստի EUR/AMD-ի ավելի լավ փոխարժեքն ավելի հավանական է, քան ոչ։ Դրամը կայուն է եղել, այնպես որ առավելությունը փոքր է։",
+      ru: "На горизонте месяца курс ЦБ РА на смягчение и большой разрыв между ставками ЦБ РА и ЕЦБ указывают на лёгкое ослабление драма, поэтому более выгодный курс EUR/AMD вероятнее, чем нет. Драм держался устойчиво, так что перевес небольшой.",
+    },
+  };
+  const file = join(OUT, "forecast-latest.EURAMD.json");
+  const latest = JSON.parse(readFileSync(file, "utf8"));
+  for (const h of latest.horizons) {
+    if (h.ai_view && R[h.days]) h.ai_view.reasoning_i18n = { en: h.ai_view.reasoning, ...R[h.days] };
+  }
+  writeFileSync(file, JSON.stringify(latest, null, 2) + "\n");
+
+  const btFile = join(OUT, "backtests.EURAMD.json");
+  const bt = JSON.parse(readFileSync(btFile, "utf8"));
+  const a = bt.ai_analysis;
+  a.headline_i18n = {
+    en: a.headline,
+    hy: "ՖՌՀ-ի որոշումները EUR/AMD-ն շարժում են սովորական օրվանից մոտ 3 անգամ ավելի, և ՖՌՀ-ի շաբաթներին մեկշաբաթյա միջակայքը պահպանվել է դեպքերի միայն 66%-ում։",
+    ru: "Решения ФРС двигают EUR/AMD примерно в 3 раза сильнее обычного дня, а в недели заседаний ФРС недельный диапазон выдержал только 66% исходов.",
+  };
+  a.for_you_i18n = {
+    en: a.for_you,
+    hy: "Եթե եվրոն դրամի եք փոխարկում այս կամ հաջորդ շաբաթ, ՖՌՀ-ի հոկտեմբերի 28-ի և ԵԿԲ-ի հոկտեմբերի 29-ի որոշումները կարող են փոխարժեքն ավելի շատ շարժել, քան ցույց է տալիս միջակայքը։",
+    ru: "Если вы меняете евро на драмы на этой или следующей неделе, решения ФРС 28 октября и ЕЦБ 29 октября могут сдвинуть курс сильнее, чем показывает диапазон.",
+  };
+  a.points_i18n = {
+    en: a.points,
+    hy: [
+      "ՖՌՀ-ի որոշումների շուրջ EUR/AMD-ն շարժվել է սովորական օրվանից մոտ 3 անգամ ավելի, առանց կայուն ուղղության։",
+      "Երբ շաբաթվա ընթացքում ՖՌՀ-ի նիստ կա, 80% միջակայքը պահպանվել է դեպքերի 66%-ում՝ 75-ից 85% թիրախից ցածր։",
+      "ԵԿԲ-ի շաբաթները մոտ էին սովորականին՝ սովորական օրվանից մոտ 1,9 անգամ, և ծածկույթը մնացել է թիրախի սահմաններում։",
+    ],
+    ru: [
+      "Вокруг решений ФРС EUR/AMD двигался примерно в 3 раза сильнее обычного дня, без устойчивого направления.",
+      "Когда на неделе было заседание ФРС, 80% диапазон выдержал 66% исходов, ниже цели от 75 до 85%.",
+      "Недели ЕЦБ были близки к обычным: примерно в 1,9 раза сильнее обычного дня, и покрытие осталось в пределах цели.",
+    ],
+  };
+  a.watch_next_i18n = {
+    en: a.watch_next,
+    hy: "ՖՌՀ-ն և ԵԿԲ-ն որոշում են կայացնում հոկտեմբերի 28-ին և 29-ին՝ մեկշաբաթյա և մեկամսյա հորիզոնների ներսում. հետևեք, թե արդյոք լայնացված միջակայքերը կդիմանան։",
+    ru: "ФРС и ЕЦБ принимают решения 28 и 29 октября, внутри недельного и месячного горизонтов: следите, выдержат ли расширенные диапазоны.",
+  };
+  // The API shape: i18n.{hy,ru} = {headline, for_you, points, watch_next}.
+  a.i18n = Object.fromEntries(
+    ["hy", "ru"].map((l) => [
+      l,
+      { headline: a.headline_i18n[l], for_you: a.for_you_i18n[l], points: a.points_i18n[l], watch_next: a.watch_next_i18n[l] },
+    ]),
+  );
+  for (const f of ["headline_i18n", "for_you_i18n", "points_i18n", "watch_next_i18n"]) delete a[f];
+  writeFileSync(btFile, JSON.stringify(bt, null, 2) + "\n");
+}

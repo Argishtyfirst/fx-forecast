@@ -12,6 +12,7 @@ import { BANK_LABELS, MODEL_LABELS, PAIR_SOURCES, PAIRS } from "../lib/constants
 import { historyWindow } from "../lib/fan";
 import { addDays, fmtDate, fmtRange, fmtRate, fmtShortDate, isoDate } from "../lib/format";
 import { useApi } from "../lib/useApi";
+import { t } from "../i18n";
 import { useAmount, useDebounced, useQuoteGroup } from "../lib/useAmount";
 
 const HORIZON_KEY = "fxf-horizon";
@@ -74,9 +75,9 @@ export function PairView({ pair }: { pair: PairId }) {
       <DataStatus relevant={PAIR_SOURCES[pair]} extraStale={forecast?.stale_sources} />
 
       {latest.error ? (
-        <ErrorState title="Could not load the forecast" error={latest.error} onRetry={latest.reload} />
+        <ErrorState title={t("pair.errForecast")} error={latest.error} onRetry={latest.reload} />
       ) : latest.loading ? (
-        <Loading label="Loading the forecast" height={420} />
+        <Loading label={t("pair.loadingForecast")} height={420} />
       ) : (
         <div className="decision-grid">
           {forecast ? (
@@ -108,11 +109,9 @@ export function PairView({ pair }: { pair: PairId }) {
           ) : (
             <section className="card hero" data-testid="decision-hero" data-lean="none">
               <h1 className="hero-question">
-                Sell {meta.base} for {meta.quote} now?
+                {t("hero.question", { base: meta.base, quote: meta.quote })}
               </h1>
-              <EmptyState title="No forecast yet">
-                The daily pipeline writes the first forecast after the 17:00 CET ingest.
-              </EmptyState>
+              <EmptyState title={t("pair.noForecast")}>{t("pair.noForecastBody")}</EmptyState>
             </section>
           )}
 
@@ -122,17 +121,19 @@ export function PairView({ pair }: { pair: PairId }) {
                 {meta.label}
                 {(forecast || lastRate) && (
                   <span className="card-title-sub">
-                    spot <span className="num">{fmtRate(forecast?.spot ?? lastRate?.rate, meta.decimals)}</span> on{" "}
-                    {fmtShortDate(forecast?.spot_date ?? lastRate?.date ?? "")}
+                    {t("pair.spotOn", {
+                      rate: fmtRate(forecast?.spot ?? lastRate?.rate, meta.decimals),
+                      date: fmtShortDate(forecast?.spot_date ?? lastRate?.date ?? ""),
+                    })}
                   </span>
                 )}
               </h2>
               <FanLegend ai={horizons.some((h) => h.ai_view)} />
             </div>
             {rates.error ? (
-              <ErrorState title="Could not load the rate history" error={rates.error} onRetry={rates.reload} />
+              <ErrorState title={t("pair.errHistory")} error={rates.error} onRetry={rates.reload} />
             ) : rates.loading ? (
-              <Loading label="Loading the chart" height={300} />
+              <Loading label={t("pair.loadingChart")} height={300} />
             ) : (
               <>
                 <FanChart
@@ -143,8 +144,7 @@ export function PairView({ pair }: { pair: PairId }) {
                   selected={forecast ? selected : undefined}
                 />
                 <p className="chart-note">
-                  {meta.sourceLabel}, 90 trading days. The forecast side is drawn at a wider time scale; ticks mark
-                  central bank meetings.
+                  {t("pair.chartNote", { source: meta.sourceLabel })}
                 </p>
                 {forecast && <Disclaimer text={forecast.disclaimer} />}
               </>
@@ -175,25 +175,25 @@ function RangesTable({
   return (
     <section className="card" aria-labelledby="ranges-title" data-testid="ranges">
       <h2 id="ranges-title" className="card-title">
-        Statistical ranges by horizon
+        {t("ranges.title")}
       </h2>
       <div className="table-scroll">
         <table className="table ranges-table">
           <thead>
             <tr>
-              <th scope="col">Horizon</th>
-              <th scope="col">Target</th>
+              <th scope="col">{t("ranges.horizon")}</th>
+              <th scope="col">{t("ranges.target")}</th>
               <th scope="col" className="num-col">
-                80% range
+                {t("ranges.range", { level: 80 })}
               </th>
               <th scope="col" className="num-col">
-                50% range
+                {t("ranges.range", { level: 50 })}
               </th>
               <th scope="col" className="num-col">
-                95% range
+                {t("ranges.range", { level: 95 })}
               </th>
-              <th scope="col">Model</th>
-              <th scope="col">Meetings inside</th>
+              <th scope="col">{t("ranges.model")}</th>
+              <th scope="col">{t("ranges.meetings")}</th>
             </tr>
           </thead>
           <tbody>
@@ -210,19 +210,19 @@ function RangesTable({
                 </th>
                 <td>{fmtDate(h.target_date)}</td>
                 <td className="num num-col" data-testid="range-80">
-                  {h.bands["80"] ? fmtRange(h.bands["80"][0], h.bands["80"][1], decimals) : "n/a"}
+                  {h.bands["80"] ? fmtRange(h.bands["80"][0], h.bands["80"][1], decimals) : t("fmt.na")}
                 </td>
                 <td className="num num-col">
-                  {h.bands["50"] ? fmtRange(h.bands["50"][0], h.bands["50"][1], decimals) : "n/a"}
+                  {h.bands["50"] ? fmtRange(h.bands["50"][0], h.bands["50"][1], decimals) : t("fmt.na")}
                 </td>
                 <td className="num num-col">
-                  {h.bands["95"] ? fmtRange(h.bands["95"][0], h.bands["95"][1], decimals) : "n/a"}
+                  {h.bands["95"] ? fmtRange(h.bands["95"][0], h.bands["95"][1], decimals) : t("fmt.na")}
                 </td>
                 <td>{MODEL_LABELS[h.model] ?? h.model}</td>
                 <td data-testid="range-meetings">
                   {h.meetings.length
                     ? h.meetings.map((m) => `${BANK_LABELS[m.bank] ?? m.bank} ${fmtShortDate(m.date)}`).join(", ")
-                    : "None"}
+                    : t("ranges.none")}
                 </td>
               </tr>
             ))}
@@ -236,20 +236,20 @@ function RangesTable({
 
 function FanLegend({ ai }: { ai: boolean }) {
   return (
-    <ul className="legend" aria-label="Legend">
+    <ul className="legend" aria-label={t("legend.aria")}>
       <li>
         <span className="legend-swatch legend-fan" />
-        Statistical range
+        {t("legend.statRange")}
       </li>
       {ai && (
         <li>
           <span className="legend-line legend-ai" />
-          AI expected path
+          {t("legend.aiPath")}
         </li>
       )}
       <li>
         <span className="legend-line legend-history" />
-        History
+        {t("legend.history")}
       </li>
     </ul>
   );

@@ -27,6 +27,26 @@ import health from "./health.json" with { type: "json" };
 import meetingsEURAMD from "./meetings.EURAMD.json" with { type: "json" };
 import meetingsEURUSD from "./meetings.EURUSD.json" with { type: "json" };
 import meetingsUSDAMD from "./meetings.USDAMD.json" with { type: "json" };
+import backtestsRUBAMD from "./backtests.RUBAMD.json" with { type: "json" };
+import latestRUBAMD from "./forecast-latest.RUBAMD.json" with { type: "json" };
+import runRUBAMD from "./forecast-run.RUBAMD.json" with { type: "json" };
+import meetingsRUBAMD from "./meetings.RUBAMD.json" with { type: "json" };
+import ratesRUBAMD from "./rates.RUBAMD.json" with { type: "json" };
+import backtestsGBPAMD from "./backtests.GBPAMD.json" with { type: "json" };
+import latestGBPAMD from "./forecast-latest.GBPAMD.json" with { type: "json" };
+import runGBPAMD from "./forecast-run.GBPAMD.json" with { type: "json" };
+import meetingsGBPAMD from "./meetings.GBPAMD.json" with { type: "json" };
+import ratesGBPAMD from "./rates.GBPAMD.json" with { type: "json" };
+import backtestsGBPUSD from "./backtests.GBPUSD.json" with { type: "json" };
+import latestGBPUSD from "./forecast-latest.GBPUSD.json" with { type: "json" };
+import runGBPUSD from "./forecast-run.GBPUSD.json" with { type: "json" };
+import meetingsGBPUSD from "./meetings.GBPUSD.json" with { type: "json" };
+import ratesGBPUSD from "./rates.GBPUSD.json" with { type: "json" };
+import backtestsRUBUSD from "./backtests.RUBUSD.json" with { type: "json" };
+import latestRUBUSD from "./forecast-latest.RUBUSD.json" with { type: "json" };
+import runRUBUSD from "./forecast-run.RUBUSD.json" with { type: "json" };
+import meetingsRUBUSD from "./meetings.RUBUSD.json" with { type: "json" };
+import ratesRUBUSD from "./rates.RUBUSD.json" with { type: "json" };
 import { mockQuotes } from "./quotes";
 import pairs from "./pairs.json" with { type: "json" };
 import ratesEURAMD from "./rates.EURAMD.json" with { type: "json" };
@@ -37,19 +57,19 @@ export const fixtures = {
   pairs: pairs as PairsResponse,
   health: health as HealthResponse,
   events: events as unknown as EventsResponse,
-  rates: { EURUSD: ratesEURUSD, USDAMD: ratesUSDAMD, EURAMD: ratesEURAMD } as Record<
+  rates: { EURUSD: ratesEURUSD, USDAMD: ratesUSDAMD, EURAMD: ratesEURAMD, RUBAMD: ratesRUBAMD, GBPAMD: ratesGBPAMD, GBPUSD: ratesGBPUSD, RUBUSD: ratesRUBUSD } as Record<
     string,
     RatesResponse
   >,
-  latest: { EURUSD: latestEURUSD, USDAMD: latestUSDAMD, EURAMD: latestEURAMD } as unknown as Record<
+  latest: { EURUSD: latestEURUSD, USDAMD: latestUSDAMD, EURAMD: latestEURAMD, RUBAMD: latestRUBAMD, GBPAMD: latestGBPAMD, GBPUSD: latestGBPUSD, RUBUSD: latestRUBUSD } as unknown as Record<
     string,
     LatestForecastResponse
   >,
-  run: { EURUSD: runEURUSD, USDAMD: runUSDAMD, EURAMD: runEURAMD } as Record<
+  run: { EURUSD: runEURUSD, USDAMD: runUSDAMD, EURAMD: runEURAMD, RUBAMD: runRUBAMD, GBPAMD: runGBPAMD, GBPUSD: runGBPUSD, RUBUSD: runRUBUSD } as Record<
     string,
     ForecastRunResponse
   >,
-  meetings: { EURUSD: meetingsEURUSD, USDAMD: meetingsUSDAMD, EURAMD: meetingsEURAMD } as Record<
+  meetings: { EURUSD: meetingsEURUSD, USDAMD: meetingsUSDAMD, EURAMD: meetingsEURAMD, RUBAMD: meetingsRUBAMD, GBPAMD: meetingsGBPAMD, GBPUSD: meetingsGBPUSD, RUBUSD: meetingsRUBUSD } as Record<
     string,
     MeetingStudyResponse
   >,
@@ -57,6 +77,10 @@ export const fixtures = {
     EURUSD: backtestsEURUSD,
     USDAMD: backtestsUSDAMD,
     EURAMD: backtestsEURAMD,
+    RUBAMD: backtestsRUBAMD,
+    GBPAMD: backtestsGBPAMD,
+    GBPUSD: backtestsGBPUSD,
+    RUBUSD: backtestsRUBUSD,
   } as Record<string, BacktestResponse>,
 };
 

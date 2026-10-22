@@ -6,7 +6,7 @@
 export type IsoDate = string;
 export type IsoDateTime = string;
 
-export type PairId = "EURUSD" | "USDAMD" | "EURAMD";
+export type PairId = "EURAMD" | "USDAMD" | "RUBAMD" | "GBPAMD" | "EURUSD" | "GBPUSD" | "RUBUSD";
 export type BankId = "FED" | "ECB" | "CBA";
 export type HorizonLabel = "1D" | "1W" | "1M";
 export type BandKey = "50" | "80" | "95";
@@ -163,6 +163,8 @@ export interface AiView {
   strength?: AiStrength;
   confidence: AiConfidence;
   reasoning: string;
+  /** The reasoning in each language, when the API has translated it. */
+  reasoning_i18n?: I18nText | null;
   track_record: AiTrackRecord;
   /** The day of the AI call; on a weekend it is Friday's call, carried over. */
   run_date?: IsoDate;
@@ -337,6 +339,22 @@ export interface AiAnalysisOut {
   points: string[];
   watch_next: string;
   for_you?: string; // what it means for someone converting the base currency
+  // Armenian and Russian versions of the text fields (prompt an-p3 on); English is above.
+  i18n?: Partial<Record<"hy" | "ru", AiAnalysisText>> | null;
+}
+
+export interface AiAnalysisText {
+  headline: string;
+  for_you: string;
+  points: string[];
+  watch_next: string;
+}
+
+/** A text in each UI language: {en, hy, ru}. */
+export interface I18nText {
+  en?: string | null;
+  hy?: string | null;
+  ru?: string | null;
 }
 
 export interface BacktestResponse {

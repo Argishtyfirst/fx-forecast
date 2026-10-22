@@ -3,6 +3,7 @@ import { SOURCE_LABELS, SOURCE_SHORT } from "../lib/constants";
 import { fmtAgo, fmtCompactTime, fmtDateTime } from "../lib/format";
 import { useHealth } from "../lib/health";
 import { WarningIcon } from "./Icons";
+import { t } from "../i18n";
 
 interface DataStatusProps {
   /** Source keys that matter for this view. */
@@ -11,7 +12,8 @@ interface DataStatusProps {
   extraStale?: SourceStatus[];
 }
 
-const labelOf = (s: SourceStatus) => s.label || SOURCE_LABELS[s.source] || s.source;
+// The API's labels are English; the translated name wins when there is one.
+const labelOf = (s: SourceStatus) => SOURCE_LABELS[s.source] ?? (s.label || s.source);
 const shortOf = (s: SourceStatus) => SOURCE_SHORT[s.source] ?? labelOf(s);
 
 /**
@@ -42,22 +44,26 @@ export function DataStatus({ relevant, extraStale = [] }: DataStatusProps) {
     .pop();
 
   let summary: string;
-  if (health?.error && ordered.length === 0) summary = `Source status unavailable: ${health.error.message}`;
-  else if (ordered.length === 0) summary = health?.loading ? "Checking sources…" : "No source status yet";
+  if (health?.error && ordered.length === 0) summary = t("status.unavailable", { error: health.error.message });
+  else if (ordered.length === 0) summary = health?.loading ? t("status.checking") : t("status.none");
   else
-    summary = `Data updated ${fmtCompactTime(latest, now)} · ${
-      stale.length === 0 ? "all sources current" : `${stale.length} of ${ordered.length} sources stale`
-    }`;
+    summary = t("status.summary", {
+      time: fmtCompactTime(latest, now),
+      state:
+        stale.length === 0
+          ? t("status.allCurrent")
+          : t("status.someStale", { count: stale.length, stale: stale.length, total: ordered.length }),
+    });
 
   return (
-    <section className="data-status" aria-label="Data sources">
+    <section className="data-status" aria-label={t("status.aria")}>
       <details className="data-line">
         <summary>
           <span data-testid="data-summary">{summary}</span>
-          {ordered.length > 0 && <span className="data-more">Details</span>}
+          {ordered.length > 0 && <span className="data-more">{t("status.details")}</span>}
         </summary>
         {health?.error && ordered.length > 0 && (
-          <p className="source-missing">Source status unavailable: {health.error.message}</p>
+          <p className="source-missing">{t("status.unavailable", { error: health.error.message })}</p>
         )}
         <ul className="source-list" data-testid="source-list">
           {ordered.map((s) => (
@@ -66,7 +72,9 @@ export function DataStatus({ relevant, extraStale = [] }: DataStatusProps) {
               <time className="source-time num" dateTime={s.last_success ?? undefined}>
                 {fmtCompactTime(s.last_success, now)}
               </time>
-              <span className="source-state">{s.stale ? (s.error ? `stale: ${s.error}` : "stale") : "current"}</span>
+              <span className="source-state">
+                {s.stale ? (s.error ? t("status.staleWith", { error: s.error }) : t("status.stale")) : t("status.current")}
+              </span>
             </li>
           ))}
         </ul>
@@ -81,13 +89,13 @@ export function StaleWarning({ sources, now }: { sources: SourceStatus[]; now: D
     <p className="stale-line" role="status" data-testid="stale-warning">
       <WarningIcon className="stale-icon" size={14} />
       <span>
-        <span className="stale-title">Stale data. </span>
+        <span className="stale-title">{t("status.staleTitle")} </span>
         {sources.map((s, i) => (
           <span key={s.source} data-source={s.source} title={s.error ?? undefined}>
             <strong>{shortOf(s)}</strong>
             {s.last_success ? (
               <>
-                , last successful update{" "}
+                {t("status.lastSuccess")}{" "}
                 <time dateTime={s.last_success} data-testid="stale-last-success">
                   {fmtDateTime(s.last_success)}
                 </time>{" "}
@@ -95,7 +103,7 @@ export function StaleWarning({ sources, now }: { sources: SourceStatus[]; now: D
               </>
             ) : (
               <>
-                , last successful update <span data-testid="stale-last-success">never</span>
+                {t("status.lastSuccess")} <span data-testid="stale-last-success">{t("fmt.never")}</span>
               </>
             )}
             {i < sources.length - 1 ? "; " : "."}

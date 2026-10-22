@@ -8,18 +8,19 @@ import type {
   MeetingStudyResponse,
 } from "../api/types";
 import { BANK_LABELS, HORIZONS, MODEL_LABELS, MODEL_ORDER } from "../lib/constants";
-import { fmtDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
+import { fmtDate, fmtDayMonth, fmtInt, fmtNum, fmtPct, na } from "../lib/format";
+import { getLang, t as tr } from "../i18n";
 import { CheckIcon, CrossIcon } from "./Icons";
 import { ratioWord } from "./MeetingStudy";
 
-const PERIOD: Record<number, string> = { 1: "days", 5: "weeks", 21: "months" };
 const PROVIDER: Record<string, string> = { gemini: "Gemini" };
+const period = (h: number) => tr(`around.period.${h === 1 ? "1D" : h === 5 ? "1W" : "1M"}` as "around.period.1D");
 
 function Verdict({ ok }: { ok: boolean }) {
   return (
     <span className={ok ? "mark mark-pass" : "mark mark-miss"}>
       {ok ? <CheckIcon size={12} /> : <CrossIcon size={12} />}
-      {ok ? "within target" : "misses target"}
+      {ok ? tr("around.within") : tr("around.misses")}
     </span>
   );
 }
@@ -36,8 +37,6 @@ function CoverageDots({ meeting, other }: { meeting: number; other: number | nul
   );
 }
 
-const RANGE_NAME: Record<number, string> = { 1: "1-day", 5: "1-week", 21: "1-month" };
-const PERIOD_SINGULAR: Record<number, string> = { 1: "days", 5: "weeks", 21: "months" };
 
 /** One plain sentence: the bank whose meeting windows strain the served model's 80% range the most. */
 function leadSentence(
@@ -53,10 +52,15 @@ function leadSentence(
   const worst = [...candidates].sort((a, b) => Math.abs(b.cov80 - 0.8) - Math.abs(a.cov80 - 0.8))[0];
   const name = BANK_LABELS[worst.bank] ?? worst.bank;
   const pct = Math.round(worst.cov80 * 100);
-  const target = `the ${Math.round(lo * 100)}% to ${Math.round(hi * 100)}% target`;
+  const vars = { lo: Math.round(lo * 100), hi: Math.round(hi * 100) };
   const verdict =
-    worst.cov80 < lo - 1e-9 ? `below ${target}` : worst.cov80 > hi + 1e-9 ? `above ${target}` : `within ${target}`;
-  return `${name} ${PERIOD_SINGULAR[horizon]}: the ${RANGE_NAME[horizon]} range held ${pct}% of outcomes, ${verdict}.`;
+    worst.cov80 < lo - 1e-9
+      ? tr("around.below", vars)
+      : worst.cov80 > hi + 1e-9
+        ? tr("around.above", vars)
+        : tr("around.inside", vars);
+  const h = horizon === 1 ? "1D" : horizon === 5 ? "1W" : "1M";
+  return tr(`around.lead.${h}` as "around.lead.1D", { bank: name, pct, verdict });
 }
 
 /** "Around meetings, last 12 months": 80% band coverage and error with a meeting inside vs without. */
@@ -84,11 +88,11 @@ export function AroundMeetings({
     <section className="card" aria-labelledby="around-title" data-testid="around-meetings">
       <div className="card-head">
         <h2 id="around-title" className="card-title">
-          Around meetings, last 12 months
+          {tr("around.title")}
         </h2>
         <label className="toggle">
           <input type="checkbox" checked={allModels} onChange={(e) => setAllModels(e.target.checked)} />
-          Show all models
+          {tr("around.allModels")}
         </label>
       </div>
 
@@ -102,16 +106,18 @@ export function AroundMeetings({
         <ul className="around-study">
           {study.banks.map((b) => (
             <li key={b.bank}>
-              {BANK_LABELS[b.bank] ?? b.bank} meetings move {pairLabel}{" "}
-              {b.reaction_ratio === null ? "by an unknown amount" : `${ratioWord(b.reaction_ratio)} a normal day`}
-              {b.n < 10 ? ` (small sample, ${b.n} meetings)` : ""}.
+              {b.reaction_ratio === null
+                ? tr("around.moveUnknown", { bank: BANK_LABELS[b.bank] ?? b.bank, pair: pairLabel })
+                : tr("around.move", { bank: BANK_LABELS[b.bank] ?? b.bank, pair: pairLabel, ratio: ratioWord(b.reaction_ratio) })}
+              {b.n < 10 ? tr("around.small", { count: b.n, n: b.n }) : ""}
+              {tr("fmt.stop")}
             </li>
           ))}
         </ul>
       )}
 
       {eventMetrics.length === 0 ? (
-        <p className="muted small">The around-meetings split appears after the next weekly backtest.</p>
+        <p className="muted small">{tr("around.empty")}</p>
       ) : (
         <div className="around-grid">
           {HORIZONS.map((h) => {
@@ -134,27 +140,27 @@ export function AroundMeetings({
                         {rows
                           .filter((r) => r.bank !== "none")
                           .map((r) => {
-                            const p = PERIOD[h.days];
+                            const p = period(h.days);
                             const name = BANK_LABELS[r.bank] ?? r.bank;
                             return (
                               <li key={r.bank} className="around-row">
                                 <span className="around-text">
-                                  80% band in {name} {p}:{" "}
+                                  {tr("around.bandIn", { bank: name, period: p })}{" "}
                                   <span className="num">
-                                    {fmtPct(r.cov80, 0)} (n {fmtInt(r.n_obs)})
+                                    {fmtPct(r.cov80, 0)} ({tr("around.n", { n: fmtInt(r.n_obs) })})
                                   </span>
                                   {none && (
                                     <>
                                       {" "}
-                                      vs other {p}:{" "}
+                                      {tr("around.vsOther", { period: p })}{" "}
                                       <span className="num">
-                                        {fmtPct(none.cov80, 0)} (n {fmtInt(none.n_obs)})
+                                        {fmtPct(none.cov80, 0)} ({tr("around.n", { n: fmtInt(none.n_obs) })})
                                       </span>
                                     </>
                                   )}
                                   <span className="around-sub">
-                                    Error vs random walk {fmtNum(r.mae_ratio_rw, 2)}
-                                    {none ? `, other ${p} ${fmtNum(none.mae_ratio_rw, 2)}` : ""}
+                                    {tr("around.err", { value: fmtNum(r.mae_ratio_rw, 2) })}
+                                    {none ? tr("around.errOther", { period: p, value: fmtNum(none.mae_ratio_rw, 2) }) : ""}
                                   </span>
                                 </span>
                                 <CoverageDots meeting={r.cov80} other={none?.cov80 ?? null} />
@@ -170,9 +176,9 @@ export function AroundMeetings({
             );
           })}
           <p className="around-key">
-            <span className="covdots-key covdots-key-meeting" /> meeting {""}
-            <span className="covdots-key covdots-key-other" /> other {""}
-            <span className="covdots-key covdots-key-zone" /> target {Math.round(lo * 100)} to {Math.round(hi * 100)}%
+            <span className="covdots-key covdots-key-meeting" /> {tr("around.keyMeeting")}{" "}
+            <span className="covdots-key covdots-key-other" /> {tr("around.keyOther")}{" "}
+            <span className="covdots-key covdots-key-zone" /> {tr("around.keyTarget", { lo: Math.round(lo * 100), hi: Math.round(hi * 100) })}
           </p>
         </div>
       )}
@@ -189,35 +195,34 @@ export function AiRecord({ rows }: { rows: AiTrackRow[] }) {
   return (
     <section className="card" aria-labelledby="ai-record-title" data-testid="ai-record">
       <h2 id="ai-record-title" className="card-title">
-        AI view, live record
+        {tr("air.title")}
       </h2>
       {sorted.length === 0 || !version ? (
-        <p className="ai-record-note">The AI view has not run yet for this pair.</p>
+        <p className="ai-record-note">{tr("air.notRun")}</p>
       ) : !scored ? (
         <p className="ai-record-note">
-          No AI forecasts have reached their date yet; the first 1-day checks arrive tomorrow. Each horizon needs{" "}
-          {fmtInt(required)} scored forecasts before the AI view can be promoted. Model {version}.
+          {tr("air.noneYet", { n: fmtInt(required), model: version })}
         </p>
       ) : (
         <div className="table-scroll">
           <table className="table">
             <thead>
               <tr>
-                <th scope="col">Horizon</th>
+                <th scope="col">{tr("air.horizon")}</th>
                 <th scope="col" className="num-col">
-                  Scored
+                  {tr("air.scored")}
                 </th>
                 <th scope="col" className="num-col">
-                  Hit rate
+                  {tr("air.hit")}
                 </th>
                 <th scope="col" className="num-col">
-                  Brier
-                  <span className="th-sub">0.25 = coin flip</span>
+                  {tr("air.brier")}
+                  <span className="th-sub">{tr("air.coin", { value: fmtNum(0.25, 2) })}</span>
                 </th>
                 <th scope="col" className="num-col">
-                  Error vs random walk
+                  {tr("air.errRw")}
                 </th>
-                <th scope="col">Status</th>
+                <th scope="col">{tr("air.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -228,12 +233,12 @@ export function AiRecord({ rows }: { rows: AiTrackRow[] }) {
                   <tr key={r.horizon_days}>
                     <th scope="row">{label}</th>
                     <td className="num num-col">
-                      {fmtInt(t.n_scored)} of {fmtInt(t.required)}
+                      {tr("air.of", { done: fmtInt(t.n_scored), total: fmtInt(t.required) })}
                     </td>
-                    <td className="num num-col">{t.hit_rate === null ? "n/a" : fmtPct(t.hit_rate, 1)}</td>
-                    <td className="num num-col">{t.brier === null ? "n/a" : fmtNum(t.brier, 3)}</td>
-                    <td className="num num-col">{t.mae_ratio_rw === null ? "n/a" : fmtNum(t.mae_ratio_rw, 3)}</td>
-                    <td>{t.promoted ? <span className="tag tag-info">Proven</span> : "Not yet proven"}</td>
+                    <td className="num num-col">{t.hit_rate === null ? na() : fmtPct(t.hit_rate, 1)}</td>
+                    <td className="num num-col">{t.brier === null ? na() : fmtNum(t.brier, 3)}</td>
+                    <td className="num num-col">{t.mae_ratio_rw === null ? na() : fmtNum(t.mae_ratio_rw, 3)}</td>
+                    <td>{t.promoted ? <span className="tag tag-info">{tr("air.proven")}</span> : tr("air.unproven")}</td>
                   </tr>
                 );
               })}
@@ -260,19 +265,20 @@ function withNumbers(text: string) {
   );
 }
 
-const MONTHS: Record<string, string> = {
-  jan: "Jan", feb: "Feb", mar: "Mar", apr: "Apr", may: "May", jun: "Jun",
-  jul: "Jul", aug: "Aug", sep: "Sep", oct: "Oct", nov: "Nov", dec: "Dec",
-};
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const CHIP_BANK: Record<string, string> = { Fed: "FED", ECB: "ECB", CBA: "CBA" };
 
 /** Meeting chips from text like "The Fed on 28 Oct" or "Fed and ECB decide on 28 and 29 October". */
 export function meetingChips(text: string): string[] {
-  const banks = [...text.matchAll(/\b(Fed|FOMC|ECB|CBA)\b/g)].map((m) => (m[1] === "FOMC" ? "Fed" : m[1]));
+  const banks = [...text.matchAll(/\b(Fed|FOMC|ECB|CBA)\b/g)].map(
+    (m) => BANK_LABELS[CHIP_BANK[m[1] === "FOMC" ? "Fed" : m[1]]] ?? m[1],
+  );
+  const day = (d: string, mon: number) => fmtDayMonth(Number(d), mon);
   const dates: string[] = [];
   for (const m of text.matchAll(/\b(\d{1,2})(?:\s+and\s+(\d{1,2}))?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/gi)) {
-    const mon = MONTHS[m[3].toLowerCase()];
-    dates.push(`${m[1]} ${mon}`);
-    if (m[2]) dates.push(`${m[2]} ${mon}`);
+    const mon = MONTHS.indexOf(m[3].toLowerCase());
+    dates.push(day(m[1], mon));
+    if (m[2]) dates.push(day(m[2], mon));
   }
   if (!dates.length) return [];
   const uniqueBanks = [...new Set(banks)];
@@ -283,37 +289,43 @@ export function meetingChips(text: string): string[] {
 
 /** "AI analysis": Gemini's weekly written reading, built for a five-second read. */
 export function AiAnalysis({ analysis }: { analysis: AiAnalysisOut | null }) {
+  const lang = getLang();
+  const local = lang === "en" ? undefined : analysis?.i18n?.[lang];
+  const points = local?.points?.length ? local.points : (analysis?.points ?? []);
   return (
     <section className="card ai-analysis" aria-labelledby="ai-analysis-title" data-testid="ai-analysis">
       <h2 id="ai-analysis-title" className="card-title">
-        AI analysis
+        {tr("aia.title")}
       </h2>
       {!analysis ? (
-        <p className="ai-record-note">The weekly AI analysis appears after the next weekly run.</p>
+        <p className="ai-record-note">{tr("aia.empty")}</p>
       ) : (
         <>
           <p className="ai-byline">
-            Written by {PROVIDER[analysis.provider] ?? analysis.provider} ({analysis.model}), experimental,{" "}
-            {fmtDate(analysis.run_date)}
+            {tr("aia.byline", {
+              name: PROVIDER[analysis.provider] ?? analysis.provider,
+              model: analysis.model,
+              date: fmtDate(analysis.run_date),
+            })}
           </p>
           <p className="ai-takeaway" data-testid="ai-takeaway">
-            {withNumbers(analysis.headline)}
+            {withNumbers(local?.headline || analysis.headline)}
           </p>
           {analysis.for_you && (
             <p className="ai-for-you" data-testid="ai-for-you">
-              <span className="ai-for-you-label">What it means for you.</span> {analysis.for_you}
+              <span className="ai-for-you-label">{tr("aia.forYou")}</span> {local?.for_you || analysis.for_you}
             </p>
           )}
-          {analysis.points.length > 0 && (
+          {points.length > 0 && (
             <ul className="ai-bullets">
-              {analysis.points.slice(0, 3).map((p) => (
+              {points.slice(0, 3).map((p) => (
                 <li key={p}>{withNumbers(p)}</li>
               ))}
             </ul>
           )}
           {analysis.watch_next && (
             <div className="ai-watch">
-              <span className="ai-watch-label">Watch next</span>
+              <span className="ai-watch-label">{tr("aia.watch")}</span>
               {meetingChips(analysis.watch_next).length > 0 && (
                 <span className="ai-watch-chips">
                   {meetingChips(analysis.watch_next).map((c) => (
@@ -323,7 +335,7 @@ export function AiAnalysis({ analysis }: { analysis: AiAnalysisOut | null }) {
                   ))}
                 </span>
               )}
-              <span className="ai-watch-text">{analysis.watch_next}</span>
+              <span className="ai-watch-text">{local?.watch_next || analysis.watch_next}</span>
             </div>
           )}
         </>

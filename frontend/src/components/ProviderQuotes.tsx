@@ -1,22 +1,45 @@
 import { useState } from "react";
 import type { ProviderQuote, QuoteChannel, QuotesResponse } from "../api/types";
-import { fmtAgo, fmtDateTime, fmtMoney, fmtNum, fmtShortDate } from "../lib/format";
+import { getLang, t } from "../i18n";
+import { fmtAgo, fmtDateTime, fmtMoney, fmtShortDate, fmtSignedPct } from "../lib/format";
 import type { QuoteGroup } from "../lib/useAmount";
 import { ExternalIcon } from "./Icons";
 
-const CHANNEL: Record<QuoteChannel, string> = {
-  cash: "Cash",
-  non_cash: "Card / account",
-  card: "Card / account",
-  online: "In the bank app",
-  transfer: "Transfer",
+const CHANNEL: Record<QuoteChannel, () => string> = {
+  cash: () => t("quote.channel.cash"),
+  non_cash: () => t("quote.channel.account"),
+  card: () => t("quote.channel.account"),
+  online: () => t("quote.channel.online"),
+  transfer: () => t("quote.channel.transfer"),
 };
 const GROUP_CHANNELS: Record<QuoteGroup, QuoteChannel[]> = {
   account: ["non_cash", "online", "card", "transfer"],
   cash: ["cash"],
 };
 
-const signedPct = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${fmtNum(Math.abs(v), 2)}%`;
+const REGION: Record<string, "quote.from.EUR" | "quote.from.USD" | "quote.from.GBP" | "quote.from.RUB"> = {
+  EUR: "quote.from.EUR",
+  USD: "quote.from.USD",
+  GBP: "quote.from.GBP",
+  RUB: "quote.from.RUB",
+};
+
+/**
+ * The provider's note in the active language, built from provider, channel and pair (the API's
+ * notes are English). Unknown English notes are shown only in English.
+ */
+export function quoteNote(q: ProviderQuote, base: string): string | null {
+  const from = t(REGION[base] ?? "quote.from.EUR");
+  if (q.provider === "wise") return t("quote.note.wise", { from });
+  if (q.provider === "paysend") return t("quote.note.paysend", { from });
+  if (q.channel === "online") return t("quote.note.online", { name: q.name });
+  return getLang() === "en" ? q.note : null;
+}
+
+function unavailableReason(provider: string, reason: string): string {
+  if (provider === "revolut") return t("quote.unavailable.revolut");
+  return getLang() === "en" ? reason : t("quote.unavailable.generic");
+}
 
 /**
  * One row per provider within the chosen group (its best channel), fresh quotes first, then by
@@ -38,9 +61,11 @@ export function rankQuotes(quotes: ProviderQuote[], group: QuoteGroup): Provider
 /** "arrives about 28 Oct" for an ISO date; free text without its "Should arrive:" prefix. */
 export function deliveryText(delivery: string | null | undefined): string | null {
   if (!delivery) return null;
-  if (/^\d{4}-\d{2}-\d{2}/.test(delivery)) return `arrives about ${fmtShortDate(delivery.slice(0, 10))}`;
-  const t = delivery.replace(/^\s*should arrive:\s*/i, "").trim();
-  return t ? t.charAt(0).toLowerCase() + t.slice(1) : null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(delivery)) return t("quote.arrives", { date: fmtShortDate(delivery.slice(0, 10)) });
+  const text = delivery.replace(/^\s*should arrive:\s*/i, "").trim();
+  if (!text) return null;
+  if (/few minutes/i.test(text)) return t("quote.minutes");
+  return getLang() === "en" ? text.charAt(0).toLowerCase() + text.slice(1) : null;
 }
 
 interface ProviderQuotesProps {
@@ -69,18 +94,18 @@ export function ProviderQuotes({ data, loading, error, amount, base, group, onGr
   return (
     <section className="card quotes" aria-labelledby="quotes-title" data-testid="provider-quotes">
       <h2 id="quotes-title" className="card-title">
-        Best place to convert today
+        {t("quote.title")}
       </h2>
       <p className="quotes-sub">
-        For {amountText}. Indicative rates, check with the provider before converting
-        {data?.as_of ? `. Updated ${fmtDateTime(data.as_of)}` : ""}.
+        {t("quote.sub", { amount: amountText })}
+        {data?.as_of ? ` ${t("quote.updated", { time: fmtDateTime(data.as_of) })}` : ""}
       </p>
 
-      <div className="segmented" role="group" aria-label="Where your money is">
+      <div className="segmented" role="group" aria-label={t("quote.groupAria")}>
         {(
           [
-            ["account", "Money on an account"],
-            ["cash", "Cash"],
+            ["account", t("quote.group.account")],
+            ["cash", t("quote.group.cash")],
           ] as const
         ).map(([g, label]) => (
           <button
@@ -100,7 +125,7 @@ export function ProviderQuotes({ data, loading, error, amount, base, group, onGr
 
       {error ? (
         <p className="quotes-note" role="alert">
-          Provider rates could not be loaded right now.
+          {t("quote.error")}
         </p>
       ) : !data && loading ? (
         <ul className="quotes-list" aria-busy="true">
@@ -112,25 +137,25 @@ export function ProviderQuotes({ data, loading, error, amount, base, group, onGr
           ))}
         </ul>
       ) : ranked.length === 0 ? (
-        <p className="quotes-note">Provider rates are not available yet.</p>
+        <p className="quotes-note">{t("quote.empty")}</p>
       ) : (
         <>
           <ul className={loading ? "quotes-list is-refreshing" : "quotes-list"} data-testid="quotes-list">
             {shown.map((q, i) => (
-              <QuoteRow key={`${q.provider}-${q.channel}`} q={q} best={i === 0} quote={quote} now={now} />
+              <QuoteRow key={`${q.provider}-${q.channel}`} q={q} best={i === 0} quote={quote} base={base} now={now} />
             ))}
           </ul>
           {local.length > 3 && (
             <button type="button" className="link-button" onClick={() => setAll((a) => !a)} aria-expanded={all}>
-              {all ? "Show the top 3" : `Show all ${local.length}`}
+              {all ? t("quote.showTop") : t("quote.showAll", { count: local.length })}
             </button>
           )}
           {abroad.length > 0 && (
             <>
-              <p className="quotes-group-title">Sending from abroad</p>
+              <p className="quotes-group-title">{t("quote.abroadTitle")}</p>
               <ul className="quotes-list" data-testid="quotes-abroad">
                 {abroad.map((q) => (
-                  <QuoteRow key={`${q.provider}-${q.channel}`} q={q} best={false} quote={quote} now={now} />
+                  <QuoteRow key={`${q.provider}-${q.channel}`} q={q} best={false} quote={quote} base={base} now={now} />
                 ))}
               </ul>
             </>
@@ -146,16 +171,17 @@ export function ProviderQuotes({ data, loading, error, amount, base, group, onGr
           ) : (
             u.name
           )}
-          : {u.reason}
+          : {unavailableReason(u.provider, u.reason)}
         </p>
       ))}
-      {data?.disclaimer && <p className="quotes-disclaimer">{data.disclaimer}</p>}
+      {data && <p className="quotes-disclaimer">{t("quote.disclaimer")}</p>}
     </section>
   );
 }
 
-function QuoteRow({ q, best, quote, now }: { q: ProviderQuote; best: boolean; quote: string; now: Date }) {
+function QuoteRow({ q, best, quote, base, now }: { q: ProviderQuote; best: boolean; quote: string; base: string; now: Date }) {
   const arrives = deliveryText(q.delivery);
+  const note = quoteNote(q, base);
   return (
     <li className={best ? "quote-row is-best" : "quote-row"}>
       <div className="quote-who">
@@ -167,19 +193,19 @@ function QuoteRow({ q, best, quote, now }: { q: ProviderQuote; best: boolean; qu
           ) : (
             <span className="quote-name">{q.name}</span>
           )}
-          {q.kind === "transfer" && <span className="tag quote-abroad">From abroad</span>}
+          {q.kind === "transfer" && <span className="tag quote-abroad">{t("quote.fromAbroad")}</span>}
         </span>
         <span className="quote-meta">
-          {CHANNEL[q.channel] ?? q.channel}
+          {CHANNEL[q.channel]?.() ?? q.channel}
           {arrives ? `, ${arrives}` : ""}
         </span>
-        {q.note && <span className="quote-note">{q.note}</span>}
+        {note && <span className="quote-note">{note}</span>}
       </div>
       <div className="quote-what">
         <span className="quote-net num">{fmtMoney(q.net, quote)}</span>
         <span className="quote-meta num">
-          {q.vs_reference_pct !== null ? `${signedPct(q.vs_reference_pct)} vs CBA, ` : ""}
-          {q.stale ? `stale, ${fmtAgo(q.fetched_at, now)}` : fmtAgo(q.fetched_at, now)}
+          {q.vs_reference_pct !== null ? `${t("quote.vsCba", { pct: fmtSignedPct(q.vs_reference_pct) })}, ` : ""}
+          {q.stale ? t("quote.staleAgo", { ago: fmtAgo(q.fetched_at, now) }) : fmtAgo(q.fetched_at, now)}
         </span>
       </div>
     </li>

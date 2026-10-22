@@ -1,0 +1,1090 @@
+{
+  "pair": "GBPAMD",
+  "as_of": "2026-10-21",
+  "lookback_days": 365,
+  "window_days": 5,
+  "banks": [
+    {
+      "bank": "CBA",
+      "n": 8,
+      "mean_abs_reaction_pct": 0.29,
+      "normal_abs_move_pct": 0.193,
+      "reaction_ratio": 1.5,
+      "mean_run_up_pct": 0.094,
+      "mean_follow_pct": -0.03,
+      "n_signed": 5,
+      "consistency": 0.8,
+      "correlation": 0.707,
+      "typical_path": [
+        {
+          "offset": -10,
+          "mean_abs_pct": 0.214,
+          "meetings": 8
+        },
+        {
+          "offset": -9,
+          "mean_abs_pct": 0.221,
+          "meetings": 8
+        },
+        {
+          "offset": -8,
+          "mean_abs_pct": 0.192,
+          "meetings": 8
+        },
+        {
+          "offset": -7,
+          "mean_abs_pct": 0.183,
+          "meetings": 8
+        },
+        {
+          "offset": -6,
+          "mean_abs_pct": 0.172,
+          "meetings": 8
+        },
+        {
+          "offset": -5,
+          "mean_abs_pct": 0.206,
+          "meetings": 8
+        },
+        {
+          "offset": -4,
+          "mean_abs_pct": 0.155,
+          "meetings": 8
+        },
+        {
+          "offset": -3,
+          "mean_abs_pct": 0.098,
+          "meetings": 8
+        },
+        {
+          "offset": -2,
+          "mean_abs_pct": 0.072,
+          "meetings": 8
+        },
+        {
+          "offset": -1,
+          "mean_abs_pct": 0.035,
+          "meetings": 8
+        },
+        {
+          "offset": 0,
+          "mean_abs_pct": 0,
+          "meetings": 8
+        },
+        {
+          "offset": 1,
+          "mean_abs_pct": 0.29,
+          "meetings": 8
+        },
+        {
+          "offset": 2,
+          "mean_abs_pct": 0.31,
+          "meetings": 8
+        },
+        {
+          "offset": 3,
+          "mean_abs_pct": 0.338,
+          "meetings": 8
+        },
+        {
+          "offset": 4,
+          "mean_abs_pct": 0.346,
+          "meetings": 8
+        },
+        {
+          "offset": 5,
+          "mean_abs_pct": 0.406,
+          "meetings": 8
+        },
+        {
+          "offset": 6,
+          "mean_abs_pct": 0.419,
+          "meetings": 8
+        },
+        {
+          "offset": 7,
+          "mean_abs_pct": 0.432,
+          "meetings": 8
+        },
+        {
+          "offset": 8,
+          "mean_abs_pct": 0.433,
+          "meetings": 8
+        },
+        {
+          "offset": 9,
+          "mean_abs_pct": 0.391,
+          "meetings": 8
+        },
+        {
+          "offset": 10,
+          "mean_abs_pct": 0.368,
+          "meetings": 8
+        }
+      ]
+    }
+  ],
+  "meetings": [
+    {
+      "bank": "CBA",
+      "date": "2026-10-06",
+      "surprise_bps": -25,
+      "hawkish_score": -0.45,
+      "rate_change_bps": -25,
+      "run_up_pct": 0.027,
+      "reaction_pct": -0.269,
+      "follow_pct": null,
+      "expected_sign": -1,
+      "signal": -1,
+      "followed": false,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-09-22",
+          "pct": -0.154
+        },
+        {
+          "offset": -9,
+          "date": "2026-09-23",
+          "pct": -0.222
+        },
+        {
+          "offset": -8,
+          "date": "2026-09-24",
+          "pct": -0.163
+        },
+        {
+          "offset": -7,
+          "date": "2026-09-25",
+          "pct": -0.091
+        },
+        {
+          "offset": -6,
+          "date": "2026-09-28",
+          "pct": -0.112
+        },
+        {
+          "offset": -5,
+          "date": "2026-09-29",
+          "pct": -0.027
+        },
+        {
+          "offset": -4,
+          "date": "2026-09-30",
+          "pct": -0.07
+        },
+        {
+          "offset": -3,
+          "date": "2026-10-01",
+          "pct": -0.02
+        },
+        {
+          "offset": -2,
+          "date": "2026-10-02",
+          "pct": -0.055
+        },
+        {
+          "offset": -1,
+          "date": "2026-10-05",
+          "pct": -0.023
+        },
+        {
+          "offset": 0,
+          "date": "2026-10-06",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-10-07",
+          "pct": -0.269
+        },
+        {
+          "offset": 2,
+          "date": "2026-10-08",
+          "pct": -0.24
+        },
+        {
+          "offset": 3,
+          "date": "2026-10-09",
+          "pct": -0.284
+        },
+        {
+          "offset": 4,
+          "date": "2026-10-12",
+          "pct": -0.202
+        },
+        {
+          "offset": 5,
+          "date": "2026-10-13",
+          "pct": -0.29
+        },
+        {
+          "offset": 6,
+          "date": "2026-10-14",
+          "pct": -0.288
+        },
+        {
+          "offset": 7,
+          "date": "2026-10-15",
+          "pct": -0.246
+        },
+        {
+          "offset": 8,
+          "date": "2026-10-16",
+          "pct": -0.328
+        },
+        {
+          "offset": 9,
+          "date": "2026-10-19",
+          "pct": -0.28
+        },
+        {
+          "offset": 10,
+          "date": "2026-10-20",
+          "pct": -0.33
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-07-28",
+      "surprise_bps": 0,
+      "hawkish_score": 0.05,
+      "rate_change_bps": 0,
+      "run_up_pct": 0.299,
+      "reaction_pct": 0.391,
+      "follow_pct": -0.057,
+      "expected_sign": -1,
+      "signal": 0,
+      "followed": null,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-07-14",
+          "pct": -0.455
+        },
+        {
+          "offset": -9,
+          "date": "2026-07-15",
+          "pct": -0.482
+        },
+        {
+          "offset": -8,
+          "date": "2026-07-16",
+          "pct": -0.429
+        },
+        {
+          "offset": -7,
+          "date": "2026-07-17",
+          "pct": -0.416
+        },
+        {
+          "offset": -6,
+          "date": "2026-07-20",
+          "pct": -0.426
+        },
+        {
+          "offset": -5,
+          "date": "2026-07-21",
+          "pct": -0.299
+        },
+        {
+          "offset": -4,
+          "date": "2026-07-22",
+          "pct": -0.234
+        },
+        {
+          "offset": -3,
+          "date": "2026-07-23",
+          "pct": -0.185
+        },
+        {
+          "offset": -2,
+          "date": "2026-07-24",
+          "pct": -0.157
+        },
+        {
+          "offset": -1,
+          "date": "2026-07-27",
+          "pct": -0.013
+        },
+        {
+          "offset": 0,
+          "date": "2026-07-28",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-07-29",
+          "pct": 0.391
+        },
+        {
+          "offset": 2,
+          "date": "2026-07-30",
+          "pct": 0.453
+        },
+        {
+          "offset": 3,
+          "date": "2026-07-31",
+          "pct": 0.342
+        },
+        {
+          "offset": 4,
+          "date": "2026-08-03",
+          "pct": 0.264
+        },
+        {
+          "offset": 5,
+          "date": "2026-08-04",
+          "pct": 0.368
+        },
+        {
+          "offset": 6,
+          "date": "2026-08-05",
+          "pct": 0.272
+        },
+        {
+          "offset": 7,
+          "date": "2026-08-06",
+          "pct": 0.24
+        },
+        {
+          "offset": 8,
+          "date": "2026-08-07",
+          "pct": 0.32
+        },
+        {
+          "offset": 9,
+          "date": "2026-08-10",
+          "pct": 0.293
+        },
+        {
+          "offset": 10,
+          "date": "2026-08-11",
+          "pct": 0.206
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-06-09",
+      "surprise_bps": -0.6,
+      "hawkish_score": -0.12,
+      "rate_change_bps": 0,
+      "run_up_pct": -0.094,
+      "reaction_pct": -0.127,
+      "follow_pct": 0.134,
+      "expected_sign": -1,
+      "signal": 0,
+      "followed": null,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-05-26",
+          "pct": 0.313
+        },
+        {
+          "offset": -9,
+          "date": "2026-05-27",
+          "pct": 0.223
+        },
+        {
+          "offset": -8,
+          "date": "2026-05-28",
+          "pct": 0.153
+        },
+        {
+          "offset": -7,
+          "date": "2026-05-29",
+          "pct": 0.078
+        },
+        {
+          "offset": -6,
+          "date": "2026-06-01",
+          "pct": 0.012
+        },
+        {
+          "offset": -5,
+          "date": "2026-06-02",
+          "pct": 0.094
+        },
+        {
+          "offset": -4,
+          "date": "2026-06-03",
+          "pct": 0.112
+        },
+        {
+          "offset": -3,
+          "date": "2026-06-04",
+          "pct": 0.084
+        },
+        {
+          "offset": -2,
+          "date": "2026-06-05",
+          "pct": 0.038
+        },
+        {
+          "offset": -1,
+          "date": "2026-06-08",
+          "pct": -0.062
+        },
+        {
+          "offset": 0,
+          "date": "2026-06-09",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-06-10",
+          "pct": -0.127
+        },
+        {
+          "offset": 2,
+          "date": "2026-06-11",
+          "pct": -0.135
+        },
+        {
+          "offset": 3,
+          "date": "2026-06-12",
+          "pct": -0.058
+        },
+        {
+          "offset": 4,
+          "date": "2026-06-15",
+          "pct": -0.012
+        },
+        {
+          "offset": 5,
+          "date": "2026-06-16",
+          "pct": -0.002
+        },
+        {
+          "offset": 6,
+          "date": "2026-06-17",
+          "pct": -0.024
+        },
+        {
+          "offset": 7,
+          "date": "2026-06-18",
+          "pct": -0.106
+        },
+        {
+          "offset": 8,
+          "date": "2026-06-19",
+          "pct": -0.117
+        },
+        {
+          "offset": 9,
+          "date": "2026-06-22",
+          "pct": -0.031
+        },
+        {
+          "offset": 10,
+          "date": "2026-06-23",
+          "pct": -0.016
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-04-28",
+      "surprise_bps": -2,
+      "hawkish_score": 0.56,
+      "rate_change_bps": 0,
+      "run_up_pct": -0.096,
+      "reaction_pct": 0.153,
+      "follow_pct": -0.447,
+      "expected_sign": -1,
+      "signal": -1,
+      "followed": true,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-04-14",
+          "pct": 0.083
+        },
+        {
+          "offset": -9,
+          "date": "2026-04-15",
+          "pct": 0.09
+        },
+        {
+          "offset": -8,
+          "date": "2026-04-16",
+          "pct": 0.001
+        },
+        {
+          "offset": -7,
+          "date": "2026-04-17",
+          "pct": 0.046
+        },
+        {
+          "offset": -6,
+          "date": "2026-04-20",
+          "pct": -0.024
+        },
+        {
+          "offset": -5,
+          "date": "2026-04-21",
+          "pct": 0.096
+        },
+        {
+          "offset": -4,
+          "date": "2026-04-22",
+          "pct": 0.068
+        },
+        {
+          "offset": -3,
+          "date": "2026-04-23",
+          "pct": 0.033
+        },
+        {
+          "offset": -2,
+          "date": "2026-04-24",
+          "pct": 0.046
+        },
+        {
+          "offset": -1,
+          "date": "2026-04-27",
+          "pct": -0.013
+        },
+        {
+          "offset": 0,
+          "date": "2026-04-28",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-04-29",
+          "pct": 0.153
+        },
+        {
+          "offset": 2,
+          "date": "2026-04-30",
+          "pct": -0.024
+        },
+        {
+          "offset": 3,
+          "date": "2026-05-01",
+          "pct": -0.064
+        },
+        {
+          "offset": 4,
+          "date": "2026-05-04",
+          "pct": -0.201
+        },
+        {
+          "offset": 5,
+          "date": "2026-05-05",
+          "pct": -0.24
+        },
+        {
+          "offset": 6,
+          "date": "2026-05-06",
+          "pct": -0.364
+        },
+        {
+          "offset": 7,
+          "date": "2026-05-07",
+          "pct": -0.388
+        },
+        {
+          "offset": 8,
+          "date": "2026-05-08",
+          "pct": -0.345
+        },
+        {
+          "offset": 9,
+          "date": "2026-05-11",
+          "pct": -0.315
+        },
+        {
+          "offset": 10,
+          "date": "2026-05-12",
+          "pct": -0.289
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-03-17",
+      "surprise_bps": 1.4,
+      "hawkish_score": -0.32,
+      "rate_change_bps": 0,
+      "run_up_pct": 0.198,
+      "reaction_pct": -0.352,
+      "follow_pct": -0.341,
+      "expected_sign": -1,
+      "signal": 1,
+      "followed": true,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-03-03",
+          "pct": 0.004
+        },
+        {
+          "offset": -9,
+          "date": "2026-03-04",
+          "pct": -0.008
+        },
+        {
+          "offset": -8,
+          "date": "2026-03-05",
+          "pct": -0.025
+        },
+        {
+          "offset": -7,
+          "date": "2026-03-06",
+          "pct": 0.013
+        },
+        {
+          "offset": -6,
+          "date": "2026-03-09",
+          "pct": -0.047
+        },
+        {
+          "offset": -5,
+          "date": "2026-03-10",
+          "pct": -0.198
+        },
+        {
+          "offset": -4,
+          "date": "2026-03-11",
+          "pct": -0.148
+        },
+        {
+          "offset": -3,
+          "date": "2026-03-12",
+          "pct": 0.007
+        },
+        {
+          "offset": -2,
+          "date": "2026-03-13",
+          "pct": 0.001
+        },
+        {
+          "offset": -1,
+          "date": "2026-03-16",
+          "pct": 0.004
+        },
+        {
+          "offset": 0,
+          "date": "2026-03-17",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-03-18",
+          "pct": -0.352
+        },
+        {
+          "offset": 2,
+          "date": "2026-03-19",
+          "pct": -0.443
+        },
+        {
+          "offset": 3,
+          "date": "2026-03-20",
+          "pct": -0.528
+        },
+        {
+          "offset": 4,
+          "date": "2026-03-23",
+          "pct": -0.612
+        },
+        {
+          "offset": 5,
+          "date": "2026-03-24",
+          "pct": -0.657
+        },
+        {
+          "offset": 6,
+          "date": "2026-03-25",
+          "pct": -0.693
+        },
+        {
+          "offset": 7,
+          "date": "2026-03-26",
+          "pct": -0.715
+        },
+        {
+          "offset": 8,
+          "date": "2026-03-27",
+          "pct": -0.632
+        },
+        {
+          "offset": 9,
+          "date": "2026-03-30",
+          "pct": -0.608
+        },
+        {
+          "offset": 10,
+          "date": "2026-03-31",
+          "pct": -0.603
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2026-02-03",
+      "surprise_bps": 2.7,
+      "hawkish_score": -0.1,
+      "rate_change_bps": 0,
+      "run_up_pct": -0.257,
+      "reaction_pct": -0.308,
+      "follow_pct": 0.454,
+      "expected_sign": -1,
+      "signal": 1,
+      "followed": true,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2026-01-20",
+          "pct": 0.218
+        },
+        {
+          "offset": -9,
+          "date": "2026-01-21",
+          "pct": 0.234
+        },
+        {
+          "offset": -8,
+          "date": "2026-01-22",
+          "pct": 0.18
+        },
+        {
+          "offset": -7,
+          "date": "2026-01-23",
+          "pct": 0.21
+        },
+        {
+          "offset": -6,
+          "date": "2026-01-26",
+          "pct": 0.148
+        },
+        {
+          "offset": -5,
+          "date": "2026-01-27",
+          "pct": 0.257
+        },
+        {
+          "offset": -4,
+          "date": "2026-01-28",
+          "pct": 0.126
+        },
+        {
+          "offset": -3,
+          "date": "2026-01-29",
+          "pct": 0.093
+        },
+        {
+          "offset": -2,
+          "date": "2026-01-30",
+          "pct": 0.131
+        },
+        {
+          "offset": -1,
+          "date": "2026-02-02",
+          "pct": 0.06
+        },
+        {
+          "offset": 0,
+          "date": "2026-02-03",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2026-02-04",
+          "pct": -0.308
+        },
+        {
+          "offset": 2,
+          "date": "2026-02-05",
+          "pct": -0.25
+        },
+        {
+          "offset": 3,
+          "date": "2026-02-06",
+          "pct": -0.217
+        },
+        {
+          "offset": 4,
+          "date": "2026-02-09",
+          "pct": -0.068
+        },
+        {
+          "offset": 5,
+          "date": "2026-02-10",
+          "pct": 0.114
+        },
+        {
+          "offset": 6,
+          "date": "2026-02-11",
+          "pct": 0.089
+        },
+        {
+          "offset": 7,
+          "date": "2026-02-12",
+          "pct": 0.172
+        },
+        {
+          "offset": 8,
+          "date": "2026-02-13",
+          "pct": 0.223
+        },
+        {
+          "offset": 9,
+          "date": "2026-02-16",
+          "pct": 0.171
+        },
+        {
+          "offset": 10,
+          "date": "2026-02-17",
+          "pct": 0.108
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2025-12-09",
+      "surprise_bps": -1.5,
+      "hawkish_score": -0.14,
+      "rate_change_bps": 0,
+      "run_up_pct": 0.273,
+      "reaction_pct": 0.345,
+      "follow_pct": 0.435,
+      "expected_sign": -1,
+      "signal": -1,
+      "followed": true,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2025-11-25",
+          "pct": -0.081
+        },
+        {
+          "offset": -9,
+          "date": "2025-11-26",
+          "pct": -0.145
+        },
+        {
+          "offset": -8,
+          "date": "2025-11-27",
+          "pct": -0.18
+        },
+        {
+          "offset": -7,
+          "date": "2025-11-28",
+          "pct": -0.259
+        },
+        {
+          "offset": -6,
+          "date": "2025-12-01",
+          "pct": -0.221
+        },
+        {
+          "offset": -5,
+          "date": "2025-12-02",
+          "pct": -0.273
+        },
+        {
+          "offset": -4,
+          "date": "2025-12-03",
+          "pct": -0.244
+        },
+        {
+          "offset": -3,
+          "date": "2025-12-04",
+          "pct": -0.204
+        },
+        {
+          "offset": -2,
+          "date": "2025-12-05",
+          "pct": -0.059
+        },
+        {
+          "offset": -1,
+          "date": "2025-12-08",
+          "pct": -0.02
+        },
+        {
+          "offset": 0,
+          "date": "2025-12-09",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2025-12-10",
+          "pct": 0.345
+        },
+        {
+          "offset": 2,
+          "date": "2025-12-11",
+          "pct": 0.42
+        },
+        {
+          "offset": 3,
+          "date": "2025-12-12",
+          "pct": 0.578
+        },
+        {
+          "offset": 4,
+          "date": "2025-12-15",
+          "pct": 0.729
+        },
+        {
+          "offset": 5,
+          "date": "2025-12-16",
+          "pct": 0.823
+        },
+        {
+          "offset": 6,
+          "date": "2025-12-17",
+          "pct": 0.79
+        },
+        {
+          "offset": 7,
+          "date": "2025-12-18",
+          "pct": 0.734
+        },
+        {
+          "offset": 8,
+          "date": "2025-12-19",
+          "pct": 0.645
+        },
+        {
+          "offset": 9,
+          "date": "2025-12-22",
+          "pct": 0.665
+        },
+        {
+          "offset": 10,
+          "date": "2025-12-23",
+          "pct": 0.626
+        }
+      ]
+    },
+    {
+      "bank": "CBA",
+      "date": "2025-10-28",
+      "surprise_bps": -4,
+      "hawkish_score": 0.15,
+      "rate_change_bps": 0,
+      "run_up_pct": 0.404,
+      "reaction_pct": -0.376,
+      "follow_pct": -0.387,
+      "expected_sign": -1,
+      "signal": 0,
+      "followed": null,
+      "path": [
+        {
+          "offset": -10,
+          "date": "2025-10-14",
+          "pct": -0.402
+        },
+        {
+          "offset": -9,
+          "date": "2025-10-15",
+          "pct": -0.361
+        },
+        {
+          "offset": -8,
+          "date": "2025-10-16",
+          "pct": -0.401
+        },
+        {
+          "offset": -7,
+          "date": "2025-10-17",
+          "pct": -0.355
+        },
+        {
+          "offset": -6,
+          "date": "2025-10-20",
+          "pct": -0.387
+        },
+        {
+          "offset": -5,
+          "date": "2025-10-21",
+          "pct": -0.404
+        },
+        {
+          "offset": -4,
+          "date": "2025-10-22",
+          "pct": -0.236
+        },
+        {
+          "offset": -3,
+          "date": "2025-10-23",
+          "pct": -0.161
+        },
+        {
+          "offset": -2,
+          "date": "2025-10-24",
+          "pct": -0.092
+        },
+        {
+          "offset": -1,
+          "date": "2025-10-27",
+          "pct": -0.088
+        },
+        {
+          "offset": 0,
+          "date": "2025-10-28",
+          "pct": 0
+        },
+        {
+          "offset": 1,
+          "date": "2025-10-29",
+          "pct": -0.376
+        },
+        {
+          "offset": 2,
+          "date": "2025-10-30",
+          "pct": -0.515
+        },
+        {
+          "offset": 3,
+          "date": "2025-10-31",
+          "pct": -0.632
+        },
+        {
+          "offset": 4,
+          "date": "2025-11-03",
+          "pct": -0.678
+        },
+        {
+          "offset": 5,
+          "date": "2025-11-04",
+          "pct": -0.754
+        },
+        {
+          "offset": 6,
+          "date": "2025-11-05",
+          "pct": -0.835
+        },
+        {
+          "offset": 7,
+          "date": "2025-11-06",
+          "pct": -0.854
+        },
+        {
+          "offset": 8,
+          "date": "2025-11-07",
+          "pct": -0.854
+        },
+        {
+          "offset": 9,
+          "date": "2025-11-10",
+          "pct": -0.765
+        },
+        {
+          "offset": 10,
+          "date": "2025-11-11",
+          "pct": -0.768
+        }
+      ]
+    }
+  ],
+  "path_days": 10
+}

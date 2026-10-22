@@ -17,6 +17,8 @@ import {
   titleCase,
 } from "../lib/format";
 import { useApi } from "../lib/useApi";
+import { t } from "../i18n";
+import { fmtNum, fmtSignedPct } from "../lib/format";
 
 interface EventsViewProps {
   pair: PairId;
@@ -24,23 +26,22 @@ interface EventsViewProps {
   onBank: (bank: string | undefined) => void;
 }
 
-const EXPECTED_SOURCE_LABELS: Record<string, string> = {
-  atlanta_fed: "Atlanta Fed market expectation",
-  atlanta_fed_mpt: "Atlanta Fed market expectation",
-  previous_rate: "previous rate, no change",
+const EXPECTED_SOURCE_LABELS: Record<string, () => string> = {
+  atlanta_fed: () => t("events.expAtlanta"),
+  atlanta_fed_mpt: () => t("events.expAtlanta"),
+  previous_rate: () => t("events.expPrevious"),
 };
 
 /** Who scored the statement's tone, in plain words. */
 function scorerLabel(version: string): string {
   const model = version.split("@")[0];
-  if (model.startsWith("lexicon")) return "Scored by word count (fallback until Gemini scores it)";
-  if (model.startsWith("gemini")) return `Scored by Gemini (${model})`;
-  if (model.startsWith("claude")) return `Scored by Claude (${model})`;
-  return `Scored by ${model}`;
+  if (model.startsWith("lexicon")) return t("events.scoredLexicon");
+  if (model.startsWith("gemini")) return t("events.scoredBy", { name: "Gemini", model });
+  if (model.startsWith("claude")) return t("events.scoredBy", { name: "Claude", model });
+  return t("events.scoredByModel", { model });
 }
 
-const signedPct = (v: number | null | undefined) =>
-  v == null ? "n/a" : `${v > 0 ? "+" : v < 0 ? "\u2212" : ""}${Math.abs(v).toFixed(2)}%`;
+const signedPct = (v: number | null | undefined) => fmtSignedPct(v, 2);
 
 export function EventsView({ pair, bank, onBank }: EventsViewProps) {
   const filter = BANKS.find((b) => b === bank?.toUpperCase());
@@ -62,20 +63,19 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
       <DataStatus relevant={EVENT_SOURCES} />
       <section className="view-head">
         <div>
-          <h1 className="view-title">Central bank events</h1>
+          <h1 className="view-title">{t("events.title")}</h1>
           <p className="view-sub">
-            Decisions, surprises and statement changes. {PAIRS[pair].label} follows{" "}
-            {joinWords(pairBanks.map((b) => BANK_LABELS[b]))}.
+            {t("events.sub", { pair: PAIRS[pair].label, banks: joinWords(pairBanks.map((b) => BANK_LABELS[b])) })}
           </p>
         </div>
-        <div className="segmented" role="group" aria-label="Bank filter">
+        <div className="segmented" role="group" aria-label={t("events.filterAria")}>
           <button
             type="button"
             className={!filter ? "seg seg-active" : "seg"}
             aria-pressed={!filter}
             onClick={() => onBank(undefined)}
           >
-            All
+            {t("events.all")}
           </button>
           {BANKS.map((b) => (
             <button
@@ -92,24 +92,24 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
       </section>
 
       {study.error ? (
-        <ErrorState title="Could not load the meeting study" error={study.error} onRetry={study.reload} />
+        <ErrorState title={t("events.errStudy")} error={study.error} onRetry={study.reload} />
       ) : study.loading ? (
-        <Loading label="Loading the meeting study" height={240} />
+        <Loading label={t("events.loadingStudy")} height={240} />
       ) : study.data && study.data.meetings.length > 0 ? (
         <MeetingStudy study={study.data} pairLabel={PAIRS[pair].label} focusBank={filter} />
       ) : (
-        <EmptyState title="No meeting study yet">It appears once a meeting has a fix before and after it.</EmptyState>
+        <EmptyState title={t("events.noStudy")}>{t("events.noStudyBody")}</EmptyState>
       )}
 
       {events.error ? (
-        <ErrorState title="Could not load the events" error={events.error} onRetry={events.reload} />
+        <ErrorState title={t("events.errEvents")} error={events.error} onRetry={events.reload} />
       ) : events.loading ? (
-        <Loading label="Loading central bank events" height={320} />
+        <Loading label={t("events.loadingEvents")} height={320} />
       ) : (
         <div className="events-layout">
           <section className="card" aria-labelledby="upcoming-title">
             <h2 id="upcoming-title" className="card-title">
-              Upcoming meetings
+              {t("events.upcoming")}
             </h2>
             {upcoming.length ? (
               <ul className="upcoming" data-testid="upcoming-list">
@@ -118,13 +118,13 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
                 ))}
               </ul>
             ) : (
-              <EmptyState title="No scheduled meetings stored" />
+              <EmptyState title={t("events.noUpcoming")} />
             )}
           </section>
 
           <section className="card" aria-labelledby="decisions-title">
             <h2 id="decisions-title" className="card-title">
-              Past decisions
+              {t("events.past")}
             </h2>
             {decisions.length ? (
               <ol className="decisions" data-testid="decision-list">
@@ -138,7 +138,7 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
                 ))}
               </ol>
             ) : (
-              <EmptyState title="No decisions recorded yet" />
+              <EmptyState title={t("events.noDecisions")} />
             )}
           </section>
         </div>
@@ -148,7 +148,7 @@ export function EventsView({ pair, bank, onBank }: EventsViewProps) {
 }
 
 function joinWords(items: string[]): string {
-  return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+  return items.length < 2 ? items.join("") : t("fmt.list", { head: items.slice(0, -1).join(", "), last: items[items.length - 1] });
 }
 
 function UpcomingRow({ m }: { m: UpcomingMeeting }) {
@@ -159,21 +159,21 @@ function UpcomingRow({ m }: { m: UpcomingMeeting }) {
         {fmtWeekdayDate(m.date)}
       </time>
       <span className="upcoming-until num">{fmtDaysUntil(m.days_until)}</span>
-      {!m.scheduled && <span className="tag tag-warn">Unscheduled</span>}
+      {!m.scheduled && <span className="tag tag-warn">{t("events.unscheduled")}</span>}
     </li>
   );
 }
 
 function decisionVerb(d: DecisionOut): string {
-  if (d.rate_before == null || d.rate_after == null) return "Decision";
+  if (d.rate_before == null || d.rate_after == null) return t("events.decision");
   const bps = Math.round((d.rate_after - d.rate_before) * 100);
-  if (bps === 0) return "Hold";
-  return bps > 0 ? `Hike ${bps} bps` : `Cut ${-bps} bps`;
+  if (bps === 0) return t("events.hold");
+  return bps > 0 ? t("events.hike", { bps }) : t("events.cut", { bps: -bps });
 }
 
 function followedText(m: MeetingReactionOut): string | null {
-  if (m.followed === true) return "moved the way the surprise or tone implied";
-  if (m.followed === false) return "moved against the surprise or tone";
+  if (m.followed === true) return t("events.followedYes");
+  if (m.followed === false) return t("events.followedNo");
   if (m.expected_sign === 0) return null;
   return null;
 }
@@ -185,15 +185,18 @@ export function pathSentence(m: MeetingReactionOut): string | null {
   const lastPoint = m.path && m.path.length ? m.path[m.path.length - 1] : null;
   if (!lastPoint || lastPoint.offset < 2) return null;
   const e = lastPoint.pct;
-  const later = `${lastPoint.offset} days later`;
-  const abs = (v: number) => `${Math.abs(v).toFixed(2)}%`;
-  if (Math.abs(r) < 0.05) return `Barely moved on the decision; ${signedPct(e)} ${later}.`;
-  const verb = r < 0 ? "Fell" : "Rose";
-  const going = r < 0 ? "kept falling" : "kept rising";
-  if (Math.sign(e) !== Math.sign(r) && Math.abs(e) >= 0.05) return `${verb} ${abs(r)} on the decision, then reversed: ${signedPct(e)} ${later}.`;
-  if (Math.abs(e) > Math.abs(r) + 0.05) return `${verb} ${abs(r)} on the decision and ${going}: ${signedPct(e)} ${later}.`;
-  if (Math.abs(e) < Math.abs(r) - 0.05) return `${verb} ${abs(r)} on the decision, then gave some back: ${signedPct(e)} ${later}.`;
-  return `${verb} ${abs(r)} on the decision and held there: ${signedPct(e)} ${later}.`;
+  const vars = {
+    pct: t("fmt.pct", { value: fmtNum(Math.abs(r), 2) }),
+    end: signedPct(e),
+    count: lastPoint.offset,
+    n: lastPoint.offset,
+  };
+  if (Math.abs(r) < 0.05) return t("path.flat", vars);
+  const dir = r < 0 ? "fell" : "rose";
+  if (Math.sign(e) !== Math.sign(r) && Math.abs(e) >= 0.05) return t(`path.${dir}.reversed`, vars);
+  if (Math.abs(e) > Math.abs(r) + 0.05) return t(`path.${dir}.kept`, vars);
+  if (Math.abs(e) < Math.abs(r) - 0.05) return t(`path.${dir}.gave`, vars);
+  return t(`path.${dir}.held`, vars);
 }
 
 /** A compact sparkline of the pair's path around this decision, 10 trading days each side. */
@@ -215,10 +218,10 @@ function DecisionMove({ m, pairLabel }: { m: MeetingReactionOut; pairLabel: stri
   const reaction = path.find((p) => p.offset === 1);
   const at5 = path.find((p) => p.offset === 5);
   const at10 = path.find((p) => p.offset === 10);
-  const label = `${pairLabel} around this decision: ${sentence ?? ""}`;
+  const label = `${t("events.around", { pair: pairLabel })}: ${sentence ?? ""}`;
   return (
     <div className="decision-move" data-testid="decision-move">
-      <p className="decision-move-title">{pairLabel} around this decision</p>
+      <p className="decision-move-title">{t("events.around", { pair: pairLabel })}</p>
       <div className="decision-spark">
         <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label} className="spark">
           <line className="spark-zero" x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} />
@@ -229,20 +232,20 @@ function DecisionMove({ m, pairLabel }: { m: MeetingReactionOut; pairLabel: stri
         <dl className="spark-ends">
           {at5 && (
             <div>
-              <dt>+5 days</dt>
+              <dt>{t("events.plusDays", { count: 5, n: 5 })}</dt>
               <dd className="num">{signedPct(at5.pct)}</dd>
             </div>
           )}
           {at10 && (
             <div>
-              <dt>+10 days</dt>
+              <dt>{t("events.plusDays", { count: 10, n: 10 })}</dt>
               <dd className="num">{signedPct(at10.pct)}</dd>
             </div>
           )}
         </dl>
       </div>
       {sentence && <p className="decision-move-sentence">{sentence}</p>}
-      {followed && <p className="decision-move-note">The reaction {followed}.</p>}
+      {followed && <p className="decision-move-note">{followed}</p>}
     </div>
   );
 }
@@ -275,16 +278,16 @@ function DecisionItem({ d, pairLabel, move }: { d: DecisionOut; pairLabel: strin
           </dd>
         </div>
         <div>
-          <dt>Expected</dt>
+          <dt>{t("events.expected")}</dt>
           <dd className="num">
             {fmtPercentValue(d.expected, 3)}
             {d.expected_source && (
-              <span className="cell-sub">{EXPECTED_SOURCE_LABELS[d.expected_source] ?? d.expected_source}</span>
+              <span className="cell-sub">{EXPECTED_SOURCE_LABELS[d.expected_source]?.() ?? d.expected_source}</span>
             )}
           </dd>
         </div>
         <div>
-          <dt>Surprise</dt>
+          <dt>{t("events.surprise")}</dt>
           <dd className="num decision-surprise">{fmtBps(d.surprise_bps)}</dd>
         </div>
       </dl>
@@ -305,7 +308,7 @@ function DecisionItem({ d, pairLabel, move }: { d: DecisionOut; pairLabel: strin
       <div className="decision-score">
         <HawkishScale score={d.hawkish_score} compact />
         <div className="decision-reason">
-          <p>{d.hawkish_reason ?? "This statement has not been scored yet."}</p>
+          <p>{d.hawkish_reason ?? t("events.notScored")}</p>
           {d.scorer_version && <p className="scorer">{scorerLabel(d.scorer_version)}</p>}
         </div>
       </div>
@@ -322,27 +325,27 @@ function DecisionItem({ d, pairLabel, move }: { d: DecisionOut; pairLabel: strin
             onClick={() => setOpen((o) => !o)}
           >
             {open ? <MinusIcon size={14} /> : <PlusIcon size={14} />}
-            Statement changes
+            {t("events.changes")}
             <span className="disclosure-count num">
               +{added.length} &minus;{removed.length}
             </span>
           </button>
         ) : (
-          <span className="muted small">No previous statement to compare</span>
+          <span className="muted small">{t("events.noPrevious")}</span>
         )}
         {d.statement_url && (
           <a className="ext-link" href={d.statement_url} target="_blank" rel="noreferrer">
-            Full statement <ExternalIcon size={13} />
+            {t("events.full")} <ExternalIcon size={13} />
           </a>
         )}
       </div>
 
       {diff && open && (
         <div id={diffId} className="diff" data-testid="statement-diff">
-          {removed.length === 0 && added.length === 0 && <p className="muted small">No sentence changed.</p>}
+          {removed.length === 0 && added.length === 0 && <p className="muted small">{t("events.noChange")}</p>}
           {removed.map((s, i) => (
             <p key={`r${i}`} className="diff-line diff-removed">
-              <span className="diff-mark" aria-label="Removed">
+              <span className="diff-mark" aria-label={t("events.removed")}>
                 &minus;
               </span>
               <span>{s}</span>
@@ -350,7 +353,7 @@ function DecisionItem({ d, pairLabel, move }: { d: DecisionOut; pairLabel: strin
           ))}
           {added.map((s, i) => (
             <p key={`a${i}`} className="diff-line diff-added">
-              <span className="diff-mark" aria-label="Added">
+              <span className="diff-mark" aria-label={t("events.added")}>
                 +
               </span>
               <span>{s}</span>

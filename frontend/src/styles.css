@@ -405,6 +405,53 @@ dd {
   margin-bottom: 8px;
 }
 
+/* "I have [EUR] and need [AMD]": two native selects, so phones get the system picker. */
+.pair-picker {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.picker-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.picker-word {
+  white-space: nowrap;
+}
+.picker-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--ink);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 6px 30px 6px 10px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.picker-field select:hover {
+  border-color: var(--accent);
+}
+
+/* EN / ՀԱՅ / РУ: compact, same look as the other segmented controls. */
+.lang-switch .seg {
+  padding: 3px 9px;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  min-width: 34px;
+}
+
 @media (max-width: 640px) {
   .header-top {
     padding-top: 14px;
@@ -417,6 +464,34 @@ dd {
   .header-nav .segmented {
     margin-bottom: 0;
     align-self: flex-start;
+  }
+  /* One row per currency on a phone, selects aligned. */
+  .pair-picker {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 6px 10px;
+    margin-bottom: 0;
+  }
+  .picker-field {
+    display: contents;
+  }
+  .picker-field select {
+    justify-self: start;
+    max-width: 100%;
+  }
+  .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .brand-name {
+    font-size: 18px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions .tag {
+    display: none;
   }
   .tabs {
     margin: 0 -12px;
@@ -684,9 +759,13 @@ dd {
 }
 .source {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
-  white-space: nowrap;
+  gap: 2px 6px;
+  max-width: 100%;
+}
+.source-state {
+  overflow-wrap: anywhere;
 }
 .source-dot {
   width: 6px;

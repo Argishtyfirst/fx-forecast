@@ -1,16 +1,17 @@
+import { t } from "../i18n";
 import { RetryIcon } from "./Icons";
 
-export function Loading({ label = "Loading", height = 160 }: { label?: string; height?: number }) {
+export function Loading({ label, height = 160 }: { label?: string; height?: number }) {
   return (
     <div className="state state-loading" style={{ minHeight: height }} role="status" aria-live="polite">
       <span className="loading-bar" aria-hidden="true" />
-      <span>{label}&hellip;</span>
+      <span>{label ?? t("state.loading")}&hellip;</span>
     </div>
   );
 }
 
 export function ErrorState({
-  title = "Could not load this data",
+  title,
   error,
   onRetry,
 }: {
@@ -20,11 +21,11 @@ export function ErrorState({
 }) {
   return (
     <div className="state state-error" role="alert">
-      <p className="state-title">{title}</p>
+      <p className="state-title">{title ?? t("state.errorTitle")}</p>
       <p className="state-detail">{error.message}</p>
       {onRetry && (
         <button type="button" className="btn btn-quiet" onClick={onRetry}>
-          <RetryIcon size={14} /> Retry
+          <RetryIcon size={14} /> {t("state.retry")}
         </button>
       )}
     </div>

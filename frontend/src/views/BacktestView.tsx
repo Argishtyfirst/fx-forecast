@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, Loading } from "../components/States";
 import { BAND_NOMINAL, HORIZONS, MODEL_LABELS, MODEL_ORDER, PAIR_SOURCES, PAIRS } from "../lib/constants";
 import { fmtDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { useApi } from "../lib/useApi";
+import { t } from "../i18n";
 
 type Verdict = "pass" | "fail" | "na";
 
@@ -45,21 +46,21 @@ export function BacktestView({ pair, window: win, onWindow }: BacktestViewProps)
       <DataStatus relevant={PAIR_SOURCES[pair]} />
       <section className="view-head">
         <div>
-          <h1 className="view-title">Backtest</h1>
+          <h1 className="view-title">{t("bt.title")}</h1>
           <p className="view-sub">
-            {meta.label} &middot; walk-forward against the random walk
+            {t("bt.sub", { pair: meta.label })}
             {runDate && (
               <>
-                {" "}
-                &middot; weekly run <time dateTime={runDate}>{fmtDate(runDate)}</time>
+                {`${t("fmt.stop")} `}
+                {t("bt.weekly")} <time dateTime={runDate}>{fmtDate(runDate)}</time>
               </>
             )}
           </p>
         </div>
-        <div className="segmented" role="group" aria-label="Backtest window">
+        <div className="segmented" role="group" aria-label={t("bt.windowAria")}>
           {[
-            { id: "250d", label: "Last 250 days" },
-            { id: "full", label: "Full history" },
+            { id: "250d", label: t("bt.last250") },
+            { id: "full", label: t("bt.full") },
           ].map((w) => (
             <button
               key={w.id}
@@ -74,29 +75,33 @@ export function BacktestView({ pair, window: win, onWindow }: BacktestViewProps)
         </div>
       </section>
 
-      <section className="targets" aria-label="Targets">
+      <section className="targets" aria-label={t("bt.targetsAria")}>
         <p>
-          <strong>Targets.</strong> Band coverage within &plusmn;{Math.round(targets.coverage_tolerance * 100)} points of
-          nominal. MAE ratio below {fmtNum(targets.mae_ratio, 2)}; a model is promoted below{" "}
-          {fmtNum(targets.promotion_mae_ratio, 2)} with a Diebold-Mariano p-value below {fmtNum(targets.dm_pvalue, 2)} over
-          250 days. Directional hit rate above {fmtPct(targets.hit_rate, 0)}.
+          <strong>{t("bt.targets")}</strong>{" "}
+          {t("bt.targetsText", {
+            tol: Math.round(targets.coverage_tolerance * 100),
+            mae: fmtNum(targets.mae_ratio, 2),
+            promo: fmtNum(targets.promotion_mae_ratio, 2),
+            dm: fmtNum(targets.dm_pvalue, 2),
+            hit: fmtPct(targets.hit_rate, 0),
+          })}
         </p>
         <p className="verdict-key">
           <span className="verdict verdict-pass">
-            <CheckIcon size={13} /> meets target
+            <CheckIcon size={13} /> {t("bt.meets")}
           </span>
           <span className="verdict verdict-fail">
-            <CrossIcon size={13} /> misses target
+            <CrossIcon size={13} /> {t("bt.misses")}
           </span>
         </p>
       </section>
 
       {bt.error ? (
-        <ErrorState title="Could not load the backtest" error={bt.error} onRetry={bt.reload} />
+        <ErrorState title={t("bt.err")} error={bt.error} onRetry={bt.reload} />
       ) : bt.loading ? (
-        <Loading label="Loading backtest metrics" height={360} />
+        <Loading label={t("bt.loading")} height={360} />
       ) : metrics.length === 0 ? (
-        <EmptyState title="No backtest yet">The weekly walk-forward run stores metrics per pair, horizon and model.</EmptyState>
+        <EmptyState title={t("bt.empty")}>{t("bt.emptyBody")}</EmptyState>
       ) : (
         HORIZONS.map((h) => {
           const rows = metrics
@@ -163,34 +168,34 @@ function HorizonBacktest({
         <p className="bt-span">
           {served && (
             <>
-              Served: <strong>{MODEL_LABELS[served.model] ?? served.model}</strong> &middot;{" "}
+              {t("bt.servedLabel")} <strong>{MODEL_LABELS[served.model] ?? served.model}</strong> &middot;{" "}
             </>
           )}
-          <span className="num">{fmtInt(span.n_obs)}</span> forecasts
+          <span className="num">{t("bt.forecasts", { count: span.n_obs, n: fmtInt(span.n_obs) })}</span>
           {span.start_date && span.end_date && (
             <>
               {" "}
-              &middot; {fmtDate(span.start_date)} to {fmtDate(span.end_date)}
+              &middot; {t("fmt.range", { lo: fmtDate(span.start_date), hi: fmtDate(span.end_date) })}
             </>
           )}
         </p>
       </div>
-      <p className="scroll-hint">Scroll the table sideways for every metric.</p>
+      <p className="scroll-hint">{t("bt.scroll")}</p>
       <div className="table-scroll">
         <table className="table bt-table">
           <thead>
             <tr>
-              <th scope="col">Model</th>
+              <th scope="col">{t("ranges.model")}</th>
               <th scope="col" className="num-col">
                 n
               </th>
               <th scope="col" className="num-col">
-                MAE ratio
+                {t("bt.mae")}
                 <span className="th-sub">&lt; {fmtNum(targets.mae_ratio, 2)}</span>
-                <span className="th-sub">promote &lt; {fmtNum(targets.promotion_mae_ratio, 2)}</span>
+                <span className="th-sub">{t("bt.promote", { v: fmtNum(targets.promotion_mae_ratio, 2) })}</span>
               </th>
               <th scope="col" className="num-col">
-                Hit rate
+                {t("bt.hit")}
                 <span className="th-sub">&gt; {fmtPct(targets.hit_rate, 0)}</span>
               </th>
               <th scope="col" className="num-col">
@@ -199,15 +204,15 @@ function HorizonBacktest({
               </th>
               {(["50", "80", "95"] as const).map((b) => (
                 <th key={b} scope="col" className="num-col">
-                  Cov {b}%
+                  {t("bt.cov", { level: b })}
                   <span className="th-sub">
-                    {Math.round((BAND_NOMINAL[b] - tol) * 100)} to {Math.round((BAND_NOMINAL[b] + tol) * 100)}%
+                    {t("bt.covRange", { lo: Math.round((BAND_NOMINAL[b] - tol) * 100), hi: Math.round((BAND_NOMINAL[b] + tol) * 100) })}
                   </span>
                 </th>
               ))}
               <th scope="col" className="num-col">
-                Pinball
-                <span className="th-sub">vs GARCH</span>
+                {t("bt.pinball")}
+                <span className="th-sub">{t("bt.vsGarch")}</span>
               </th>
             </tr>
           </thead>
@@ -222,9 +227,9 @@ function HorizonBacktest({
                       {MODEL_LABELS[r.model] ?? r.model}
                     </span>
                     <span className="badges">
-                      {r.served && <span className="tag tag-info">Served</span>}
-                      {r.promoted && <span className="tag tag-good">Promoted</span>}
-                      {isRw && <span className="tag">Baseline</span>}
+                      {r.served && <span className="tag tag-info">{t("drivers.servedTag")}</span>}
+                      {r.promoted && <span className="tag tag-good">{t("bt.promoted")}</span>}
+                      {isRw && <span className="tag">{t("bt.baseline")}</span>}
                     </span>
                   </th>
                   <td className="num num-col">{fmtInt(r.n_obs)}</td>
@@ -233,16 +238,16 @@ function HorizonBacktest({
                     verdict={isRw ? "na" : r.mae_ratio_rw < targets.mae_ratio ? "pass" : "fail"}
                     note={
                       !isRw && window === "250d" && r.mae_ratio_rw < targets.promotion_mae_ratio
-                        ? `below ${fmtNum(targets.promotion_mae_ratio, 2)}`
+                        ? t("bt.below", { v: fmtNum(targets.promotion_mae_ratio, 2) })
                         : undefined
                     }
                   />
                   <Cell
-                    value={r.hit_rate === null ? "n/a" : fmtPct(r.hit_rate, 1)}
+                    value={r.hit_rate === null ? t("fmt.na") : fmtPct(r.hit_rate, 1)}
                     verdict={r.hit_rate === null ? "na" : r.hit_rate > targets.hit_rate ? "pass" : "fail"}
                   />
                   <Cell
-                    value={r.dm_pvalue === null ? "n/a" : fmtNum(r.dm_pvalue, 2)}
+                    value={r.dm_pvalue === null ? t("fmt.na") : fmtNum(r.dm_pvalue, 2)}
                     verdict={r.dm_pvalue === null ? "na" : r.dm_pvalue < targets.dm_pvalue ? "pass" : "fail"}
                   />
                   <Cell value={fmtPct(r.cov50, 1)} verdict={coverageVerdict(r.cov50, 0.5, tol)} />
@@ -260,7 +265,7 @@ function HorizonBacktest({
           </tbody>
         </table>
       </div>
-      <CoverageChart metrics={rows} tolerance={tol} title={`${label} band coverage against nominal`} />
+      <CoverageChart metrics={rows} tolerance={tol} title={t("bt.covTitle", { label })} />
     </section>
   );
 }
@@ -270,8 +275,8 @@ function Cell({ value, verdict, note }: { value: string; verdict: Verdict; note?
     <td className={`num num-col cell-${verdict}`} data-verdict={verdict}>
       <span className="verdict-cell">
         {value}
-        {verdict === "pass" && <CheckIcon size={13} className="verdict-icon" title="meets target" />}
-        {verdict === "fail" && <CrossIcon size={13} className="verdict-icon" title="misses target" />}
+        {verdict === "pass" && <CheckIcon size={13} className="verdict-icon" title={t("bt.meets")} />}
+        {verdict === "fail" && <CrossIcon size={13} className="verdict-icon" title={t("bt.misses")} />}
       </span>
       {note && <span className="cell-sub">{note}</span>}
     </td>

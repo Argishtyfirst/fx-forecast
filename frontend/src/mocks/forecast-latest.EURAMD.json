@@ -111,6 +111,11 @@
           "lean": "wait",
           "strength": "slight",
           "confidence": "low"
+        },
+        "reasoning_i18n": {
+          "en": "The dram firmed over the last week and nothing is scheduled before tomorrow's fixing, so the AI expects a little more of the same, which argues for converting now.",
+          "hy": "Դրամը վերջին շաբաթվա ընթացքում ամրապնդվել է, և մինչև վաղվա ֆիքսինգը ոչինչ նախատեսված չէ, ուստի ԱԲ-ն սպասում է նույն միտման շարունակությանը, ինչը խոսում է հիմա փոխարկելու օգտին։",
+          "ru": "За последнюю неделю драм укрепился, а до завтрашней фиксации ничего не запланировано, поэтому ИИ ждёт продолжения той же тенденции. Это довод в пользу обмена сейчас."
         }
       },
       "meeting_risks": []
@@ -226,6 +231,11 @@
           "lean": "sell_now",
           "strength": "slight",
           "confidence": "low"
+        },
+        "reasoning_i18n": {
+          "en": "The Fed and ECB meetings on 28 and 29 Oct add risk both ways. The AI sees no clear lean over one week.",
+          "hy": "ՖՌՀ-ի և ԵԿԲ-ի հոկտեմբերի 28-ի և 29-ի նիստերը ռիսկ են ավելացնում երկու ուղղությամբ էլ։ Մեկ շաբաթվա կտրվածքով ԱԲ-ն հստակ թեքում չի տեսնում։",
+          "ru": "Заседания ФРС и ЕЦБ 28 и 29 октября добавляют риск в обе стороны. На горизонте недели ИИ не видит явного перевеса."
         }
       },
       "meeting_risks": [
@@ -357,6 +367,11 @@
           "lean": "wait",
           "strength": "clear",
           "confidence": "medium"
+        },
+        "reasoning_i18n": {
+          "en": "Over a month the CBA's easing bias and the wide CBA-ECB rate gap point to mild dram weakness, so a slightly better EUR/AMD rate is more likely than not. The dram has been resilient, so the edge is small.",
+          "hy": "Ամսվա կտրվածքով ԿԲ-ի մեղմացման միտումը և ԿԲ-ի ու ԵԿԲ-ի տոկոսադրույքների մեծ տարբերությունը վկայում են դրամի թեթև թուլացման մասին, ուստի EUR/AMD-ի ավելի լավ փոխարժեքն ավելի հավանական է, քան ոչ։ Դրամը կայուն է եղել, այնպես որ առավելությունը փոքր է։",
+          "ru": "На горизонте месяца курс ЦБ РА на смягчение и большой разрыв между ставками ЦБ РА и ЕЦБ указывают на лёгкое ослабление драма, поэтому более выгодный курс EUR/AMD вероятнее, чем нет. Драм держался устойчиво, так что перевес небольшой."
         }
       },
       "meeting_risks": [

@@ -1,9 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { HorizonForecast, ProviderQuote } from "../api/types";
 import type { PairMeta } from "../lib/constants";
-import { fmtMoney, fmtNum, fmtRate, fmtShortDate, MAX_AMOUNT, parseAmount } from "../lib/format";
-
-const CURRENCY_WORD: Record<string, string> = { EUR: "euros", USD: "dollars" };
+import { getLang, getLocale, t, tMaybe } from "../i18n";
+import { fmtMoney, fmtRate, fmtShortDate, fmtSignedPct, MAX_AMOUNT, parseAmount } from "../lib/format";
 
 interface ConvertCalculatorProps {
   pair: PairMeta;
@@ -15,7 +14,6 @@ interface ConvertCalculatorProps {
   best: ProviderQuote | null;
 }
 
-const signedPct = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${fmtNum(Math.abs(v), 2)}%`;
 
 /** "My euros in AMD": what a typed amount is worth now, at the best place, and if you wait. */
 export function ConvertCalculator({ pair, horizon, spot, amount, onAmount, best }: ConvertCalculatorProps) {
@@ -28,27 +26,26 @@ export function ConvertCalculator({ pair, horizon, spot, amount, onAmount, best 
     if (!focused.current) setDraft(formatDraft(amount));
   }, [amount, pair.base]);
   const parsed = parseAmount(draft);
-  const hint = !draft.trim()
-    ? "Enter an amount like 1 500"
-    : parsed === null || parsed <= 0
-      ? "Enter an amount like 1 500"
+  const hint =
+    !draft.trim() || parsed === null || parsed <= 0
+      ? t("calc.hintEnter")
       : parsed > MAX_AMOUNT
-        ? "Up to 10 000 000"
+        ? t("calc.hintMax")
         : null;
   const base = pair.base;
   const quote = pair.quote;
   const band = horizon.bands["80"];
   const carry = horizon.signal?.carry_amount ?? null;
   const by = fmtShortDate(horizon.target_date);
-  const refName = quote === "AMD" ? "CBA rate" : "ECB rate";
+  const refName = quote === "AMD" || base === "RUB" ? t("calc.refCba") : t("calc.refEcb");
 
   return (
     <section className="card convert" aria-labelledby="convert-title" data-testid="convert">
       <h2 id="convert-title" className="card-title">
-        My {CURRENCY_WORD[base] ?? base} in {quote}
+        {tMaybe(`calc.title.${base}${quote}`) ?? `${base} → ${quote}`}
       </h2>
       <div className="convert-input">
-        <label htmlFor={inputId}>Amount in {base}</label>
+        <label htmlFor={inputId}>{t("calc.amountIn", { currency: base })}</label>
         <input
           id={inputId}
           type="text"
@@ -79,49 +76,43 @@ export function ConvertCalculator({ pair, horizon, spot, amount, onAmount, best 
 
       <dl className="convert-rows">
         <div data-testid="convert-now">
-          <dt>Now, at the {refName}</dt>
+          <dt>{t("calc.now", { ref: refName })}</dt>
           <dd>
             <span className="convert-value num">{fmtMoney(amount * spot, quote)}</span>
           </dd>
         </div>
         {best && (
           <div data-testid="convert-best">
-            <dt>Best place today</dt>
+            <dt>{t("calc.best")}</dt>
             <dd>
               <span className="convert-value num">{fmtMoney(best.net, quote)}</span>{" "}
               <span className="convert-sub">
-                at {best.name}
-                {best.kind === "transfer" ? " (from abroad)" : ""}
-                {best.vs_reference_pct !== null ? `, ${signedPct(best.vs_reference_pct)} vs the ${refName}` : ""}
+                {t(best.kind === "transfer" ? "calc.atAbroad" : "calc.at", { name: best.name })}
+                {best.vs_reference_pct !== null
+                  ? `, ${t("calc.vsRef", { pct: fmtSignedPct(best.vs_reference_pct), ref: refName })}`
+                  : ""}
               </span>
             </dd>
           </div>
         )}
         {band && (
           <div data-testid="convert-wait">
-            <dt>If you wait until {by}</dt>
-            <dd>
-              Likely between <span className="num">{fmtMoney(amount * band[0], quote)}</span> and{" "}
-              <span className="num">{fmtMoney(amount * band[1], quote)}</span> by {by} (8 in 10 chance)
+            <dt>{t("calc.waitUntil", { date: by })}</dt>
+            <dd className="num">
+              {t("calc.likely", { lo: fmtMoney(amount * band[0], quote), hi: fmtMoney(amount * band[1], quote), date: by })}
             </dd>
           </div>
         )}
         {carry !== null && (
           <div data-testid="convert-carry">
-            <dt>Interest difference</dt>
+            <dt>{t("calc.interest")}</dt>
             <dd>
-              {carry >= 0 ? (
-                <>
-                  Holding {quote} instead of {base} earns about{" "}
-                  <span className="num">{fmtMoney(amount * carry, quote)}</span> more by {by}, at policy rates
-                </>
-              ) : (
-                <>
-                  Holding {base} instead of {quote} earns about{" "}
-                  <span className="num">{fmtMoney(Math.abs(amount * carry), quote)}</span> more by {by}, at policy
-                  rates
-                </>
-              )}
+              {t("calc.carry", {
+                more: carry >= 0 ? quote : base,
+                less: carry >= 0 ? base : quote,
+                amount: fmtMoney(Math.abs(amount * carry), quote),
+                date: by,
+              })}
             </dd>
           </div>
         )}
@@ -130,7 +121,10 @@ export function ConvertCalculator({ pair, horizon, spot, amount, onAmount, best 
   );
 }
 
+/** The amount as an editable string: plain spaces between thousands, the locale's decimal mark. */
 function formatDraft(n: number): string {
-  const [int, dec] = String(Math.round(n * 100) / 100).split(".");
-  return int.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (dec ? `.${dec}` : "");
+  return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 })
+    .formatToParts(n)
+    .map((p) => (p.type === "group" ? " " : p.type === "decimal" && getLang() === "hy" ? "," : p.value))
+    .join("");
 }

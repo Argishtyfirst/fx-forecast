@@ -1,12 +1,13 @@
+import { t } from "../i18n";
 import { fmtNum } from "../lib/format";
 
 export function hawkishLabel(score: number | null | undefined): string {
-  if (score === null || score === undefined) return "Not scored";
-  if (score <= -0.5) return "Dovish";
-  if (score <= -0.15) return "Leaning dovish";
-  if (score < 0.15) return "Neutral";
-  if (score < 0.5) return "Leaning hawkish";
-  return "Hawkish";
+  if (score === null || score === undefined) return t("tone.notScored");
+  if (score <= -0.5) return t("tone.dovish");
+  if (score <= -0.15) return t("tone.leanDovish");
+  if (score < 0.15) return t("tone.neutral");
+  if (score < 0.5) return t("tone.leanHawkish");
+  return t("tone.hawkish");
 }
 
 /** A −1 (dovish) .. +1 (hawkish) scale with the score marked; text carries the value too. */
@@ -15,12 +16,12 @@ export function HawkishScale({ score, compact = false }: { score: number | null 
   const clamped = has ? Math.max(-1, Math.min(1, score as number)) : 0;
   const pos = ((clamped + 1) / 2) * 100;
   const label = hawkishLabel(score);
-  const signed = has ? `${(score as number) > 0 ? "+" : ""}${fmtNum(score as number, 2)}` : "n/a";
+  const signed = has ? `${(score as number) > 0 ? "+" : ""}${fmtNum(score as number, 2)}` : t("fmt.na");
   return (
     <div
       className={compact ? "hscale hscale-compact" : "hscale"}
       role="img"
-      aria-label={has ? `Hawkish score ${signed}, ${label.toLowerCase()}, on a scale from -1 dovish to +1 hawkish` : "Not scored yet"}
+      aria-label={has ? t("tone.aria", { score: signed, label: label.toLowerCase() }) : t("tone.notScoredYet")}
     >
       <div className="hscale-head">
         <span className="hscale-value num">{signed}</span>
@@ -40,9 +41,9 @@ export function HawkishScale({ score, compact = false }: { score: number | null 
       </div>
       {!compact && (
         <div className="hscale-ends" aria-hidden="true">
-          <span>&minus;1 dovish</span>
+          <span>{t("tone.endDove")}</span>
           <span>0</span>
-          <span>hawkish +1</span>
+          <span>{t("tone.endHawk")}</span>
         </div>
       )}
     </div>

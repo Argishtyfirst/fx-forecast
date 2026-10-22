@@ -7,24 +7,24 @@ import type {
   MeetingRiskOut,
   SignalAction,
 } from "../api/types";
-import { BANK_LABELS, MODEL_LABELS, type PairMeta } from "../lib/constants";
-import { addDays, fmtDateTime, fmtDayShort, fmtInt, fmtNum, fmtPct, fmtRate, fmtShortDate } from "../lib/format";
+import { pickText, t } from "../i18n";
+import { BANK_LABELS, CURRENCY_SYMBOL, MODEL_LABELS, type PairMeta } from "../lib/constants";
+import { addDays, fmtDateTime, fmtDayShort, fmtInt, fmtNum, fmtPct, fmtRange, fmtRate, fmtShortDate } from "../lib/format";
 import { verdictText } from "../lib/verdict";
 import { Disclaimer } from "./Disclaimer";
 import { SellNowIcon, SwingIcon, UnclearIcon, WaitIcon } from "./Icons";
 
 /** Plain-word verdicts. Wording carries the answer; the accent and the icon only reinforce it. */
-export const VERDICT: Record<SignalAction, string> = {
-  sell_now: "Sell now",
-  wait: "Wait",
-  no_edge: "No clear answer",
-};
+export const VERDICT: Record<SignalAction, string> = new Proxy({} as Record<SignalAction, string>, {
+  get: (_, k) => (k === "sell_now" || k === "wait" || k === "no_edge" ? t(`verdict.${k}`) : undefined),
+});
 
 /** The horizon control, phrased as the user's need. */
-export const NEED: Record<string, string> = { "1D": "tomorrow", "1W": "within a week", "1M": "within a month" };
+export const NEED: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get: (_, k) => (k === "1D" || k === "1W" || k === "1M" ? t(`need.${k}`) : undefined),
+});
 
-const CURRENCY_SYMBOL: Record<string, string> = { EUR: "€", USD: "$" };
-const pct0 = (p: number) => `${Math.round(p * 100)}%`;
+const pct0 = (p: number) => t("fmt.pct", { value: Math.round(p * 100) });
 const PROVIDER: Record<string, string> = { gemini: "Gemini" };
 
 interface DecisionHeroProps {
@@ -36,21 +36,19 @@ interface DecisionHeroProps {
 
 /** The sentence under the verdict, with the probability turned to the side the verdict favours. */
 export function verdictSentence(ai: AiView | null, h: HorizonForecast): string {
-  if (!ai) return "No model has proven an edge for this horizon.";
-  const by = `by ${fmtShortDate(h.target_date)}`;
+  if (!ai) return t("hero.noEdge");
+  const date = fmtShortDate(h.target_date);
   const p = ai.prob_better_if_wait;
-  const slight = ai.strength === "slight" ? ", a slight lean" : "";
-  if (ai.lean === "sell_now") return `${pct0(1 - p)} chance the rate is lower ${by}${slight}.`;
-  if (ai.lean === "wait") return `${pct0(p)} chance the rate is higher ${by}${slight}.`;
-  return p >= 0.5
-    ? `Close to even: ${pct0(p)} chance the rate is higher ${by}.`
-    : `Close to even: ${pct0(1 - p)} chance the rate is lower ${by}.`;
+  const slight = ai.strength === "slight";
+  if (ai.lean === "sell_now") return t(slight ? "hero.lowerSlight" : "hero.lower", { pct: pct0(1 - p), date });
+  if (ai.lean === "wait") return t(slight ? "hero.higherSlight" : "hero.higher", { pct: pct0(p), date });
+  return p >= 0.5 ? t("hero.evenHigher", { pct: pct0(p), date }) : t("hero.evenLower", { pct: pct0(1 - p), date });
 }
 
 /** The favoured side of a call, e.g. "Wait, 58%" or "Sell now, 54%". */
 function callWords(lean: SignalAction, strength: AiView["strength"], p: number): string {
   const side = lean === "sell_now" ? 1 - p : lean === "wait" ? p : Math.max(p, 1 - p);
-  return `${verdictText(lean, strength)}, ${pct0(side)}`;
+  return t("hero.call", { verdict: verdictText(lean, strength), pct: pct0(side) });
 }
 
 /** "Same call as yesterday (Wait, 58%)." or "Changed since yesterday: was Sell now, 54%." */
@@ -62,51 +60,55 @@ export function previousLine(ai: AiView): string | null {
   // "Yesterday" only when the previous call is the calendar day before this call; weekends and
   // holidays name the day instead.
   const yesterday = ai.run_date !== undefined && prev.run_date === addDays(ai.run_date, -1);
-  const when = yesterday ? "yesterday" : fmtDayShort(prev.run_date);
-  if (same) return yesterday ? `Same call as yesterday (${call}).` : `Same call as on ${when} (${call}).`;
-  return `Changed since ${when}: was ${call}.`;
+  const day = fmtDayShort(prev.run_date);
+  if (same) return yesterday ? t("hero.sameYesterday", { call }) : t("hero.sameOn", { day, call });
+  return yesterday ? t("hero.changedYesterday", { call }) : t("hero.changedOn", { day, call });
 }
 
 /** "AI call from Fri 17 Oct" when the call predates the forecast (a weekend carry-over). */
 function carriedOver(ai: AiView, asOf: string): string | null {
-  return ai.run_date && ai.run_date < asOf ? `AI call from ${fmtDayShort(ai.run_date)}` : null;
+  return ai.run_date && ai.run_date < asOf ? t("hero.carried", { day: fmtDayShort(ai.run_date) }) : null;
 }
 
 export function aiTag(ai: AiView): string {
-  const name = `${PROVIDER[ai.provider] ?? ai.provider} AI view`;
-  const t = ai.track_record;
-  if (t.promoted) return `${name}, proven on ${fmtInt(t.n_scored)} live forecasts`;
-  return `${name}, not yet proven (${fmtInt(Math.min(t.n_scored, t.required))} of ${fmtInt(t.required)} checked)`;
+  const name = PROVIDER[ai.provider] ?? ai.provider;
+  const r = ai.track_record;
+  if (r.promoted) return t("hero.tagProven", { name, count: r.n_scored, n: fmtInt(r.n_scored) });
+  return t("hero.tagUnproven", {
+    name,
+    done: fmtInt(Math.min(r.n_scored, r.required)),
+    total: fmtInt(r.required),
+  });
 }
 
 function trackRecordText(ai: AiView): string {
-  const t = ai.track_record;
+  const r = ai.track_record;
   const parts = [
-    t.n_scored < t.required
-      ? `${fmtInt(t.n_scored)} of ${fmtInt(t.required)} live forecasts checked`
-      : `${fmtInt(t.n_scored)} live forecasts checked`,
+    r.n_scored < r.required
+      ? t("track.checkedOf", { done: fmtInt(r.n_scored), total: fmtInt(r.required) })
+      : t("track.checked", { count: r.n_scored, n: fmtInt(r.n_scored) }),
   ];
-  if (t.n_scored > 0 && t.hit_rate !== null) parts.push(`hit rate ${fmtPct(t.hit_rate, 1)}`);
-  if (t.n_scored > 0 && t.brier !== null) parts.push(`Brier ${fmtNum(t.brier, 3)} (0.25 is a coin flip)`);
+  if (r.n_scored > 0 && r.hit_rate !== null) parts.push(t("track.hit", { pct: fmtPct(r.hit_rate, 1) }));
+  if (r.n_scored > 0 && r.brier !== null) parts.push(t("track.brier", { value: fmtNum(r.brier, 3), coin: fmtNum(0.25, 2) }));
   const head = parts.join(", ");
-  if (t.promoted) return `${head}. Meets the same rule as the statistical models, so it decides the verdict.`;
-  if (t.n_scored >= t.required) return `${head}. Does not meet the promotion rule, so it does not decide the verdict.`;
-  return `${head}. Unproven, so it does not decide the verdict.`;
+  if (r.promoted) return `${head}${t("fmt.stop")} ${t("track.promoted")}`;
+  if (r.n_scored >= r.required) return `${head}${t("fmt.stop")} ${t("track.notPromoted")}`;
+  return `${head}${t("fmt.stop")} ${t("track.unproven")}`;
 }
 
 function statisticalLine(s: ConversionSignal | null, label: string): string {
-  if (!s) return "No statistical signal";
-  if (s.verdict_source === "ai") return "Verdict comes from the promoted AI view";
-  if (s.action === "no_edge") return "No proven edge";
-  return `${VERDICT[s.action]}, ${pct0(s.prob_better_if_wait)} chance of a better rate if you wait ${label}`;
+  if (!s) return t("stat.none");
+  if (s.verdict_source === "ai") return t("stat.fromAi");
+  if (s.action === "no_edge") return t("stat.noEdge");
+  return t("stat.lean", { verdict: VERDICT[s.action], pct: pct0(s.prob_better_if_wait), label });
 }
 
 function interestLine(s: ConversionSignal | null): string | null {
   if (!s || s.carry_pct_per_year === null) return null;
   const year = s.carry_pct_per_year;
-  if (Math.abs(year) < 0.005) return `${s.receive} and ${s.sell} pay about the same`;
+  if (Math.abs(year) < 0.005) return t("hero.interestSame", { a: s.receive, b: s.sell });
   const [more, less] = year > 0 ? [s.receive, s.sell] : [s.sell, s.receive];
-  return `${more} pays ${fmtNum(Math.abs(year), 2)}%/yr more than ${less}`;
+  return t("hero.interest", { more, less, pct: fmtNum(Math.abs(year), 2) });
 }
 
 /**
@@ -124,7 +126,7 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
   const s = h.signal ?? null;
   const lean: SignalAction = ai?.lean ?? "no_edge";
   const sym = CURRENCY_SYMBOL[pair.base] ?? pair.base;
-  const per = `${pair.quote} per ${sym}`;
+  const per = t("hero.per", { quote: pair.quote, sym });
   const lo = s?.downside_p10_rate ?? h.bands["80"]?.[0];
   const hi = s?.upside_p90_rate ?? h.bands["80"]?.[1];
   const interest = interestLine(s);
@@ -135,12 +137,12 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
   return (
     <section className="card hero" aria-labelledby="hero-question" data-testid="decision-hero" data-lean={lean}>
       <h1 id="hero-question" className="hero-question">
-        Sell {pair.base} for {pair.quote} now?
+        {t("hero.question", { base: pair.base, quote: pair.quote })}
       </h1>
 
       <div className="hero-need">
         <span className="hero-need-label" id="need-label">
-          I need {pair.quote}
+          {t("hero.need", { quote: pair.quote })}
         </span>
         <div className="segmented" role="group" aria-labelledby="need-label">
           {horizons.map((x) => (
@@ -173,7 +175,7 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
           {previousLine(ai)}
         </p>
       )}
-      {ai && <p className="verdict-reasoning">{ai.reasoning}</p>}
+      {ai && <p className="verdict-reasoning">{pickText(ai.reasoning_i18n, ai.reasoning)}</p>}
 
       {ai && (
         <div className="hero-meta">
@@ -184,8 +186,8 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
             data-testid="ai-tag"
             aria-expanded={evidenceOpen}
             aria-controls={evidenceId}
-            title={`${ai.model}, generated ${fmtDateTime(ai.generated_at)}, updated once a day${
-              carriedOver(ai, forecast.as_of) ? `. ${carriedOver(ai, forecast.as_of)}` : ""
+            title={`${t("hero.tagTitle", { model: ai.model, time: fmtDateTime(ai.generated_at) })}${
+              carriedOver(ai, forecast.as_of) ? `${t("fmt.stop")} ${carriedOver(ai, forecast.as_of)}` : ""
             }`}
             onClick={() => setEvidenceOpen((o) => !o)}
           >
@@ -197,59 +199,62 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
       {ai && evidenceOpen && (
         <dl className="hero-evidence" id={evidenceId} data-testid="hero-evidence">
           <div>
-            <dt>AI model</dt>
-            <dd>
-              {ai.model}, prompt {ai.prompt_version}
-            </dd>
+            <dt>{t("ev.model")}</dt>
+            <dd>{t("ev.modelValue", { model: ai.model, prompt: ai.prompt_version })}</dd>
           </div>
           <div>
-            <dt>Generated</dt>
+            <dt>{t("ev.generated")}</dt>
             <dd>
-              <time dateTime={ai.generated_at}>{fmtDateTime(ai.generated_at)}</time>, updated once a day
-              {carriedOver(ai, forecast.as_of) && `. ${carriedOver(ai, forecast.as_of)}`}
+              <time dateTime={ai.generated_at}>{fmtDateTime(ai.generated_at)}</time>, {t("ev.onceADay")}
+              {carriedOver(ai, forecast.as_of) && `${t("fmt.stop")} ${carriedOver(ai, forecast.as_of)}`}
               {(ai.revisions ?? 0) > 0 &&
-                `. Revised ${ai.revisions} time${ai.revisions === 1 ? "" : "s"}${
-                  ai.run_date ? ` on ${fmtShortDate(ai.run_date)}` : ""
-                } as new data arrived`}
+                `${t("fmt.stop")} ${t(ai.run_date ? "ev.revisedOn" : "ev.revised", {
+                  count: ai.revisions ?? 0,
+                  date: ai.run_date ? fmtShortDate(ai.run_date) : "",
+                })}`}
             </dd>
           </div>
           <div>
-            <dt>Live track record</dt>
+            <dt>{t("ev.track")}</dt>
             <dd data-testid="ai-track">{trackRecordText(ai)}</dd>
           </div>
           <div>
-            <dt>AI expected rate</dt>
+            <dt>{t("ev.expected")}</dt>
             <dd className="num">
-              {fmtRate(ai.center, pair.decimals)} {per} by {fmtShortDate(h.target_date)} (80% range{" "}
-              {fmtRate(ai.band80[0], pair.decimals)} to {fmtRate(ai.band80[1], pair.decimals)})
+              {t("ev.expectedValue", {
+                rate: fmtRate(ai.center, pair.decimals),
+                per,
+                date: fmtShortDate(h.target_date),
+                lo: fmtRate(ai.band80[0], pair.decimals),
+                hi: fmtRate(ai.band80[1], pair.decimals),
+              })}
             </dd>
           </div>
           {s && (
             <div>
-              <dt>Statistical models</dt>
+              <dt>{t("ev.stat")}</dt>
               <dd>
-                {MODEL_LABELS[s.model] ?? s.model}; {s.model_beats_random_walk ? "beats" : "does not beat"} the random
-                walk over {fmtInt(s.n_obs)} backtest forecasts
+                {t(s.model_beats_random_walk ? "ev.statBeats" : "ev.statNotBeats", {
+                  model: MODEL_LABELS[s.model] ?? s.model,
+                  n: fmtInt(s.n_obs),
+                })}
               </dd>
             </div>
           )}
         </dl>
       )}
 
-      {risks.length > 0 && <MeetingsInWindow risks={risks} days={h.days} />}
+      {risks.length > 0 && <MeetingsInWindow risks={risks} days={h.days} pairLabel={pair.label} />}
 
       <dl className="facts" data-testid="facts">
         {lo !== undefined && hi !== undefined && (
           <div data-testid="fact-wait">
-            <dt>If you wait</dt>
+            <dt>{t("fact.wait")}</dt>
             <dd>
-              <span className="num">
-                {fmtRate(lo, pair.decimals)} to {fmtRate(hi, pair.decimals)}
-              </span>{" "}
-              {per}, 80% range
+              <span className="num">{t("fact.waitValue", { range: fmtRange(lo, hi, pair.decimals), per })}</span>
               {wider.length > 0 && (
                 <span className="fact-wider">
-                  , likely wider around the {wider.join(" and ")} meeting{wider.length > 1 ? "s" : ""}
+                  , {t("fact.wider", { count: wider.length, banks: wider.join(t("fmt.and")) })}
                 </span>
               )}
             </dd>
@@ -257,12 +262,12 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
         )}
         {interest && (
           <div data-testid="fact-interest">
-            <dt>Interest, at policy rates</dt>
+            <dt>{t("fact.interest")}</dt>
             <dd>{interest}</dd>
           </div>
         )}
         <div data-testid="fact-stat">
-          <dt>Statistical models</dt>
+          <dt>{t("fact.stat")}</dt>
           <dd>{statisticalLine(s, h.label)}</dd>
         </div>
       </dl>
@@ -271,25 +276,34 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
   );
 }
 
-const PERIOD: Record<number, string> = { 1: "days", 5: "weeks", 21: "months" };
-
-function lastSentence(text: string): string {
-  const parts = text.split(/(?<=\.)\s+/).filter(Boolean);
-  return parts[parts.length - 1] ?? text;
+/** The meeting-risk sentence, built from the structured fields (the API's summary is English). */
+export function meetingRiskText(r: MeetingRiskOut, pairLabel: string, days: number): string {
+  const bank = BANK_LABELS[r.bank] ?? r.bank;
+  const parts: string[] = [];
+  if (r.reaction_vs_normal !== null)
+    parts.push(
+      t("risk.moved", { bank, pair: pairLabel, ratio: fmtNum(r.reaction_vs_normal, 1), count: r.meetings_last_year, n: r.meetings_last_year }),
+    );
+  if (r.band80_meeting_weeks !== null)
+    parts.push(t(`risk.held.${days === 1 ? "1D" : days === 5 ? "1W" : "1M"}`, { bank, pct: Math.round(r.band80_meeting_weeks * 100) }));
+  parts.push(t(`risk.level.${r.level}`));
+  return parts.join(" ");
 }
 
 /** Meetings inside the chosen window: what last year's data says about each one. */
-function MeetingsInWindow({ risks, days }: { risks: MeetingRiskOut[]; days: number }) {
+function MeetingsInWindow({ risks, days, pairLabel }: { risks: MeetingRiskOut[]; days: number; pairLabel: string }) {
+  const period = days === 1 ? "1D" : days === 5 ? "1W" : "1M";
   return (
-    <section className="window-meetings" aria-label="Meetings in this window" data-testid="window-meetings">
-      <p className="window-meetings-title">Meetings in this window</p>
+    <section className="window-meetings" aria-label={t("risk.title")} data-testid="window-meetings">
+      <p className="window-meetings-title">{t("risk.title")}</p>
       <ul>
         {risks.map((r) => {
           const name = BANK_LABELS[r.bank] ?? r.bank;
           const stats: string[] = [];
-          if (r.reaction_vs_normal !== null) stats.push(`${fmtNum(r.reaction_vs_normal, 1)}x normal day`);
+          if (r.reaction_vs_normal !== null) stats.push(t("risk.statRatio", { ratio: fmtNum(r.reaction_vs_normal, 1) }));
           if (r.band80_meeting_weeks !== null)
-            stats.push(`range held ${Math.round(r.band80_meeting_weeks * 100)}% on ${name} ${PERIOD[days] ?? "weeks"} (target 80%)`);
+            stats.push(t(`risk.statHeld.${period}`, { pct: Math.round(r.band80_meeting_weeks * 100), bank: name }));
+          const full = meetingRiskText(r, pairLabel, days);
           return (
             <li key={`${r.bank}-${r.date}`} className={`window-meeting level-${r.level}`} data-level={r.level}>
               <p className="window-meeting-head">
@@ -298,16 +312,16 @@ function MeetingsInWindow({ risks, days }: { risks: MeetingRiskOut[]; days: numb
                 </span>
                 {r.level === "higher" && (
                   <strong className="window-swing">
-                    <SwingIcon size={14} /> Bigger swing likely
+                    <SwingIcon size={14} /> {t("risk.bigger")}
                   </strong>
                 )}
                 {stats.length > 0 && <span className="window-stats num">{stats.join(", ")}</span>}
               </p>
-              {/* The chip and the stats already carry the first sentences; show the takeaway, keep the
-                  full sentence for screen readers and on hover. */}
-              <p className="window-summary" title={r.summary}>
-                <span aria-hidden="true">{lastSentence(r.summary)}</span>
-                <span className="sr-only">{r.summary}</span>
+              {/* The chip and the stats carry the numbers; show the takeaway, keep the full
+                  sentence for screen readers and on hover. */}
+              <p className="window-summary" title={full}>
+                <span aria-hidden="true">{t(`risk.level.${r.level}`)}</span>
+                <span className="sr-only">{full}</span>
               </p>
             </li>
           );
@@ -320,7 +334,7 @@ function MeetingsInWindow({ risks, days }: { risks: MeetingRiskOut[]; days: numb
 /** A small labelled 3-step meter. The word carries the level; the steps only echo it. */
 function Confidence({ level }: { level: "low" | "medium" | "high" }) {
   const steps = { low: 1, medium: 2, high: 3 }[level];
-  const word = level[0].toUpperCase() + level.slice(1);
+  const word = t(`conf.${level}`);
   return (
     <span className="confidence" data-testid="confidence" data-level={level}>
       <span className="confidence-steps" aria-hidden="true">
@@ -328,7 +342,7 @@ function Confidence({ level }: { level: "low" | "medium" | "high" }) {
           <span key={i} className={i <= steps ? "confidence-step is-on" : "confidence-step"} />
         ))}
       </span>
-      <span>{word} confidence</span>
+      <span>{word}</span>
     </span>
   );
 }
