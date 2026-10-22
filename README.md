@@ -14,7 +14,7 @@ panel. Spec: [docs/SPEC.md](docs/SPEC.md).
 
 | | |
 |---|---|
-| Pairs | EUR/USD (ECB reference rate), USD/AMD and EUR/AMD (CBA daily average) |
+| Pairs | EUR/AMD, USD/AMD, RUB/AMD, GBP/AMD (CBA daily average), EUR/USD and GBP/USD (ECB reference rates), RUB/USD (derived from the CBA's RUB/AMD and USD/AMD) |
 | Horizons | 1, 5 and 21 trading days |
 | Center models | Random walk, forward rate (covered interest parity), LightGBM |
 | Bands | GARCH(1,1) Student-t, event widening for meetings inside the horizon, 1M empirical check, walk-forward calibration |
@@ -159,6 +159,11 @@ requirement, for example `test_fr03_ingest_is_idempotent`.
 
 ## Known limitations
 
+- The Bank of England and the Bank of Russia have policy rates (forward rate, interest
+  difference) but no meeting calendar or statements yet, so GBP and RUB pairs show Fed,
+  ECB and CBA meetings only. The ruble's last year was unusually volatile: its ranges held
+  64 to 80% of outcomes on the last 250 days (full history: 78 to 80%).
+
 - The AI view is unproven until it has 250 scored live forecasts, about a year.
 - On the 250-day window, 50% coverage misses ±5 points in four cells. Every cell is
   within 3 points over the full history.
@@ -176,7 +181,8 @@ requirement, for example `test_fr03_ingest_is_idempotent`.
 
 European Central Bank (reference rates, key rates, €STR, HICP via the ECB Data Portal) ·
 Central Bank of Armenia (AMD rates, policy rates, Board decisions) · FRED, Federal Reserve
-Bank of St. Louis (Fed target range, yields, dollar index, Brent) · Federal Reserve press
+Bank of St. Louis (Fed target range, yields, dollar index, Brent) · Bank of England (Bank
+Rate) · Bank of Russia (key rate, from 2013) · Federal Reserve press
 releases · Federal Reserve Bank of Atlanta Market Probability Tracker · Frankfurter (open
 API for the ECB and CBA daily rates). Where to convert: rate.am (Armenian bank rates),
 Inecobank, Wise (public quote API), Paysend (public corridor pages for euros from Germany

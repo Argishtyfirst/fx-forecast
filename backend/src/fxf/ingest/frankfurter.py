@@ -1,9 +1,9 @@
 """Daily reference rates from Frankfurter (FR-01 to FR-03).
 
-Source frankfurter_ecb stores EURUSD (ECB reference rate). Source frankfurter_cba
-stores USDAMD and EURAMD (CBA daily averages) and the feature-only RUBAMD series. RUB/AMD comes
-straight from `base=RUB&quotes=AMD&providers=CBA`; it matches USD/AMD ÷ USD/RUB on
-every date to within rounding, so no derivation is needed.
+Source frankfurter_ecb stores EURUSD and GBPUSD (ECB reference rates; Frankfurter crosses
+EUR/USD with EUR/GBP for GBP/USD). Source frankfurter_cba stores USDAMD, EURAMD, RUBAMD and
+GBPAMD (CBA daily averages), then derives RUBUSD = RUBAMD / USDAMD on the dates both exist:
+Frankfurter's own RUB/USD cross is rounded to 5 decimals, a 0.08% step.
 
 A pair with no rows loads its full history (FR-02). Otherwise the job refetches
 [last stored date - 10 days, today] and upserts, which picks up late fixes (FR-03).
@@ -27,11 +27,17 @@ from fxf.calendars import CET, PAIR_CALENDAR, is_trading_day, is_working_day
 from fxf.constants import (
     EURAMD,
     EURUSD,
+    GBPAMD,
+    GBPUSD,
     RUBAMD,
+    RUBUSD,
     SOURCE_FRANKFURTER_CBA,
     SOURCE_FRANKFURTER_ECB,
     USDAMD,
+    PairSpec,
 )
+from fxf.data_access import load_rates
+from fxf.db import session_scope
 from fxf.http import SchemaError, SourceError
 from fxf.ingest.store import (
     Point,
@@ -62,13 +68,13 @@ class RateSeries:
     provider: str
 
 
+def _series(p: PairSpec) -> RateSeries:
+    return RateSeries(p.id, p.base, p.quote, p.provider)
+
+
 SERIES: Final[dict[str, tuple[RateSeries, ...]]] = {
-    SOURCE_FRANKFURTER_ECB: (RateSeries(EURUSD.id, EURUSD.base, EURUSD.quote, EURUSD.provider),),
-    SOURCE_FRANKFURTER_CBA: (
-        RateSeries(USDAMD.id, USDAMD.base, USDAMD.quote, USDAMD.provider),
-        RateSeries(EURAMD.id, EURAMD.base, EURAMD.quote, EURAMD.provider),
-        RateSeries(RUBAMD, "RUB", "AMD", "CBA"),
-    ),
+    SOURCE_FRANKFURTER_ECB: (_series(EURUSD), _series(GBPUSD)),
+    SOURCE_FRANKFURTER_CBA: (_series(USDAMD), _series(EURAMD), _series(RUBAMD), _series(GBPAMD)),
 }
 
 
@@ -184,5 +190,39 @@ def ingest(
             "rates ingested",
             extra={"job": source, "pair": series.pair, "from": start.isoformat(), "rows": written},
         )
+    if source == SOURCE_FRANKFURTER_CBA:
+        try:
+            written = derive_rubusd(engine, now, full=full)
+        except Exception as exc:
+            log.error(
+                "rate derive failed", extra={"job": source, "pair": RUBUSD.id, "error": str(exc)}
+            )
+            ctx.meta[RUBUSD.id] = {"error": f"{type(exc).__name__}: {exc}"}
+            errors.append((RUBUSD.id, exc))
+        else:
+            ctx.rows_written += written
+            ctx.meta[RUBUSD.id] = {"derived": written}
+            latest[RUBUSD.id] = latest_rate_date(engine, RUBUSD.id)
     raise_collected(errors)
     check_published(latest, now)
+
+
+def derive_rubusd(engine: Engine | None, now: dt.datetime, *, full: bool = False) -> int:
+    """RUBUSD = RUBAMD / USDAMD on every date both are stored (the last WINDOW_DAYS unless
+    the series is empty or full is set), rounded to 8 decimals."""
+    last = None if full else latest_rate_date(engine, RUBUSD.id)
+    start = None if last is None else last - dt.timedelta(days=WINDOW_DAYS)
+    with session_scope(engine) as s:
+        rub = load_rates(s, RUBAMD.id)
+        usd = load_rates(s, USDAMD.id)
+    both = rub.to_frame("rub").join(usd.to_frame("usd"), how="inner").dropna()
+    if start is not None:
+        both = both[both.index >= start.isoformat()]
+    points = [
+        Point(ts.date(), Decimal(str(round(float(r.rub) / float(r.usd), 8))))
+        for ts, r in both.iterrows()
+        if float(r.usd) > 0
+    ]
+    return write_rates(
+        engine, RUBUSD.id, SOURCE_FRANKFURTER_CBA, unique_points("derived", points), now
+    )

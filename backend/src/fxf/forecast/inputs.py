@@ -58,8 +58,8 @@ def load_pair_inputs(session: Session, pair: str, end: dt.date) -> PairInputs:
     if not events.empty:
         events = events[events["date"] <= pd.Timestamp(end)].reset_index(drop=True)
     aux: dict[str, pd.Series] = {}
-    if spec.quote == "AMD":  # RUB/AMD feature for every AMD pair
-        aux[RUBAMD] = load_rates(session, RUBAMD, end=end)
+    if spec.quote == "AMD" and spec.base != "RUB":  # RUB/AMD feature for the other AMD pairs
+        aux[RUBAMD.id] = load_rates(session, RUBAMD.id, end=end)
     return PairInputs(
         spec=spec,
         end=end,

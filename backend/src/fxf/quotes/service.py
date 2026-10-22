@@ -13,7 +13,7 @@ from fxf.models import ProviderQuote, Rate
 
 LOOKBACK: Final = dt.timedelta(days=4)
 STALE_AFTER: Final = dt.timedelta(hours=26)
-QUOTE_PAIRS: Final = ("EURAMD", "USDAMD")
+QUOTE_PAIRS: Final = ("EURAMD", "USDAMD", "GBPAMD", "RUBAMD")
 DISCLAIMER: Final = (
     "Indicative rates collected from public pages, not offers. Banks may give a better rate "
     "for large amounts, and transfer services change fees often. Check with the provider "

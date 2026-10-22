@@ -32,7 +32,7 @@ from fxf.models import Forecast, upsert, utcnow
 log = get_logger(__name__)
 
 PROVIDER: Final = "gemini"
-PROMPT_VERSION: Final = "ai-p4"
+PROMPT_VERSION: Final = "ai-p5"
 PROB_BOUNDS: Final = (0.05, 0.95)
 MAX_REVISIONS: Final = 10
 
@@ -41,6 +41,7 @@ MAX_REVISIONS: Final = 10
 # fxf_ai_thinking) and up to three sentences of reasoning that say how the drivers net out.
 # ai-p4: the context adds the meeting reaction study (how the pair moved around each bank's
 # meetings over the last year) and the prompt asks the model to use it for meetings ahead.
+# ai-p5: the same read, plus the reasoning in Armenian and Russian for the page's languages.
 SYSTEM: Final = """You are an experienced foreign-exchange analyst giving your own independent \
 read on one currency pair. The JSON context holds spot, recent moves, a year of month-end \
 closes, related pairs, policy rates and their recent path, central bank meetings inside each \
@@ -63,7 +64,9 @@ Stay honest about uncertainty: exchange rates are hard to predict, so probabilit
 (probability - 0.5) and stay inside the 80% risk band. Confidence: "low" for a weak lean, \
 "medium" for one clear reason, "high" for several reasons that agree. Think it through before \
 answering. Reasoning: at most three sentences that name the specific drivers, which way each \
-points, and how they net out. Describe the forecast; never tell anyone what to do."""
+points, and how they net out. Describe the forecast; never tell anyone what to do. Then translate the reasoning into Armenian \
+(reasoning_hy) and Russian (reasoning_ru): natural, correct prose a native reader would write, \
+same facts and numbers, standard names (Fed: ՖՌՀ / ФРС, ECB: ԵԿԲ / ЕЦБ, CBA: ՀՀ ԿԲ / ЦБ РА)."""
 
 RESPONSE_SCHEMA: Final[dict[str, Any]] = {
     "type": "OBJECT",
@@ -78,6 +81,8 @@ RESPONSE_SCHEMA: Final[dict[str, Any]] = {
                     "expected_change_pct": {"type": "NUMBER"},
                     "confidence": {"type": "STRING", "enum": ["low", "medium", "high"]},
                     "reasoning": {"type": "STRING"},
+                    "reasoning_hy": {"type": "STRING"},
+                    "reasoning_ru": {"type": "STRING"},
                 },
                 "required": [
                     "days",
@@ -85,6 +90,8 @@ RESPONSE_SCHEMA: Final[dict[str, Any]] = {
                     "expected_change_pct",
                     "confidence",
                     "reasoning",
+                    "reasoning_hy",
+                    "reasoning_ru",
                 ],
             },
         }
@@ -99,6 +106,8 @@ class HorizonAnswer(BaseModel):
     expected_change_pct: float
     confidence: Literal["low", "medium", "high"]
     reasoning: str = Field(min_length=1, max_length=1200)
+    reasoning_hy: str = Field(default="", max_length=2400)
+    reasoning_ru: str = Field(default="", max_length=2400)
 
 
 class Answer(BaseModel):
@@ -211,6 +220,11 @@ def _row(row: Forecast, ans: HorizonAnswer, ctx_digest: str, model: str) -> dict
                 "expected_change_pct": round(change, 4),
                 "confidence": ans.confidence,
                 "reasoning": ans.reasoning.strip(),
+                "reasoning_i18n": {
+                    "en": ans.reasoning.strip(),
+                    "hy": ans.reasoning_hy.strip(),
+                    "ru": ans.reasoning_ru.strip(),
+                },
                 "adjusted": adjusted,
                 "raw": ans.model_dump(),
                 "context_sha256": ctx_digest,

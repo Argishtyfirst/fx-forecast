@@ -213,6 +213,6 @@ def build_context(
         "last_decisions": _last_decisions(session, pair.banks, run_date),
         "meeting_reactions": _meeting_reactions(session, pair, spot_date),
     }
-    if pair.quote == "AMD":
-        ctx["rub_amd_recent_moves"] = _recent_moves(session, RUBAMD, spot_date)
+    if pair.quote == "AMD" and pair.base != "RUB":
+        ctx["rub_amd_recent_moves"] = _recent_moves(session, RUBAMD.id, spot_date)
     return ctx

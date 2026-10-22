@@ -28,7 +28,15 @@ from fxf.api.schemas import (
     LatestForecastResponse,
 )
 from fxf.api.signal import AiBasis, ai_lean, build_signal, latest_evidence
-from fxf.constants import BANDS, DISCLAIMER, HORIZON_LABELS, MODEL_LLM, MODELS, PairSpec
+from fxf.constants import (
+    BANDS,
+    CURRENCY_BANK,
+    DISCLAIMER,
+    HORIZON_LABELS,
+    MODEL_LLM,
+    MODELS,
+    PairSpec,
+)
 from fxf.data_access import load_rates
 from fxf.models import Forecast, Rate
 
@@ -58,6 +66,12 @@ def served_models(session: Session, pair: str) -> set[tuple[int, str]]:
 def model_order(model: str) -> tuple[int, str]:
     """Sort key: constants.MODELS order, then unknown models by name."""
     return (MODELS.index(model) if model in MODELS else len(MODELS), model)
+
+
+def rate_banks(pair: PairSpec) -> tuple[str, ...]:
+    """The pair's meeting banks plus the central banks of both its currencies."""
+    own = (CURRENCY_BANK[pair.base], CURRENCY_BANK[pair.quote])
+    return tuple(dict.fromkeys((*pair.banks, *own)))
 
 
 def drivers_from_features(features: Mapping[str, Any] | None, banks: Iterable[str] = ()) -> Drivers:
@@ -165,6 +179,8 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
                 strength=strength,
                 confidence=llm["confidence"],
                 reasoning=llm["reasoning"],
+                reasoning_i18n={k: v for k, v in (llm.get("reasoning_i18n") or {}).items() if v}
+                or None,
                 track_record=track_record(
                     session, pair.id, row.horizon_days, rates, row.model_version
                 ),
@@ -239,7 +255,7 @@ def build_latest(
                 center=float(row.center),
                 bands=_bands(row),
                 meetings=convert.meetings(row.meetings_in_horizon),
-                drivers=drivers_from_features(row.features_json, pair.banks),
+                drivers=drivers_from_features(row.features_json, rate_banks(pair)),
                 signal=build_signal(pair, row, evidence.get((h, row.model)), _ai_basis(ai.get(h))),
                 ai_view=ai.get(h),
                 meeting_risks=risks.get(h, []),

@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from fxf.api.schemas import HealthResponse, JobStatus, SourceStatus
 from fxf.constants import (
+    CURRENCY_BANK,
     JOB_AI,
     JOB_AI_ANALYSIS,
     JOB_BACKTEST,
@@ -34,6 +35,7 @@ from fxf.constants import (
     SOURCE_FRANKFURTER_CBA,
     SOURCE_FRANKFURTER_ECB,
     SOURCE_FRED,
+    SOURCE_POLICY,
     SOURCE_STALE_HOURS,
     SOURCES,
     PairSpec,
@@ -45,6 +47,7 @@ SOURCE_LABELS: Final[dict[str, str]] = {
     SOURCE_FRANKFURTER_CBA: "CBA daily rate (Frankfurter)",
     SOURCE_FRED: "FRED",
     SOURCE_ECB: "ECB Data Portal",
+    SOURCE_POLICY: "Bank of England and Bank of Russia policy rates",
     SOURCE_CBA: "CBA policy rates",
     SOURCE_FED_RSS: "Fed press releases",
     SOURCE_ECB_RSS: "ECB press releases",
@@ -58,6 +61,8 @@ BANK_SOURCES: Final[dict[str, tuple[str, ...]]] = {
     "FED": (SOURCE_FRED, SOURCE_FED_RSS, SOURCE_ATLFED),
     "ECB": (SOURCE_ECB, SOURCE_ECB_RSS),
     "CBA": (SOURCE_CBA, SOURCE_CBA_NEWS),
+    "BOE": (SOURCE_POLICY,),
+    "CBR": (SOURCE_POLICY,),
 }
 
 PIPELINE_JOBS: Final[tuple[str, ...]] = (
@@ -84,7 +89,7 @@ def pair_sources(pair: PairSpec) -> tuple[str, ...]:
     """Sources a pair's forecast depends on: its rate source plus, for each of its banks,
     the policy-rate source and the decision news source. In constants.SOURCES order."""
     wanted = {pair.source}
-    for bank in pair.banks:
+    for bank in (*pair.banks, CURRENCY_BANK[pair.base], CURRENCY_BANK[pair.quote]):
         wanted.update(BANK_SOURCES.get(bank, ()))
     return tuple(s for s in SOURCES if s in wanted)
 

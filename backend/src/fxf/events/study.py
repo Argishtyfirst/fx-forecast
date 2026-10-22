@@ -35,12 +35,11 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from fxf.constants import PairSpec
+from fxf.constants import CURRENCY_BANK, PairSpec
 from fxf.data_access import load_rates
 from fxf.events.features import load_meetings
 from fxf.models import CbEvent
 
-CURRENCY_BANK = {"EUR": "ECB", "USD": "FED", "AMD": "CBA"}
 RUN_DAYS = 5
 # Day-by-day path around each meeting: fixes from PATH_DAYS before the pre-decision fix
 # (offset 0) to PATH_DAYS after it (offset 1 is the first fix after the decision).

@@ -20,9 +20,15 @@ from typing import Final
 
 from sqlalchemy import Engine
 
-from fxf.constants import SOURCE_ECB, SOURCE_FRANKFURTER_CBA, SOURCE_FRANKFURTER_ECB, SOURCE_FRED
+from fxf.constants import (
+    SOURCE_ECB,
+    SOURCE_FRANKFURTER_CBA,
+    SOURCE_FRANKFURTER_ECB,
+    SOURCE_FRED,
+    SOURCE_POLICY,
+)
 from fxf.http import prune_raw
-from fxf.ingest import ecb, frankfurter, fred
+from fxf.ingest import ecb, frankfurter, fred, policy
 from fxf.ingest.quality import repair_rates
 from fxf.jobs import RunContext, run_job
 from fxf.logging_setup import configure_logging, get_logger
@@ -38,6 +44,7 @@ RUNNERS: Final[dict[str, Runner]] = {
     SOURCE_FRANKFURTER_CBA: partial(frankfurter.ingest, SOURCE_FRANKFURTER_CBA),
     SOURCE_FRED: fred.ingest,
     SOURCE_ECB: ecb.ingest,
+    SOURCE_POLICY: policy.ingest,
 }
 INGEST_SOURCES: Final[tuple[str, ...]] = tuple(RUNNERS)
 

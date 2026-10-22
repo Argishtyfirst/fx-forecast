@@ -33,12 +33,13 @@ from fxf.constants import (
     MODEL_LLM,
     MODEL_RW,
     PAIRS,
+    SERIES_BANK,
 )
 from fxf.db import session_scope
 from fxf.events.features import last_decision, meetings_in_window
 from fxf.forecast import bands, params
 from fxf.forecast.core import InsufficientData, PairData, prepare_pair_data, walk_forward
-from fxf.forecast.features import SERIES_BANK, input_timestamps
+from fxf.forecast.features import input_timestamps
 from fxf.forecast.inputs import load_pair_inputs
 from fxf.forecast.selection import choose_served
 from fxf.forecast.types import ModelForecast

@@ -19,6 +19,7 @@ from fxf.api.health import build_health
 from fxf.api.metrics import CONTENT_TYPE, collect_metrics
 from fxf.api.schemas import (
     AiAnalysisOut,
+    AiAnalysisText,
     AiTrackRow,
     BacktestMetricOut,
     BacktestResponse,
@@ -68,6 +69,10 @@ PAIR_SOURCE_LABELS: Final[dict[str, str]] = {
     "EURUSD": "ECB reference rate",
     "USDAMD": "CBA daily average rate",
     "EURAMD": "CBA daily average rate",
+    "RUBAMD": "CBA daily average rate",
+    "GBPAMD": "CBA daily average rate",
+    "GBPUSD": "ECB reference rates (EUR/USD and EUR/GBP crossed)",
+    "RUBUSD": "CBA daily average rates (RUB/AMD divided by USD/AMD)",
 }
 RATES_DEFAULT_DAYS: Final = 365
 EVENTS_DEFAULT_YEARS: Final = 3
@@ -274,6 +279,7 @@ def _ai_backtest_parts(
             for_you=c.get("for_you", ""),
             points=list(c.get("points") or []),
             watch_next=c.get("watch_next", ""),
+            i18n={k: AiAnalysisText(**v) for k, v in (c.get("i18n") or {}).items()} or None,
         )
     return track, analysis
 

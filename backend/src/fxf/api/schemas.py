@@ -167,6 +167,7 @@ class AiView(BaseModel):
     strength: Literal["clear", "slight", "none"]
     confidence: Literal["low", "medium", "high"]
     reasoning: str
+    reasoning_i18n: dict[str, str] | None = None  # {"en", "hy", "ru"}, from ai-p5 on
     track_record: AiTrackRecord
     # One call a day: a rerun with the same inputs keeps this answer. revisions counts the
     # earlier answers of run_date that new inputs replaced (0 almost always).
@@ -281,6 +282,13 @@ class AiTrackRow(BaseModel):
     track_record: AiTrackRecord
 
 
+class AiAnalysisText(BaseModel):
+    headline: str = ""
+    for_you: str = ""
+    points: list[str] = Field(default_factory=list)
+    watch_next: str = ""
+
+
 class AiAnalysisOut(BaseModel):
     """Experimental: the AI's weekly reading of the meeting study and the around-meetings
     backtest (fxf.ai.analysis). Written text, not a forecast."""
@@ -294,6 +302,7 @@ class AiAnalysisOut(BaseModel):
     for_you: str = ""  # what it means for someone converting the base currency
     points: list[str]
     watch_next: str
+    i18n: dict[str, AiAnalysisText] | None = None  # "hy", "ru", from an-p3 on
 
 
 class BacktestResponse(BaseModel):

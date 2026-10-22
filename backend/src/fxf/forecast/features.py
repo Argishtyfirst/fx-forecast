@@ -26,7 +26,6 @@ from fxf.data_access import forecast_cutoff, point_in_time_series
 from fxf.events.features import cb_feature_frame
 from fxf.forecast.inputs import PairInputs
 
-SERIES_BANK: dict[str, str] = {"ECB_DFR": "ECB", "FED_MID": "FED", "CBA_REFI": "CBA"}
 CB_FEATURES: tuple[str, ...] = ("days_to_next", "last_surprise", "last_hawkish", "days_since")
 # series_id -> (feature prefix, "log" change or "bps" difference)
 MACRO_CHANGES: dict[str, tuple[str, str]] = {
@@ -44,7 +43,7 @@ def feature_columns(spec: PairSpec) -> list[str]:
     for prefix, kind in MACRO_CHANGES.values():
         suffix = "_bps" if kind == "bps" else ""
         cols += [f"{prefix}_chg_{w}d{suffix}" for w in CHANGE_WINDOWS]
-    if spec.quote == "AMD":
+    if spec.quote == "AMD" and spec.base != "RUB":
         cols += ["rubamd_ret_1", "rubamd_ret_5"]
     return cols
 
@@ -85,8 +84,8 @@ def build_features(inputs: PairInputs) -> pd.DataFrame:
         for w in CHANGE_WINDOWS:
             suffix = "_bps" if kind == "bps" else ""
             f[f"{prefix}_chg_{w}d{suffix}"] = (base - base.shift(w)).to_numpy()
-    if spec.quote == "AMD":
-        rub = inputs.aux_rates.get(RUBAMD)
+    if spec.quote == "AMD" and spec.base != "RUB":
+        rub = inputs.aux_rates.get(RUBAMD.id)
         if rub is not None and len(rub):
             aligned = np.log(
                 pd.Series(rub.to_numpy(dtype="float64"), index=pd.DatetimeIndex(rub.index))

@@ -16,7 +16,7 @@ value with a conservative publication time, not the historical first release.
 
 | Series | Rule (UTC) | Why |
 | --- | --- | --- |
-| DFEDTARU, DFEDTARL, ECB_DFR | obs date 00:00 | Decisions are announced before the effective date. |
+| DFEDTARU, DFEDTARL, ECB_DFR, BOE_BANK, CBR_KEY | obs date 00:00 | Decisions are announced before the effective date. |
 | DFF | next US business day 14:00 | NY Fed publishes EFFR the next morning. |
 | DGS2 | next US business day 22:00 | Treasury yields reach FRED the next evening. |
 | DTWEXBGS | obs + 7 days 22:00 | Weekly H.10 release covers the prior week. |
@@ -70,6 +70,8 @@ RULES: Final[dict[str, PublicationRule]] = {
     "DFEDTARU": _same_day,
     "DFEDTARL": _same_day,
     "ECB_DFR": _same_day,
+    "BOE_BANK": _same_day,
+    "CBR_KEY": _same_day,
     "DFF": _next_business_day(CALENDAR_US, 14),
     "DGS2": _next_business_day(CALENDAR_US, 22),
     "DTWEXBGS": _days_later(7, 22),

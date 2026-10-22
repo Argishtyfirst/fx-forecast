@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from fxf.api.schemas import ConversionSignal
 from fxf.constants import (
+    CURRENCY_BANK,
     HORIZON_LABELS,
     MODEL_RW,
     PROMOTION_DM_PVALUE,
@@ -107,7 +108,6 @@ def _confidence(hit_rate: float, edge: float) -> Literal["low", "medium", "high"
     return "low"
 
 
-CURRENCY_BANK = {"EUR": "ECB", "USD": "FED", "AMD": "CBA"}
 TRADING_DAYS_PER_YEAR = 252
 
 

@@ -51,10 +51,70 @@ EURAMD: Final = PairSpec(
     quote_rate_series="CBA_REFI",
     banks=("FED", "ECB", "CBA"),
 )
-PAIRS: Final[dict[str, PairSpec]] = {p.id: p for p in (EURUSD, USDAMD, EURAMD)}
+RUBAMD: Final = PairSpec(
+    id="RUBAMD",
+    base="RUB",
+    quote="AMD",
+    provider="CBA",
+    source="frankfurter_cba",
+    base_rate_series="CBR_KEY",
+    quote_rate_series="CBA_REFI",
+    banks=("FED", "CBA"),
+)
+GBPAMD: Final = PairSpec(
+    id="GBPAMD",
+    base="GBP",
+    quote="AMD",
+    provider="CBA",
+    source="frankfurter_cba",
+    base_rate_series="BOE_BANK",
+    quote_rate_series="CBA_REFI",
+    banks=("FED", "CBA"),
+)
+GBPUSD: Final = PairSpec(
+    id="GBPUSD",
+    base="GBP",
+    quote="USD",
+    provider="ECB",  # the ECB's EUR/USD and EUR/GBP fixes, crossed by Frankfurter
+    source="frankfurter_ecb",
+    base_rate_series="BOE_BANK",
+    quote_rate_series="FED_MID",
+    banks=("FED", "ECB"),
+)
+# The CBA publishes RUB/AMD and USD/AMD; Frankfurter's RUB/USD cross is rounded to 5
+# decimals (0.01221, a 0.08% step), so RUB/USD is derived as RUBAMD / USDAMD instead
+# (fxf.ingest.frankfurter.derive_crosses).
+RUBUSD: Final = PairSpec(
+    id="RUBUSD",
+    base="RUB",
+    quote="USD",
+    provider="CBA",
+    source="frankfurter_cba",
+    base_rate_series="CBR_KEY",
+    quote_rate_series="FED_MID",
+    banks=("FED", "CBA"),
+)
+PAIRS: Final[dict[str, PairSpec]] = {
+    p.id: p for p in (EURAMD, USDAMD, RUBAMD, GBPAMD, EURUSD, GBPUSD, RUBUSD)
+}
 
-# Feature-only series stored in `rates` (never forecast).
-RUBAMD: Final = "RUBAMD"
+# Policy rate series and central bank of each currency. BOE and CBR have policy rates
+# (fxf.ingest.policy) but no meeting calendar or statements yet, so they are not in BANKS.
+CURRENCY_RATE_SERIES: Final[dict[str, str]] = {
+    "EUR": "ECB_DFR",
+    "USD": "FED_MID",
+    "AMD": "CBA_REFI",
+    "GBP": "BOE_BANK",
+    "RUB": "CBR_KEY",
+}
+CURRENCY_BANK: Final[dict[str, str]] = {
+    "EUR": "ECB",
+    "USD": "FED",
+    "AMD": "CBA",
+    "GBP": "BOE",
+    "RUB": "CBR",
+}
+SERIES_BANK: Final[dict[str, str]] = {CURRENCY_RATE_SERIES[c]: b for c, b in CURRENCY_BANK.items()}
 
 # --- Horizons (trading days) ----------------------------------------------
 
@@ -125,6 +185,8 @@ FRED_SERIES: Final[tuple[str, ...]] = (
 )
 ECB_SERIES: Final[tuple[str, ...]] = ("ECB_DFR", "ESTR", "HICP")
 CBA_SERIES: Final[tuple[str, ...]] = ("CBA_REFI", "CBA_LOMBARD", "CBA_DEPOSIT")
+# Bank of England Bank Rate and the Bank of Russia key rate (fxf.ingest.policy).
+POLICY_SERIES: Final[tuple[str, ...]] = ("BOE_BANK", "CBR_KEY")
 # Market-implied Fed funds midpoint expected after the next FOMC meeting.
 ATLFED_SERIES: Final = "ATLFED_EXP_NEXT"
 # Derived series computed on read, never stored: (DFEDTARU + DFEDTARL) / 2.
@@ -138,6 +200,7 @@ SOURCE_FRANKFURTER_ECB: Final = "frankfurter_ecb"
 SOURCE_FRANKFURTER_CBA: Final = "frankfurter_cba"
 SOURCE_FRED: Final = "fred"
 SOURCE_ECB: Final = "ecb_data_portal"
+SOURCE_POLICY: Final = "boe_cbr_rates"
 SOURCE_CBA: Final = "cba_rates"
 SOURCE_FED_RSS: Final = "fed_rss"
 SOURCE_ECB_RSS: Final = "ecb_rss"
@@ -149,6 +212,7 @@ SOURCES: Final[tuple[str, ...]] = (
     SOURCE_FRANKFURTER_CBA,
     SOURCE_FRED,
     SOURCE_ECB,
+    SOURCE_POLICY,
     SOURCE_CBA,
     SOURCE_FED_RSS,
     SOURCE_ECB_RSS,
@@ -171,6 +235,7 @@ SOURCE_STALE_HOURS: Final[dict[str, int]] = {
     SOURCE_FRANKFURTER_CBA: 96,
     SOURCE_FRED: 96,
     SOURCE_ECB: 96,
+    SOURCE_POLICY: 96,
     SOURCE_CBA: 24 * 45,
     SOURCE_FED_RSS: 6,
     SOURCE_ECB_RSS: 6,

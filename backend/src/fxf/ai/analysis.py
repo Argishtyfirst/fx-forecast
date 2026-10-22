@@ -40,7 +40,7 @@ from fxf.models import AiAnalysis, BacktestMetric, CbMeeting, Forecast, upsert, 
 log = get_logger(__name__)
 
 KIND: Final = "event_study"
-PROMPT_VERSION: Final = "an-p2"
+PROMPT_VERSION: Final = "an-p3"
 
 SYSTEM: Final = """You are a foreign-exchange analyst writing a short weekly note for one \
 person who converts {base} into {quote} and wants to understand central bank meetings. The \
@@ -60,9 +60,12 @@ buy, sell or wait.
 - points: 2 or 3 facts, each at most 22 words, each with a number from the context.
 - watch_next: the next meetings inside the coming month with their dates, at most 22 words.
 Always write numbers as digits with % or x (57%, 2.1x), never in words. Say when a sample is \
-small (a year holds about 8 meetings per bank). Use commas and periods, never dashes."""
+small (a year holds about 8 meetings per bank). Use commas and periods, never dashes.
+Then give the same note in Armenian (hy) and Russian (ru): natural, correct prose a native \
+reader would write, the same facts and numbers, standard names (Fed: ՖՌՀ / ФРС, ECB: ԵԿԲ / ЕЦБ, \
+CBA: ՀՀ ԿԲ / ЦБ РА)."""
 
-RESPONSE_SCHEMA: Final[dict[str, Any]] = {
+TEXT_SCHEMA: Final[dict[str, Any]] = {
     "type": "OBJECT",
     "properties": {
         "headline": {"type": "STRING"},
@@ -72,6 +75,25 @@ RESPONSE_SCHEMA: Final[dict[str, Any]] = {
     },
     "required": ["headline", "for_you", "points", "watch_next"],
 }
+RESPONSE_SCHEMA: Final[dict[str, Any]] = {
+    "type": "OBJECT",
+    "properties": {
+        "headline": {"type": "STRING"},
+        "for_you": {"type": "STRING"},
+        "points": {"type": "ARRAY", "items": {"type": "STRING"}},
+        "watch_next": {"type": "STRING"},
+        "hy": TEXT_SCHEMA,
+        "ru": TEXT_SCHEMA,
+    },
+    "required": ["headline", "for_you", "points", "watch_next", "hy", "ru"],
+}
+
+
+class NoteText(BaseModel):
+    headline: str = Field(default="", max_length=600)
+    for_you: str = Field(default="", max_length=800)
+    points: list[str] = Field(default_factory=list, max_length=6)
+    watch_next: str = Field(default="", max_length=1200)
 
 
 class Note(BaseModel):
@@ -79,6 +101,8 @@ class Note(BaseModel):
     for_you: str = Field(min_length=3, max_length=400)
     points: list[str] = Field(min_length=1, max_length=6)
     watch_next: str = Field(min_length=3, max_length=600)
+    hy: NoteText | None = None
+    ru: NoteText | None = None
 
 
 NOTE = TypeAdapter(Note)
@@ -213,6 +237,16 @@ def analyse_pair(
             "for_you": _clean(note.for_you),
             "points": [_clean(p) for p in note.points[:3]],
             "watch_next": _clean(note.watch_next),
+            "i18n": {
+                lang: {
+                    "headline": _clean(text.headline),
+                    "for_you": _clean(text.for_you),
+                    "points": [_clean(p) for p in text.points[:3]],
+                    "watch_next": _clean(text.watch_next),
+                }
+                for lang, text in (("hy", note.hy), ("ru", note.ru))
+                if text is not None and text.headline
+            },
             "generated_at": utcnow().isoformat(),
             "provider": "gemini",
         },

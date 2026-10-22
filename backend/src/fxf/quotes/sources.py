@@ -48,9 +48,13 @@ PAYSEND_PAGES: Final = {
         "https://paysend.com/en-us/send-money/from-the-united-states-of-america-to-armenia",
         "a US",
     ),
+    "GBP": ("https://paysend.com/en-gb/send-money/from-united-kingdom-to-armenia", "a UK"),
 }
 MAX_GAP: Final = 0.05
-CURRENCIES: Final = {"EUR": "EURAMD", "USD": "USDAMD"}
+CURRENCIES: Final = {"EUR": "EURAMD", "USD": "USDAMD", "GBP": "GBPAMD", "RUB": "RUBAMD"}
+# rate.am still calls the ruble RUR
+RATEAM_CODES: Final = {"EUR": "EUR", "USD": "USD", "GBP": "GBP", "RUB": "RUR"}
+WISE_CURRENCIES: Final = ("EUR", "USD", "GBP")  # Wise has no RUB to AMD route
 RATEAM_CHANNELS: Final = {"CLEARING": "non_cash", "CASH": "cash", "CARD": "card"}
 
 
@@ -160,7 +164,7 @@ def parse_rateam(body: str, reference: dict[str, float]) -> list[Quote]:
             else None
         )
         for ccy, pair in CURRENCIES.items():
-            by_type = entry["rates"].get(ccy)
+            by_type = entry["rates"].get(RATEAM_CODES[ccy])
             if not isinstance(by_type, dict):
                 continue
             for raw_channel, channel in RATEAM_CHANNELS.items():
@@ -269,7 +273,8 @@ def fetch_wise(reference: dict[str, float]) -> list[Quote]:
     the fee at each amount; fxf.quotes.service interpolates the fee for the user's amount."""
     out: list[Quote] = []
     errors: list[str] = []
-    for ccy, pair in CURRENCIES.items():
+    for ccy in WISE_CURRENCIES:
+        pair = CURRENCIES[ccy]
         points: list[list[float]] = []
         mid = None
         delivery = payout = None
@@ -310,7 +315,8 @@ def fetch_wise(reference: dict[str, float]) -> list[Quote]:
                     "fee_curve": points,  # [amount, fee in the base currency, AMD received]
                     "payout": payout,
                     "estimated_delivery": delivery,
-                    "note": "Bank transfer from a European account to an Armenian bank account"
+                    "note": f"Bank transfer from {'a UK' if ccy == 'GBP' else 'a European'} "
+                    "account to an Armenian bank account"
                     + (" by SWIFT" if payout == "SWIFT" else ""),
                 },
             )

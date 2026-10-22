@@ -8,13 +8,15 @@ its last BASE_ROWS kept rows) AND the pairs contradict each other:
 
 - duplicate: it equals another pair's value on the same date, although the two pairs'
   usual levels are more than FAR_APART apart. That is the feed bug above.
-- cross: EUR/AMD is more than CROSS away from EUR/USD x USD/AMD that day. The ECB and the
+- cross: EUR/AMD (or GBP/AMD) is more than CROSS away from EUR/USD x USD/AMD (GBP/USD x
+  USD/AMD) that day. The ECB and the
   CBA fix at different times, so a small gap is normal; on the 2014 crisis days the cross
   agrees and the rows stay.
 
 Rows are walked in date order and a removed row never becomes part of the recent level, so
-the newest row and a bug that lasts several days are caught too. repair_rates checks the
-last RECENT_DAYS only: older history was checked once, and the early CBA data from 2000 is
+the newest row and a bug that lasts several days are caught too. RUB/USD is derived from RUB/AMD and USD/AMD,
+so a removed row of either takes the RUB/USD row of that date with it. repair_rates checks
+the last RECENT_DAYS only: older history was checked once, and the early CBA data from 2000 is
 noisy enough to fail the cross test without being a feed bug.
 """
 
@@ -28,6 +30,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import Engine, delete
 
+from fxf.constants import PAIRS
 from fxf.data_access import load_rates
 from fxf.db import session_scope
 from fxf.logging_setup import get_logger
@@ -41,7 +44,11 @@ FAR_APART = 0.10
 MATCH = 1e-4
 BASE_ROWS = 10
 RECENT_DAYS = 90
-PAIRS_CHECKED = ("EURUSD", "USDAMD", "EURAMD", "RUBAMD")
+PAIRS_CHECKED = tuple(PAIRS)
+# pair -> (a, b) with pair = a x b, from different fixes
+CROSSES = {"EURAMD": ("EURUSD", "USDAMD"), "GBPAMD": ("GBPUSD", "USDAMD")}
+# derived pair -> the pairs it is computed from (fxf.ingest.frankfurter.derive_rubusd)
+DERIVED = {"RUBUSD": ("RUBAMD", "USDAMD")}
 
 
 def _jump(a: float, b: float) -> float:
@@ -69,10 +76,11 @@ def find_bad_rates(
 ) -> list[dict[str, Any]]:
     series = {p: s.dropna() for p, s in series.items() if len(s)}
     far = _far_apart(series)
-    implied = None
-    if {"EURAMD", "EURUSD", "USDAMD"} <= series.keys():
-        j = pd.concat([series["EURUSD"], series["USDAMD"]], axis=1, join="inner")
-        implied = j.iloc[:, 0] * j.iloc[:, 1]
+    implied: dict[str, pd.Series] = {}
+    for pair, (a, b) in CROSSES.items():
+        if {pair, a, b} <= series.keys():
+            j = pd.concat([series[a], series[b]], axis=1, join="inner")
+            implied[pair] = j.iloc[:, 0] * j.iloc[:, 1]
     bad: list[dict[str, Any]] = []
     for pair, s in series.items():
         kept: list[float] = []
@@ -90,15 +98,33 @@ def find_bad_rates(
                         if ov is not None and float(ov) > 0 and abs(v / float(ov) - 1) < MATCH:
                             reason = f"shows {other}'s value on the same day"
                             break
-                    if reason is None and pair == "EURAMD" and implied is not None:
-                        cross = implied.get(ts)
+                    if reason is None and pair in implied:
+                        cross = implied[pair].get(ts)
                         if cross is not None and cross > 0 and _jump(float(cross), v) > CROSS:
-                            reason = f"contradicts EUR/USD x USD/AMD ({float(cross):.2f})"
+                            a, b = CROSSES[pair]
+                            reason = f"contradicts {a} x {b} ({float(cross):.2f})"
             if reason is None:
                 if v > 0:
                     kept.append(v)
                 continue
             bad.append({"pair": pair, "date": day, "rate": v, "reason": reason})
+    for derived, sources in DERIVED.items():
+        d = series.get(derived)
+        if d is None:
+            continue
+        for row in [b for b in bad if b["pair"] in sources]:
+            v = d.get(pd.Timestamp(row["date"]))
+            if v is not None and not any(
+                b["pair"] == derived and b["date"] == row["date"] for b in bad
+            ):
+                bad.append(
+                    {
+                        "pair": derived,
+                        "date": row["date"],
+                        "rate": float(v),
+                        "reason": f"derived from the removed {row['pair']} row",
+                    }
+                )
     return sorted(bad, key=lambda b: (b["date"], b["pair"]))
 
 
