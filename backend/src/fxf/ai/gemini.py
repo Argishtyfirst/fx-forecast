@@ -27,6 +27,9 @@ URL: Final = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 MIN_INTERVAL_S: Final = 6.0
 RETRIES: Final = 5
 BACKOFF_BASE_S: Final = 5.0
+# With high thinking and the answer in three languages a reply takes one to three minutes;
+# the default 30 s read timeout cut every call off before Gemini could answer.
+TIMEOUT_S: Final = 300.0
 
 _last_call = 0.0
 
@@ -106,6 +109,7 @@ def generate_json(
             headers=headers,
             retries=RETRIES,
             backoff_base_s=BACKOFF_BASE_S,
+            timeout_s=TIMEOUT_S,
         )
 
     try:

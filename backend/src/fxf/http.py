@@ -38,10 +38,10 @@ class SchemaError(SourceError):
     """A source answered with a shape we do not recognise."""
 
 
-def _client() -> httpx.Client:
+def _client(timeout_s: float | None = None) -> httpx.Client:
     s = get_settings()
     return httpx.Client(
-        timeout=s.http_timeout_s,
+        timeout=s.http_timeout_s if timeout_s is None else timeout_s,
         follow_redirects=True,
         headers={"User-Agent": s.user_agent},
     )
@@ -58,6 +58,7 @@ def fetch(
     json: Any = None,
     retries: int | None = None,
     backoff_base_s: float | None = None,
+    timeout_s: float | None = None,
 ) -> httpx.Response:
     """Request with retries (GET unless a POST body is given). Retries transport errors,
     429 and 5xx, waiting backoff_base_s * 2**i, or the server's Retry-After when it is longer
@@ -69,7 +70,7 @@ def fetch(
     base = s.http_backoff_base_s if backoff_base_s is None else backoff_base_s
     last_exc: Exception | None = None
     retry_after = 0.0
-    with _client() as client:
+    with _client(timeout_s) as client:
         for i in range(attempts):
             try:
                 resp = client.request(method, url, params=params, headers=headers, json=json)
@@ -123,6 +124,7 @@ def post_json[T](
     headers: dict[str, str] | None = None,
     retries: int | None = None,
     backoff_base_s: float | None = None,
+    timeout_s: float | None = None,
 ) -> Any:
     """POST a JSON body and validate the JSON response (SchemaError on an unknown shape)."""
     return fetch_json(
@@ -134,6 +136,7 @@ def post_json[T](
         headers=headers,
         retries=retries,
         backoff_base_s=backoff_base_s,
+        timeout_s=timeout_s,
     )
 
 
