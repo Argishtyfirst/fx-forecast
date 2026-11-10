@@ -22,8 +22,9 @@ ROLLING_WINDOW: Final = 1000
 
 
 def is_managed(spec: PairSpec) -> bool:
-    """A pair quoted in a managed-float currency (the AMD pairs)."""
-    return spec.quote in MANAGED_QUOTES
+    """A pair quoted in a managed-float currency (the AMD pairs), or the ruble: its regime
+    breaks (2014, 2022) make an expanding window sit on the alpha + beta = 1 boundary."""
+    return spec.quote in MANAGED_QUOTES or spec.base == "RUB"
 
 
 def garch_window(spec: PairSpec) -> int | None:
@@ -100,7 +101,7 @@ BACKTEST_FULL_START: Final = dt.date(2010, 1, 1)
 COVERAGE_ALERT_THRESHOLD: Final = 0.70
 
 # --- Versions (forecasts.model_version, NFR-02) ---------------------------------------
-BANDS_VERSION: Final = "garch-t2"
+BANDS_VERSION: Final = "garch-t3"
 MODEL_VERSIONS: Final[dict[str, str]] = {
     MODEL_RW: f"rw1+{BANDS_VERSION}",
     MODEL_FORWARD: f"cip1+{BANDS_VERSION}",

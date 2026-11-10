@@ -26,7 +26,9 @@ from fxf.data_access import forecast_cutoff, point_in_time_series
 from fxf.events.features import cb_feature_frame
 from fxf.forecast.inputs import PairInputs
 
-CB_FEATURES: tuple[str, ...] = ("days_to_next", "last_surprise", "last_hawkish", "days_since")
+# last_hawkish is left out: only decisions since October 2024 have a tone score, so it acted
+# as an era dummy and moved the forecast whenever the scorer was down.
+CB_FEATURES: tuple[str, ...] = ("days_to_next", "last_surprise", "days_since")
 # series_id -> (feature prefix, "log" change or "bps" difference)
 MACRO_CHANGES: dict[str, tuple[str, str]] = {
     "DTWEXBGS": ("usd_broad", "log"),

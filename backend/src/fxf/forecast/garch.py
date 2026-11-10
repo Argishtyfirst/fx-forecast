@@ -22,7 +22,9 @@ from dataclasses import asdict, dataclass
 import numpy as np
 from arch import arch_model
 
-SCALE = 100.0
+# 100 left USD/AMD returns so small that the optimiser sometimes stopped at its start values
+# (alpha 0.2, beta 0.78) and still reported convergence; 1000 fits all seven pairs.
+SCALE = 1000.0
 EWMA_LAMBDA = 0.94
 EWMA_NU = 8.0
 

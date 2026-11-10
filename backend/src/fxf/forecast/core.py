@@ -314,7 +314,9 @@ def walk_forward(
             sig_ref = bands.floor_sigma(math.sqrt(gv), h)
             hd = data.horizon_dates(i, h)
             a = int(np.searchsorted(data.widen_dates, spot_d - np.timedelta64(1, "D"), "right"))
-            b = int(np.searchsorted(data.widen_dates, hd[-1], "right"))
+            # A decision moves the first fix after it, so a meeting on the target date itself
+            # is outside the horizon ("left").
+            b = int(np.searchsorted(data.widen_dates, hd[-1], "left"))
             m_dates = data.widen_dates[a:b]
             m_banks = data.widen_banks[a:b]
             steps = meeting_steps(list(m_dates), hd)
