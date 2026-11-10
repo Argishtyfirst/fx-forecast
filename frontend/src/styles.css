@@ -5,7 +5,9 @@
    Colour lock: warm-neutral greys plus ONE accent (cobalt) used for the AI view, the decision
    and interactive emphasis. Status yellow appears only for stale data; pass/fail marks in the
    backtest carry an icon and a word, never colour alone.
-   Shape lock: cards 10px, controls and tags 6px, segmented groups 8px (control radius + inset).
+   Shape lock: glass cards 22px, inner panels 10px, every control, tag and segmented group a capsule.
+   Material: cards, the header and controls are Liquid Glass (blur + saturation over a soft ambient
+   backdrop, a specular rim on top); charts and numbers sit on that glass and are never tinted.
    Contrast: body text >= 6.7:1, muted >= 5:1, faint >= 4.6:1 on the surface, in both themes. */
 
 :root {
@@ -71,9 +73,24 @@
   --dove: #2a78d6;
   --hawk: #e34948;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 22px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
   --shadow-hover: 0 2px 8px rgba(22, 22, 22, 0.04);
+
+  /* liquid glass: translucent material over an ambient backdrop */
+  --ambient-1: rgba(43, 85, 199, 0.16);
+  --ambient-2: rgba(27, 175, 122, 0.10);
+  --ambient-3: rgba(235, 104, 52, 0.09);
+  --glass-bg: rgba(255, 255, 255, 0.58);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-fill: rgba(120, 120, 128, 0.12);
+  --glass-rim: rgba(255, 255, 255, 0.95);
+  --glass-rim-low: rgba(255, 255, 255, 0.35);
+  --glass-edge: rgba(22, 22, 22, 0.07);
+  --glass-shadow: 0 1px 1px rgba(22, 22, 40, 0.03), 0 10px 36px -8px rgba(30, 44, 90, 0.14);
+  --glass-shadow-sm: 0 1px 2px rgba(22, 22, 40, 0.06), 0 4px 14px -4px rgba(30, 44, 90, 0.14);
+  --glass-blur: blur(24px) saturate(180%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -123,6 +140,17 @@
     --dove: #3987e5;
     --hawk: #e66767;
     --shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --ambient-1: rgba(110, 140, 255, 0.20);
+    --ambient-2: rgba(25, 158, 112, 0.13);
+    --ambient-3: rgba(217, 89, 38, 0.10);
+    --glass-bg: rgba(36, 36, 40, 0.52);
+    --glass-bg-strong: rgba(30, 30, 33, 0.70);
+    --glass-fill: rgba(120, 120, 128, 0.22);
+    --glass-rim: rgba(255, 255, 255, 0.22);
+    --glass-rim-low: rgba(255, 255, 255, 0.04);
+    --glass-edge: rgba(0, 0, 0, 0.35);
+    --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 14px 44px -10px rgba(0, 0, 0, 0.6);
+    --glass-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px -6px rgba(0, 0, 0, 0.5);
   }
 }
 :root[data-theme="dark"] {
@@ -171,6 +199,17 @@
   --dove: #3987e5;
   --hawk: #e66767;
   --shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --ambient-1: rgba(110, 140, 255, 0.20);
+  --ambient-2: rgba(25, 158, 112, 0.13);
+  --ambient-3: rgba(217, 89, 38, 0.10);
+  --glass-bg: rgba(36, 36, 40, 0.52);
+  --glass-bg-strong: rgba(30, 30, 33, 0.70);
+  --glass-fill: rgba(120, 120, 128, 0.22);
+  --glass-rim: rgba(255, 255, 255, 0.22);
+  --glass-rim-low: rgba(255, 255, 255, 0.04);
+  --glass-edge: rgba(0, 0, 0, 0.35);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 14px 44px -10px rgba(0, 0, 0, 0.6);
+  --glass-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px -6px rgba(0, 0, 0, 0.5);
 }
 
 /* --- base ----------------------------------------------------------------------------- */
@@ -2818,4 +2857,234 @@ a.quote-name:hover {
 
 .convert-help.is-hint {
   color: var(--warn-text);
+}
+
+/* --- liquid glass ---------------------------------------------------------------------- */
+/* One material for the whole control layer and every card: a translucent, blurred and
+   saturated fill, a specular rim that is bright on top and fades down, a soft lift shadow.
+   The ambient backdrop gives the blur something to refract; it stays low-chroma so the
+   accent keeps its meaning. Reduced transparency and missing backdrop-filter fall back to
+   the opaque surfaces above. */
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(60vw 50vh at 8% -5%, var(--ambient-1), transparent 70%),
+    radial-gradient(50vw 45vh at 100% 20%, var(--ambient-2), transparent 70%),
+    radial-gradient(55vw 50vh at 40% 105%, var(--ambient-3), transparent 70%);
+  background-attachment: fixed;
+}
+
+.glass,
+.card,
+.header,
+.segmented,
+.icon-button,
+.picker-field select,
+.btn-quiet,
+.ai-tag,
+.study-chip,
+.bank-chip,
+.convert-input input,
+.select-label select {
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-edge);
+}
+
+/* cards: the specular rim is a 1px gradient ring masked out of a pseudo-element */
+.card {
+  position: relative;
+  border-radius: var(--radius);
+  box-shadow: var(--glass-shadow);
+  isolation: isolate;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    var(--glass-rim) 0%,
+    var(--glass-rim-low) 28%,
+    transparent 55%,
+    var(--glass-rim-low) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* header: a floating glass bar that the page scrolls under */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 var(--glass-rim-low), 0 6px 24px -12px rgba(20, 24, 40, 0.18);
+}
+
+/* capsules: every control, tag and segmented group */
+.segmented,
+.icon-button,
+.picker-field select,
+.btn,
+.tag,
+.bank-tag,
+.ai-tag,
+.bank-chip,
+.study-chip,
+.select-label select {
+  border-radius: var(--radius-pill);
+}
+.segmented,
+.icon-button,
+.picker-field select,
+.btn-quiet,
+.ai-tag,
+.study-chip {
+  box-shadow: inset 0 1px 0 var(--glass-rim-low), var(--glass-shadow-sm);
+}
+.segmented {
+  padding: 3px;
+}
+.seg {
+  border-radius: var(--radius-pill);
+  transition: color 200ms ease, background-color 250ms ease, box-shadow 250ms ease,
+    transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.seg-active {
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim), 0 1px 2px rgba(0, 0, 0, 0.08), 0 3px 10px -3px rgba(0, 0, 0, 0.16);
+}
+:root[data-theme="dark"] .seg-active {
+  background: rgba(255, 255, 255, 0.14);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .seg-active {
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+
+/* tabs: a glass capsule group with a lifted pill, not an underline */
+.tabs {
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-fill);
+}
+.tab {
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  transition: color 200ms ease, background-color 250ms ease, box-shadow 250ms ease;
+}
+.tab-active {
+  background: var(--glass-bg-strong);
+  box-shadow: inset 0 1px 0 var(--glass-rim), 0 1px 2px rgba(0, 0, 0, 0.08), 0 3px 10px -3px rgba(0, 0, 0, 0.16);
+}
+:root[data-theme="dark"] .tab-active {
+  background: rgba(255, 255, 255, 0.14);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tab-active {
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+@media (max-width: 640px) {
+  /* three header rows on a phone: too tall to float over the content */
+  .header {
+    position: static;
+  }
+  .tabs {
+    margin: 0;
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .tab {
+    padding: 5px 12px;
+  }
+}
+
+/* liquid press: controls squash slightly and spring back */
+.seg,
+.tab,
+.icon-button,
+.btn,
+.study-chip {
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.seg:active,
+.tab:active,
+.icon-button:active,
+.btn:active,
+.study-chip:active {
+  transform: scale(0.96);
+}
+.picker-field select {
+  padding-left: 14px;
+}
+.tag {
+  padding: 1px 9px;
+}
+
+/* inner panels sit in the glass as a tinted well */
+.hero-evidence,
+.served-horizon,
+.stale-line,
+.stale-warning,
+.fan-frame,
+.study-frame {
+  border-radius: var(--radius-sm);
+}
+.hero-evidence,
+.served-horizon {
+  background: var(--glass-fill);
+  border-color: transparent;
+}
+.verdict-mark {
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px -6px var(--accent);
+}
+.verdict-no_edge .verdict-mark {
+  box-shadow: inset 0 1px 0 var(--glass-rim-low);
+}
+
+.footer {
+  border-top-color: var(--border);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .card,
+  .header,
+  .segmented,
+  .icon-button,
+  .picker-field select,
+  .btn-quiet,
+  .ai-tag,
+  .study-chip,
+  .bank-chip,
+  .convert-input input,
+  .select-label select {
+    background-color: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .header {
+    background-color: var(--bg);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card,
+  .header {
+    background-color: var(--surface);
+  }
 }
