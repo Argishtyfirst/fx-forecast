@@ -37,7 +37,9 @@ export function DataStatus({ relevant, extraStale = [] }: DataStatusProps) {
     .map((key) => merged.find((s) => s.source === key))
     .filter((s): s is SourceStatus => Boolean(s));
   const stale = ordered.filter((s) => s.stale);
-  const latest = ordered
+  // The rate source's time when the list has one: an hourly news poll is not "data updated".
+  const rateSources = ordered.filter((s) => s.source.startsWith("frankfurter"));
+  const latest = (rateSources.length ? rateSources : ordered)
     .map((s) => s.last_success)
     .filter((t): t is string => Boolean(t))
     .sort()

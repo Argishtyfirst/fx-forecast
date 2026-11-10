@@ -15,14 +15,12 @@ from typing import Annotated
 
 import typer
 
-from fxf.calendars import CET, is_working_day
+from fxf.calendars import CET, daily_run_day
 from fxf.constants import SOURCE_FRANKFURTER_CBA, SOURCE_FRANKFURTER_ECB
 from fxf.logging_setup import configure_logging, get_logger
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="FX Forecast Tool")
 log = get_logger("fxf.cli")
-
-DAILY_EARLIEST = dt.time(17, 0)
 
 
 def _date(value: str | None) -> dt.date | None:
@@ -125,18 +123,6 @@ def ai_analysis() -> None:
     from fxf.ai.analysis import run_ai_analysis_job
 
     raise typer.Exit(0 if run_ai_analysis_job() else 1)
-
-
-def daily_run_day(now: dt.datetime) -> dt.date:
-    """The working day a run at `now` (CET) is for: today once it is 17:00 on a working day,
-    otherwise the last working day before today."""
-    day = now.date()
-    if is_working_day(day) and now.time() >= DAILY_EARLIEST:
-        return day
-    day -= dt.timedelta(days=1)
-    while not is_working_day(day):
-        day -= dt.timedelta(days=1)
-    return day
 
 
 @app.command()

@@ -23,8 +23,10 @@ LOWER_RATIO = 0.85
 COVERAGE_FLOOR = 0.75  # the 80% range's target band is 75 to 85%
 
 
-def _level(ratio: float | None, cov: float | None) -> str:
-    if (ratio is not None and ratio >= HIGHER_RATIO) or (cov is not None and cov < COVERAGE_FLOOR):
+def _level(ratio: float | None, cov: float | None, other: float | None = None) -> str:
+    # Low coverage counts against the meeting only when weeks without one did clearly better.
+    missed = cov is not None and cov < COVERAGE_FLOOR and (other is None or cov < other - 0.05)
+    if (ratio is not None and ratio >= HIGHER_RATIO) or missed:
         return "higher"
     if ratio is not None and ratio < LOWER_RATIO:
         return "lower"
@@ -104,7 +106,7 @@ def meeting_risks(
             meet = evt.get((h, row.model, f"evt_{ref.bank}"))
             other = evt.get((h, row.model, "evt_none"))
             cov = meet.cov80 if meet else None
-            level = _level(ratio, cov)
+            level = _level(ratio, cov, other.cov80 if other else None)
             risks.append(
                 MeetingRiskOut(
                     bank=ref.bank,

@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
 from fxf.api.schemas import HealthResponse, JobStatus, SourceStatus
+from fxf.calendars import CET, DAILY_EARLIEST, daily_run_day
 from fxf.constants import (
     CURRENCY_BANK,
     JOB_AI,
@@ -73,6 +74,7 @@ PIPELINE_JOBS: Final[tuple[str, ...]] = (
     JOB_AI_ANALYSIS,
 )
 DEFAULT_STALE_HOURS: Final = 96
+RATE_SOURCES: Final = (SOURCE_FRANKFURTER_ECB, SOURCE_FRANKFURTER_CBA)
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,11 @@ def is_stale(
 ) -> bool:
     if last_status == "failed" or last_success is None:
         return True
+    if source in RATE_SOURCES:
+        # The daily run of each working day must have succeeded; GitHub may start it up to
+        # 9 hours late, so that long after 17:00 CET the day counts as missed.
+        due = daily_run_day(now.astimezone(CET) - dt.timedelta(hours=9))
+        return last_success.astimezone(CET) < dt.datetime.combine(due, DAILY_EARLIEST, CET)
     limit = dt.timedelta(hours=SOURCE_STALE_HOURS.get(source, DEFAULT_STALE_HOURS))
     return now - last_success > limit
 
@@ -201,7 +208,9 @@ def build_health(session: Session, now: dt.datetime) -> HealthResponse:
     sources = [source_status(snaps[s], now) for s in SOURCES]
     jobs = [job_status(snaps[j]) for j in PIPELINE_JOBS]
     return HealthResponse(
-        status="degraded" if any(s.stale for s in sources) else "ok",
+        status="degraded"
+        if any(s.stale for s in sources) or any(j.last_status == "failed" for j in jobs)
+        else "ok",
         checked_at=now,
         sources=sources,
         jobs=jobs,

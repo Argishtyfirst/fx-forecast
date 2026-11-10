@@ -145,8 +145,12 @@ def ai_run_date(session: Session, pair: PairSpec, run_date: dt.date) -> dt.date 
     )
 
 
-def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, AiView]:
-    """The AI view of the run (model "llm"), with its live track record, by horizon."""
+def ai_views(
+    session: Session, pair: PairSpec, run_date: dt.date, served: Mapping[int, Forecast]
+) -> dict[int, AiView]:
+    """The AI view of the run (model "llm"), with its live track record, by horizon. A call
+    carried from an earlier day is shown only where it is about the same target date as the
+    served row (the weekend); after a failed AI day its targets differ and it is dropped."""
     ai_day = ai_run_date(session, pair, run_date)
     if ai_day is None:
         return {}
@@ -161,6 +165,9 @@ def ai_views(session: Session, pair: PairSpec, run_date: dt.date) -> dict[int, A
     previous = _previous_views(session, pair, ai_day)
     out: dict[int, AiView] = {}
     for row in rows:
+        same = served.get(row.horizon_days)
+        if same is None or same.target_date != row.target_date:
+            continue
         llm = (row.features_json or {}).get("llm") or {}
         try:
             lean, strength = ai_lean(float(llm["prob_higher"]))
@@ -237,7 +244,7 @@ def build_latest(
         by_horizon.setdefault(row.horizon_days, row)  # one served row per horizon
     first = by_horizon[min(by_horizon)]
     evidence = latest_evidence(session, pair.id)
-    ai = ai_views(session, pair, run_date)
+    ai = ai_views(session, pair, run_date, by_horizon)
     risks = meeting_risks(session, pair, by_horizon)
     return LatestForecastResponse(
         pair=pair.id,

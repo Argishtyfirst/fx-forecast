@@ -91,3 +91,18 @@ def is_working_day(d: dt.date) -> bool:
 
 def now_cet() -> dt.datetime:
     return dt.datetime.now(CET)
+
+
+DAILY_EARLIEST = dt.time(17, 0)
+
+
+def daily_run_day(now: dt.datetime) -> dt.date:
+    """The working day a run at `now` (CET) is for: today once it is 17:00 on a working day,
+    otherwise the last working day before today."""
+    day = now.date()
+    if is_working_day(day) and now.time() >= DAILY_EARLIEST:
+        return day
+    day -= dt.timedelta(days=1)
+    while not is_working_day(day):
+        day -= dt.timedelta(days=1)
+    return day

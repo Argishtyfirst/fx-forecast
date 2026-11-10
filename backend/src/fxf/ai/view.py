@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from fxf import http
 from fxf.ai.context import build_context
-from fxf.ai.gemini import generate_json_with_fallback
+from fxf.ai.gemini import generate_json_with_fallback, is_transient, is_unavailable
 from fxf.config import get_settings, git_sha
 from fxf.constants import HORIZONS, JOB_AI, MODEL_LLM, PAIRS, QUANTILE_COLUMNS, PairSpec
 from fxf.db import session_scope
@@ -143,13 +143,15 @@ def _stored_views(session: Session, pair: str, run_date: dt.date) -> dict[int, F
 
 
 def _unchanged(
-    stored: dict[int, Forecast], served: list[Forecast], digest: str, model: str
+    stored: dict[int, Forecast], served: list[Forecast], digest: str, models: set[str]
 ) -> bool:
-    """True when today's answer was made from exactly this context by this model and prompt."""
+    """True when today's answer was made from exactly this context by one of these models
+    (the primary or its fallback) with this prompt."""
+    versions = {model_version(m) for m in models if m}
     for r in served:
         row = stored.get(r.horizon_days)
         llm = ((row.features_json or {}).get("llm") or {}) if row is not None else {}
-        if row is None or row.model_version != model_version(model):
+        if row is None or row.model_version not in versions:
             return False
         if llm.get("context_sha256") != digest:
             return False
@@ -332,6 +334,8 @@ def run_ai_view(
             session.rollback()
             log.warning("ai view failed", extra={"pair": pair.id, "error": str(exc)})
             errors.append(f"{pair.id}: {exc}")
+            if is_unavailable(exc) and not is_transient(exc):
+                break  # the key is unpaid or rejected: the other pairs would fail too
     if errors:
         raise RuntimeError("; ".join(errors))
     return written

@@ -21,7 +21,7 @@ panel. Spec: [docs/SPEC.md](docs/SPEC.md).
 | Served model | The lowest-error model that beats the random walk (MAE ratio < 0.98 and Diebold-Mariano p < 0.10 over 250 days); otherwise the random walk with GARCH bands |
 | Central banks | Fed, ECB and CBA: meeting calendars, decisions, surprises, statement diffs and hawkish scores |
 | Sell indicator (FR-17) | Sell now / Wait / No clear edge, with the chance of a better rate, the risk of waiting and the interest difference. It leans only when a model has proven an edge. |
-| AI view | Experimental. Gemini reads the same context daily. It is scored live only and decides the verdict only after 250 scored forecasts meet the promotion rule. One call per pair and day: a rerun with the same inputs keeps the answer, and the page shows yesterday's call next to today's. |
+| AI view | Experimental. Gemini reads the same context daily. Its call is the headline verdict, labelled as unproven; it is scored live, and the API's statistical signal uses it only after 250 scored forecasts meet the promotion rule. One call per pair and day: a rerun with the same inputs keeps the answer, and the page shows yesterday's call next to today's. |
 | My euros in AMD | Calculator for an amount: AMD now, the likely range by the horizon, and the interest difference earned by converting now |
 | Where to convert | Indicative rates for an amount from 17 Armenian banks (via rate.am), the Inecobank app, Wise and Paysend, best first, with the gap to the CBA rate. Revolut publishes no dram rate a script may read, so it is listed with a note. |
 

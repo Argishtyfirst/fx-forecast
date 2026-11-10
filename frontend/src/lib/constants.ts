@@ -137,10 +137,10 @@ export const PAIR_SOURCES: Record<PairId, string[]> = {
   EURUSD: ["frankfurter_ecb", "fred", "ecb_data_portal", "fed_rss", "ecb_rss", "atlanta_fed"],
   USDAMD: ["frankfurter_cba", "fred", "cba_rates", "fed_rss", "cba_news", "atlanta_fed"],
   EURAMD: ["frankfurter_cba", "fred", "ecb_data_portal", "cba_rates", "fed_rss", "ecb_rss", "cba_news", "atlanta_fed"],
-  RUBAMD: ["frankfurter_cba", "cba_rates", "cba_news"],
-  GBPAMD: ["frankfurter_cba", "cba_rates", "cba_news"],
-  GBPUSD: ["frankfurter_ecb", "fred", "fed_rss", "atlanta_fed"],
-  RUBUSD: ["frankfurter_cba", "fred", "fed_rss", "atlanta_fed"],
+  RUBAMD: ["frankfurter_cba", "boe_cbr_rates", "cba_rates", "cba_news"],
+  GBPAMD: ["frankfurter_cba", "boe_cbr_rates", "cba_rates", "cba_news"],
+  GBPUSD: ["frankfurter_ecb", "fred", "boe_cbr_rates", "fed_rss", "atlanta_fed"],
+  RUBUSD: ["frankfurter_cba", "fred", "boe_cbr_rates", "fed_rss", "atlanta_fed"],
 };
 
 /** Sources behind the central bank events view. */

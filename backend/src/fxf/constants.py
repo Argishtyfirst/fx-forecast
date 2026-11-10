@@ -237,8 +237,9 @@ SOURCE_STALE_HOURS: Final[dict[str, int]] = {
     SOURCE_ECB: 96,
     SOURCE_POLICY: 96,
     SOURCE_CBA: 24 * 45,
-    SOURCE_FED_RSS: 6,
-    SOURCE_ECB_RSS: 6,
+    # GitHub runs the hourly poll every 4 hours at the median and up to 10 apart.
+    SOURCE_FED_RSS: 12,
+    SOURCE_ECB_RSS: 12,
     SOURCE_CBA_NEWS: 24 * 45,
     SOURCE_ATLFED: 96,
 }
