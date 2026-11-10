@@ -10,6 +10,7 @@ import type {
 import { pickText, t } from "../i18n";
 import { BANK_LABELS, CURRENCY_SYMBOL, MODEL_LABELS, type PairMeta } from "../lib/constants";
 import { addDays, fmtDateTime, fmtDayShort, fmtInt, fmtNum, fmtPct, fmtRange, fmtRate, fmtShortDate } from "../lib/format";
+import { useHealth } from "../lib/health";
 import { verdictText } from "../lib/verdict";
 import { Disclaimer } from "./Disclaimer";
 import { SellNowIcon, SwingIcon, UnclearIcon, WaitIcon } from "./Icons";
@@ -133,6 +134,9 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
   const risks = h.meeting_risks ?? [];
   const wider = risks.filter((r) => r.level === "higher").map((r) => BANK_LABELS[r.bank] ?? r.bank);
   const Icon = lean === "sell_now" ? SellNowIcon : lean === "wait" ? WaitIcon : UnclearIcon;
+  // No AI call and its job is failing: say so, or "No clear answer" reads as a judgement.
+  const aiJob = useHealth()?.data?.jobs.find((j) => j.job === "ai_view");
+  const aiDown = !ai && aiJob?.last_status === "failed";
 
   return (
     <section className="card hero" aria-labelledby="hero-question" data-testid="decision-hero" data-lean={lean}>
@@ -176,6 +180,14 @@ export function DecisionHero({ pair, forecast, selected, onSelect }: DecisionHer
         </p>
       )}
       {ai && <p className="verdict-reasoning">{pickText(ai.reasoning_i18n, ai.reasoning)}</p>}
+      {aiDown && (
+        <p className="verdict-previous" data-testid="ai-down">
+          {aiJob?.last_success
+            ? t("hero.aiDown", { date: fmtShortDate(aiJob.last_success.slice(0, 10)) })
+            : t("hero.aiDownNever")}{" "}
+          {/HTTP 40[123]/.test(aiJob?.error ?? "") && t("hero.aiDownKey")}
+        </p>
+      )}
 
       {ai && (
         <div className="hero-meta">

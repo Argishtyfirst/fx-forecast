@@ -85,7 +85,11 @@ def fetch(
                 last_exc = exc
                 code = exc.response.status_code
                 if code != 429 and code < 500:
-                    raise SourceError(f"{source}: HTTP {code} for {url.split('?')[0]}") from exc
+                    body = " ".join(exc.response.text.split())[:240]
+                    raise SourceError(
+                        f"{source}: HTTP {code} for {url.split('?')[0]}"
+                        + (f" ({body})" if body else "")
+                    ) from exc
                 if code == 429 and "quota" in exc.response.text.lower():
                     # An exhausted (daily) quota: waiting a few seconds will not help.
                     body = " ".join(exc.response.text.split())[:240]

@@ -214,6 +214,9 @@ export const en = {
 
   // Decision hero
   "hero.noEdge": "No model has proven an edge for this horizon.",
+  "hero.aiDown": "The AI view has not answered since {date}, so there is no AI call.",
+  "hero.aiDownNever": "The AI view has not answered yet, so there is no AI call.",
+  "hero.aiDownKey": "The Gemini API key is unpaid or rejected.",
   "hero.lower": "{pct} chance the rate is lower by {date}.",
   "hero.lowerSlight": "{pct} chance the rate is lower by {date}, a slight lean.",
   "hero.higher": "{pct} chance the rate is higher by {date}.",

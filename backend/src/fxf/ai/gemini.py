@@ -74,8 +74,8 @@ def generate_json(
     system: str | None = None,
     thinking_level: str | None = None,
     # Room for a reasoning model's thinking tokens, which count toward this limit; billing is
-    # on the tokens actually produced.
-    max_output_tokens: int = 8192,
+    # on the tokens actually produced. 8192 cut off answers in three languages (MAX_TOKENS).
+    max_output_tokens: int = 32768,
 ) -> Any:
     """One deterministic (temperature 0) call; returns the parsed JSON answer.
 
@@ -135,6 +135,15 @@ def is_transient(exc: Exception) -> bool:
     """429 (rate limited or out of quota) or 5xx (overloaded) after all retries."""
     msg = str(exc)
     return isinstance(exc, SourceError) and ("HTTP 429" in msg or "HTTP 5" in msg)
+
+
+def is_unavailable(exc: Exception) -> bool:
+    """The service cannot answer for anyone right now: transient, or the key is rejected or
+    unpaid (401, 402, 403). Not a fault of the request, so callers degrade instead of failing."""
+    msg = str(exc)
+    return is_transient(exc) or (
+        isinstance(exc, SourceError) and any(f"HTTP {c}" in msg for c in (401, 402, 403))
+    )
 
 
 def generate_json_with_fallback(

@@ -324,8 +324,12 @@ def score_statements(
     ctx.meta.update(
         {"scorer_version": scorer.version, "rescore_all": rescore, "candidates": len(ids)}
     )
-    from fxf.ai.gemini import is_transient
+    from fxf.ai.gemini import is_unavailable
 
+    # When the model cannot answer (rate limit, outage, an unpaid or rejected key), statements
+    # with no score yet get the lexicon's, so the forecast features are not left empty. Their
+    # scorer_version stays the lexicon's, so they are scored by the model once it is back.
+    stand_in: Scorer | None = None
     errors: list[str] = []
     ctx.meta["deferred"] = max(0, len(ids) - MAX_PER_RUN)
     for n, event_id in enumerate(ids[:MAX_PER_RUN]):
@@ -335,24 +339,29 @@ def score_statements(
                 continue
             bank, text, diff = ev.bank, ev.statement_text, ev.statement_diff
             s.commit()  # release the connection during the slow model call
+            if stand_in is not None and ev.hawkish_score is not None:
+                continue  # keeps its score until the model is back
+            used = stand_in or scorer
             try:
-                result = scorer.score(bank, text, diff)
+                result = used.score(bank, text, diff)
             except Exception as exc:
-                if is_transient(exc):
-                    # Rate limited or overloaded: stop for this run; the rest wait for the next.
-                    ctx.meta["deferred"] = len(ids) - n
-                    ctx.meta["stopped"] = str(exc)[:300]
-                    log.warning("scorer unavailable; deferring", extra={"error": str(exc)})
-                    break
-                # One bad statement must not block the others.
-                errors.append(f"{ev.bank} {ev.date}: {type(exc).__name__}: {exc}")
-                log.warning(
-                    "statement scoring failed", extra={"event_id": event_id, "error": str(exc)}
-                )
-                continue
+                if stand_in is not None or not is_unavailable(exc):
+                    # One bad statement must not block the others.
+                    errors.append(f"{ev.bank} {ev.date}: {type(exc).__name__}: {exc}")
+                    log.warning(
+                        "statement scoring failed", extra={"event_id": event_id, "error": str(exc)}
+                    )
+                    continue
+                ctx.meta["deferred"] = len(ids) - n
+                ctx.meta["stopped"] = str(exc)[:300]
+                log.warning("scorer unavailable; using the lexicon", extra={"error": str(exc)})
+                stand_in = used = LexiconScorer()
+                if ev.hawkish_score is not None:
+                    continue
+                result = used.score(bank, text, diff)
             ev.hawkish_score = result.score
             ev.hawkish_reason = result.reason
-            ev.scorer_version = scorer.version
+            ev.scorer_version = used.version
             ctx.rows_written += 1
     if errors:
         ctx.meta["errors"] = errors[:20]

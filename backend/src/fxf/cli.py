@@ -127,6 +127,18 @@ def ai_analysis() -> None:
     raise typer.Exit(0 if run_ai_analysis_job() else 1)
 
 
+def daily_run_day(now: dt.datetime) -> dt.date:
+    """The working day a run at `now` (CET) is for: today once it is 17:00 on a working day,
+    otherwise the last working day before today."""
+    day = now.date()
+    if is_working_day(day) and now.time() >= DAILY_EARLIEST:
+        return day
+    day -= dt.timedelta(days=1)
+    while not is_working_day(day):
+        day -= dt.timedelta(days=1)
+    return day
+
+
 @app.command()
 def daily(
     force: Annotated[
@@ -135,13 +147,21 @@ def daily(
 ) -> None:
     """The daily pipeline: ingest, events, forecast. Safe to run twice (idempotent)."""
     now = dt.datetime.now(CET)
-    if not force:
-        if not is_working_day(now.date()):
-            typer.echo(f"{now.date()} is not a working day; nothing to do")
+    run_day = daily_run_day(now)
+    if not force and run_day != now.date():
+        # GitHub starts scheduled runs hours late, often after midnight CET. Such a run still
+        # belongs to the working day it was scheduled for; it is skipped only when that day
+        # already has its forecast.
+        from fxf.api.forecasts import latest_served_run_date
+        from fxf.constants import PAIRS
+        from fxf.db import session_scope
+
+        with session_scope() as s:
+            done = min(latest_served_run_date(s, p) or dt.date.min for p in PAIRS)
+        if done >= run_day:
+            typer.echo(f"it is {now:%a %H:%M} CET and {run_day} has its forecast; nothing to do")
             raise typer.Exit(0)
-        if now.time() < DAILY_EARLIEST:
-            typer.echo(f"it is {now:%H:%M} CET; the daily run starts after 17:00 CET")
-            raise typer.Exit(0)
+        typer.echo(f"catching up the daily run of {run_day}")
 
     from fxf.events.pipeline import run_events
     from fxf.forecast.engine import run_forecast_job
@@ -158,14 +178,14 @@ def daily(
     )
     # Forecast even when a source failed: it uses the last good data, and the API flags
     # the stale source (FR-16). A failed forecast keeps the previous one visible (NFR-04).
-    forecast_ok = run_forecast_job(run_date=now.date())
+    forecast_ok = run_forecast_job(run_date=run_day)
     typer.echo(f"  {'ok  ' if forecast_ok else 'FAIL'} forecast")
     if forecast_ok:
         from fxf.ai.view import run_ai_view_job
 
         # Experimental and optional: a failure is recorded and alerted, but never fails the
         # pipeline, because the served forecast does not depend on it.
-        ai_ok = run_ai_view_job(run_date=now.date())
+        ai_ok = run_ai_view_job(run_date=run_day)
         typer.echo(f"  {'ok  ' if ai_ok else 'FAIL'} ai view")
     raise typer.Exit(0 if (rates_ok and forecast_ok) else 1)
 
